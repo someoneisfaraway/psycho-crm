@@ -1,19 +1,19 @@
+// src/components/clients/AddClientModal.tsx
 import React, { useState } from 'react';
-import type { NewClient } from '../../api/clients';
-import type { Client } from '../../types/database';
-import ClientForm from './ClientForm';
-import { X } from 'lucide-react';
+import type { NewClient } from '../../types/database'; // Используем тип из database.ts
+import ClientForm from './ClientForm'; // Импортируем обновлённую форму
+import { X } from 'lucide-react'; // Импортируем иконку закрытия
 
 interface AddClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (client: NewClient) => void;
+  onAdd: (client: NewClient) => void; // Тип onAdd теперь NewClient
   userId: string;
 }
 
-const AddClientModal: React.FC<AddClientModalProps> = ({ 
-  isOpen, 
-  onClose, 
+const AddClientModal: React.FC<AddClientModalProps> = ({
+  isOpen,
+  onClose,
   onAdd,
   userId
 }) => {
@@ -23,31 +23,17 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
     return null;
   }
 
-  const handleAdd = async (data: NewClient | Partial<Client>) => {
+  const handleAdd = async (data: NewClient) => { // Принимаем NewClient
     try {
       setIsSaving(true);
-      // Here we would typically call an API to create the client
-      // For now, we'll just simulate the save operation
-      await new Promise(resolve => setTimeout(resolve, 100));
-      // Ensure we're passing a complete NewClient object to onAdd
-      const newClientData: NewClient = {
-        user_id: userId, // Ensure user_id is included
-        client_id: data.client_id || '',
-        first_name: data.first_name || '',
-        last_name: data.last_name || '',
-        email: data.email || '',
-        phone: data.phone || '',
-        birth_date: data.birth_date || '',
-        gender: data.gender || '',
-        notes: data.notes || '',
-        encrypted_notes: data.encrypted_notes || '',
-        status: data.status || 'active',
-      };
-      onAdd(newClientData);
-      onClose();
+      // Данные из формы уже соответствуют типу NewClient (с учетом id, user_id)
+      // и подготовлены для отправки в API
+      onAdd(data);
+      onClose(); // Закрываем модалку после успешного добавления
     } catch (error) {
       console.error('Error adding client:', error);
-      // In a real app, we would show an error message to the user
+      // В реальном приложении показали бы пользователю сообщение об ошибке
+      alert('Error adding client: ' + (error as Error).message);
     } finally {
       setIsSaving(false);
     }
@@ -58,20 +44,23 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">Add New Client</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Новый клиент</h2> {/* Обновлен заголовок */}
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-500 focus:outline-none"
+              aria-label="Закрыть модальное окно" // Добавим aria-label для доступности
             >
               <X className="h-6 w-6" />
             </button>
           </div>
-          
+
+          {/* Передаём userId в ClientForm, так как он обязателен для создания */}
           <ClientForm
             onSubmit={handleAdd}
             onCancel={onClose}
+            userId={userId} // <-- Передаём userId
             isLoading={isSaving}
-            initialData={{ user_id: userId, status: 'active', client_id: '', first_name: '', last_name: '', notes: '', encrypted_notes: '', birth_date: '', gender: '', email: '', phone: '' } as Partial<Client>}
+            // initialData не передаём при создании, ClientForm сам сбросит состояние
           />
         </div>
       </div>
