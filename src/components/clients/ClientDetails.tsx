@@ -6,7 +6,7 @@ import { Calendar, Mail, Phone, User, Edit3, FileText, X } from 'lucide-react';
 interface ClientDetailsProps {
   client: Client;
   onEdit: (client: Client) => void;
- onClose: () => void;
+  onClose: () => void;
 }
 
 const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose }) => {
@@ -55,15 +55,14 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose }
                 <User className="h-6 w-6 text-indigo-600" />
               </div>
               <div className="ml-4">
-                <h2 className="text-2xl font-bold text-gray-90">
+                <h2 className="text-2xl font-bold text-gray-900">
                   {client.first_name} {client.last_name}
                 </h2>
                 <p className="text-sm text-gray-500">{client.client_id}</p>
               </div>
-            </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 focus:outline-none"
+              className="text-gray-400 hover:text-gray-50 focus:outline-none"
             >
               <X className="h-6 w-6" />
             </button>
@@ -80,6 +79,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose }
                     <p className="text-sm text-gray-500">Name</p>
                     <p className="font-medium">{client.first_name} {client.last_name}</p>
                   </div>
+                </div>
                 
                 <div className="flex items-center">
                   <Mail className="h-5 w-5 text-gray-400 mr-3" />
@@ -94,10 +94,9 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose }
                     <p className="text-sm text-gray-500">Phone</p>
                     <p className="font-medium">{client.phone || 'Not provided'}</p>
                   </div>
-                </div>
                 
                 <div className="flex items-center">
-                  <Calendar className="h-5 w-5 text-gray-400 mr-3" />
+                  <Calendar className="h-5 w-5 text-gray-40 mr-3" />
                   <div>
                     <p className="text-sm text-gray-500">Birth Date</p>
                     <p className="font-medium">{formatDate(client.birth_date)}</p>
@@ -109,7 +108,6 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose }
                     <p className="text-sm text-gray-500">Gender</p>
                     <p className="font-medium">{client.gender || 'Not specified'}</p>
                   </div>
-                </div>
                 
                 <div className="flex items-center">
                   <User className="h-5 w-5 text-gray-400 mr-3" />
@@ -173,15 +171,17 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose }
                     <p className="text-xl font-bold">0</p>
                   </div>
                 </div>
+              </div>
               
               <div className="bg-white p-4 rounded-lg shadow-sm">
                 <div className="flex items-center">
-                  <User className="h-6 w-6 text-green-60 mr-2" />
+                  <User className="h-6 w-6 text-green-600 mr-2" />
                   <div>
                     <p className="text-sm text-gray-500">Completed Sessions</p>
                     <p className="text-xl font-bold">0</p>
                   </div>
                 </div>
+              </div>
               
               <div className="bg-white p-4 rounded-lg shadow-sm">
                 <div className="flex items-center">
@@ -193,6 +193,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose }
                 </div>
               </div>
             </div>
+          </div>
           
           <div className="mt-6 flex justify-end space-x-3">
             <Button variant="outline" onClick={onClose}>
