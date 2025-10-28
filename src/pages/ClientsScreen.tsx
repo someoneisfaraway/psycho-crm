@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getClients, createClient, updateClient, deleteClient, getClientById } from '../../api/clients'; // Импортируем функции из существующего файла
-import type { Client, NewClient, UpdateClient } from '../../types/database'; // Импортируем типы
+import type { Client } from '../../types/database'; // Импортируем типы
 import ClientsList from '../components/clients/ClientsList'; // Путь может отличаться, если ты перемещал
 import AddClientModal from '../components/clients/AddClientModal';
 import EditClientModal from '../components/clients/EditClientModal';
@@ -10,6 +10,14 @@ import DeleteClientModal from '../components/clients/DeleteClientModal';
 import ClientDetails from '../components/clients/ClientDetails';
 import { Button } from '../components/ui/Button'; // Путь может отличаться
 import { Plus } from 'lucide-react';
+
+// Интерфейс для состояния фильтров
+interface FilterState {
+  status: string; // 'all', 'active', 'paused', 'completed'
+  source: string[];
+  type: string[];
+  debt: 'with_debt' | 'no_debt' | 'all';
+}
 
 const ClientsScreen: React.FC = () => {
   const { user } = useAuth();
@@ -21,15 +29,32 @@ const ClientsScreen: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  // Состояния для поиска и фильтров
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<FilterState>({
+    status: 'all',
+    source: [],
+    type: [],
+    debt: 'all'
+  });
 
-  // Функция для загрузки клиентов
+  // Функция для загрузки клиентов с учётом поиска и фильтров
   const fetchClients = async () => {
     if (!user?.id) return; // Не загружаем, если нет пользователя
 
     setLoading(true);
     setError(null);
     try {
-      const fetchedClients = await getClients(user.id);
+      const options = {
+        userId: user.id,
+        searchTerm: searchTerm || undefined, // Передаём undefined, если пустая строка
+        statusFilter: filters.status !== 'all' ? filters.status : undefined,
+        sourceFilters: filters.source.length > 0 ? filters.source : undefined,
+        typeFilters: filters.type.length > 0 ? filters.type : undefined,
+        debtFilter: filters.debt
+      };
+
+      const fetchedClients = await getClients(options);
       setClients(fetchedClients);
     } catch (err) {
       console.error('Failed to fetch clients:', err);
@@ -40,25 +65,30 @@ const ClientsScreen: React.FC = () => {
     }
   };
 
-  // Загружаем клиентов при монтировании и при изменении user.id
+  // Загружаем клиентов при монтировании, при изменении user.id, searchTerm или filters
   useEffect(() => {
     fetchClients();
-  }, [user?.id]);
+  }, [user?.id, searchTerm, filters]);
+
+  // Функция для обновления фильтров
+  const updateFilter = (filterName: keyof FilterState, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterName]: value
+    }));
+  };
 
   // Функция для добавления клиента
-  const handleAddClient = async (newClientData: Omit<NewClient, 'user_id' | 'id' | 'total_sessions' | 'total_paid' | 'debt' | 'created_at' | 'updated_at'>) => {
+  const handleAddClient = async (newClientData: Omit<Client, 'id' | 'total_sessions' | 'total_paid' | 'debt' | 'created_at' | 'updated_at'>) => {
     if (!user?.id) return; // Защита
 
     try {
       // Подготовим данные для создания, включая обязательные поля
-      const clientToCreate: NewClient = {
+      // id генерируется в api/clients.ts, если не предоставлен
+      const clientToCreate = {
         ...newClientData,
         user_id: user.id, // Важно: передаём user_id
-        id: newClientData.id || `auto_${Date.now()}`, // Пример генерации ID, можно улучшить. Или пусть форма предоставляет.
-        total_sessions: 0, // По умолчанию
-        total_paid: 0,     // По умолчанию
-        debt: 0,           // По умолчанию
-        // created_at и updated_at будут установлены БД/триггером
+        // total_sessions, total_paid, debt, created_at, updated_at будут установлены БД/триггером
       };
 
       const createdClient = await createClient(clientToCreate);
@@ -72,15 +102,13 @@ const ClientsScreen: React.FC = () => {
   };
 
   // Функция для редактирования клиента
-  const handleEditClient = async (updatedClientData: UpdateClient) => {
+  const handleEditClient = async (updatedClientData: Partial<Omit<Client, 'id' | 'user_id'>> & Pick<Client, 'id'>) => {
     if (!updatedClientData.id) return; // Защита
 
     try {
       // Убираем user_id из обновления, если он там есть, так как его нельзя менять
-      // Тип UpdateClient должен быть определен так, чтобы исключать id и user_id
-      // const { user_id, id, ...updates } = updatedClientData; // Если user_id вдруг передаётся
-      // const updatedClient = await updateClient(updatedClientData.id, updates);
-      const updatedClient = await updateClient(updatedClientData.id, updatedClientData);
+      const { user_id, ...updates } = updatedClientData;
+      const updatedClient = await updateClient(updatedClientData.id, updates);
 
       setClients(prevClients => prevClients.map(client => client.id === updatedClient.id ? updatedClient : client));
 
@@ -144,17 +172,104 @@ const ClientsScreen: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {/* Поле поиска */}
+            <input
+              type="text"
+              placeholder="Search clients..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
             <Button variant="outline" onClick={() => setIsAddModalOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add Client
             </Button>
-            {/* Кнопка "Close" может быть не нужна, если детали открываются в модалке или отдельно */}
-            {/* <Button variant="outline" onClick={handleCloseDetails}>
-              Close
-            </Button> */}
+          </div>
+        </div>
+
+        {/* Блок фильтров */}
+        <div className="mb-6 p-4 bg-white rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-3">Filters</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Фильтр по статусу */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => updateFilter('status', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="paused">Paused</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+
+            {/* Фильтр по источнику (простой пример с чекбоксами) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+              <div className="space-y-1">
+                {['private', 'yasno', 'zigmund', 'alter', 'other'].map(src => (
+                  <label key={src} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={filters.source.includes(src)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          updateFilter('source', [...filters.source, src]);
+                        } else {
+                          updateFilter('source', filters.source.filter(s => s !== src));
+                        }
+                      }}
+                      className="mr-2"
+                    />
+                    <span className="capitalize">{src}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Фильтр по типу (простой пример с чекбоксами) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <div className="space-y-1">
+                {['regular', 'one-time'].map(type => (
+                  <label key={type} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={filters.type.includes(type)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          updateFilter('type', [...filters.type, type]);
+                        } else {
+                          updateFilter('type', filters.type.filter(t => t !== type));
+                        }
+                      }}
+                      className="mr-2"
+                    />
+                    <span className="capitalize">{type}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Фильтр по задолженности */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Debt</label>
+              <select
+                value={filters.debt}
+                onChange={(e) => updateFilter('debt', e.target.value as 'with_debt' | 'no_debt' | 'all')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All</option>
+                <option value="with_debt">With Debt</option>
+                <option value="no_debt">No Debt</option>
+              </select>
+            </div>
           </div>
         </div>
 
