@@ -1,6 +1,6 @@
-// src/components/clients/ClientForm.tsx
+// src/components/clients/ClientForm.tsx (обновлённый вариант)
 import React, { useState, useEffect } from 'react';
-import type { Client, NewClient } from '../../types/database'; // Обновим тип, чтобы он не включал id при создании, если генерируется
+import type { Client, NewClient, UpdateClient } from '../../types/database'; // Обновим тип, чтобы он не включал id при создании, если генерируется
 import { Button } from '../ui/Button';
 import { Mail, Phone, User } from 'lucide-react';
 import { encrypt } from '../../utils/encryption'; // Импортируем функцию шифрования
@@ -8,25 +8,41 @@ import { encrypt } from '../../utils/encryption'; // Импортируем фу
 // Определим тип пропсов для формы
 interface ClientFormProps {
   initialData?: Partial<Client>; // Данные для редактирования (необязательны)
-  onSubmit: (data: NewClient) => void; // Функция для отправки данных. Для редактирования тип может быть UpdateClient
+  onSubmit: ( NewClient | (UpdateClient & { id: string })) => void; // Функция для отправки данных. Принимает NewClient или UpdateClient с id
   onCancel: () => void; // Функция для отмены
   userId: string; // ID текущего пользователя (обязательно для создания)
   isLoading?: boolean;
 }
 
 // Тип для состояния формы
-interface FormState extends Omit<NewClient, 'id' | 'user_id'> {
+// Для редактирования мы можем использовать тот же тип, но исключить `user_id` и `id` из обновляемых полей в handleSubmit
+interface FormState {
+  name: string;
+  age: number | undefined;
+  location: string;
+  source: string;
+  type: string;
+  phone: string;
+  email: string;
+  telegram: string;
+  session_price: number;
+  payment_type: string;
+  need_receipt: boolean;
+  format: string;
+  meeting_link: string;
+  notes: string; // Нешифрованные заметки
+  status: string; // Статус
+  // Поля, специфичные для создания
   idType: 'auto' | 'manual'; // Тип генерации ID
   manualId: string; // Поле для ручного ввода ID
-  notes: string; // Нешифрованные заметки
 }
 
-const ClientForm: React.FC<ClientFormProps> = ({ 
-  initialData, 
-  onSubmit, 
-  onCancel, 
+const ClientForm: React.FC<ClientFormProps> = ({
+  initialData,
+  onSubmit,
+  onCancel,
   userId,
-  isLoading = false 
+  isLoading = false
 }) => {
   const isEditing = !!initialData?.id; // Проверяем, редактируем ли мы
 
@@ -38,12 +54,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
       // Для редактирования: используем данные из initialData
       // idType будет 'manual', так как id уже задан
       // manualId будет равен initialData.id
-      // notes нужно расшифровать, если initialData.notes_encrypted есть
-      // Псевдо-расшифровка для примера, т.к. ключа нет
-      const decryptedNotes = initialData.notes_encrypted ? initialData.notes_encrypted : ''; 
+      // notes приходит как расшифрованный текст
       return {
-        idType: 'manual', // ID уже задан, значит, ручной ввод
-        manualId: initialData.id, // Используем существующий id
         name: initialData.name || '',
         age: initialData.age || undefined,
         location: initialData.location || '',
@@ -57,15 +69,14 @@ const ClientForm: React.FC<ClientFormProps> = ({
         need_receipt: initialData.need_receipt !== undefined ? initialData.need_receipt : true,
         format: initialData.format || 'online',
         meeting_link: initialData.meeting_link || '',
-        notes: decryptedNotes, // Используем расшифрованные заметки
+        notes: initialData.notes || '', // Используем расшифрованные заметки
         status: initialData.status || 'active', // Статус при редактировании
-        // Другие поля, если они есть в initialData
+        idType: 'manual', // ID уже задан, значит, ручной ввод (но поле ID не меняется)
+        manualId: initialData.id || '', // Используем существующий id
       };
     } else {
       // Для создания: начальные значения
       return {
-        idType: 'auto', // По умолчанию автоматическая генерация
-        manualId: '', // Пусто при автоматической генерации
         name: '',
         age: undefined,
         location: '',
@@ -81,6 +92,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
         meeting_link: '',
         notes: '',
         status: 'active', // Статус по умолчанию при создании
+        idType: 'auto', // По умолчанию автоматическая генерация
+        manualId: '', // Пусто при автоматической генерации
       };
     }
   });
@@ -103,6 +116,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
   };
 
   const handleIdTypeChange = (type: 'auto' | 'manual') => {
+    if (isEditing) return; // Нельзя менять тип ID при редактировании
     setFormData(prev => ({
       ...prev,
       idType: type,
@@ -117,7 +131,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     if (!formData.name || formData.name.trim().length < 2) {
       newErrors.name = 'Имя обязательно и должно быть не короче 2 символов';
     }
-    if (formData.idType === 'manual' && !formData.manualId) {
+    if (!isEditing && formData.idType === 'manual' && !formData.manualId) { // Проверка ID только при создании
       newErrors.manualId = 'ID клиента обязателен при ручном вводе';
     }
     if (formData.session_price <= 0) {
@@ -132,72 +146,60 @@ const ClientForm: React.FC<ClientFormProps> = ({
     e.preventDefault();
     if (!validate()) return;
 
-    // Подготовка данных для отправки
-    // Если idType === 'auto', то id будет сгенерирован в API
-    // Если idType === 'manual', используем formData.manualId
-    let idForSubmission: string | undefined = undefined;
-    if (formData.idType === 'manual' && formData.manualId) {
-      idForSubmission = formData.manualId;
+    if (isEditing) {
+      // Режим редактирования
+      // Подготовка данных для отправки (UpdateClient)
+      // Исключаем id и user_id из обновления
+      const { idType, manualId, ...updates } = formData; // idType и manualId не обновляются
+      const updatePayload: UpdateClient & { id: string } = {
+        ...updates,
+        notes_encrypted: formData.notes ? encrypt(formData.notes) : null, // Шифруем заметки перед отправкой
+        id: initialData!.id, // id обновляемого клиента
+      };
+      onSubmit(updatePayload);
+    } else {
+      // Режим создания
+      // Подготовка данных для отправки (NewClient)
+      let idForSubmission: string | undefined = undefined;
+      if (formData.idType === 'manual' && formData.manualId) {
+        idForSubmission = formData.manualId;
+      }
+      // В остальных случаях (auto или пустой manual при создании) id будет undefined,
+      // и API его сгенерирует.
+
+      const clientData: NewClient = {
+        id: idForSubmission, // Может быть undefined для авто-генерации
+        user_id: userId, // Передаём user_id из пропсов
+        name: formData.name,
+        age: formData.age || null, // Отправляем null, если не заполнено
+        location: formData.location || null,
+        source: formData.source,
+        type: formData.type,
+        phone: formData.phone || null,
+        email: formData.email || null,
+        telegram: formData.telegram || null,
+        session_price: formData.session_price,
+        payment_type: formData.payment_type,
+        need_receipt: formData.need_receipt,
+        format: formData.format,
+        meeting_link: formData.meeting_link || null,
+        notes_encrypted: formData.notes ? encrypt(formData.notes) : null, // Шифруем заметки перед отправкой
+        status: formData.status, // Статус при создании по умолчанию 'active'
+        // Остальные поля (total_sessions, total_paid, debt, created_at, updated_at) будут установлены БД/триггером
+      };
+
+      onSubmit(clientData);
     }
-    // В остальных случаях (auto или пустой manual при создании) id будет undefined,
-    // и API его сгенерирует.
-
-    const clientData: NewClient = {
-      id: idForSubmission, // Может быть undefined для авто-генерации
-      user_id: userId, // Передаём user_id из пропсов
-      name: formData.name,
-      age: formData.age || null, // Отправляем null, если не заполнено
-      location: formData.location || null,
-      source: formData.source,
-      type: formData.type,
-      phone: formData.phone || null,
-      email: formData.email || null,
-      telegram: formData.telegram || null,
-      session_price: formData.session_price,
-      payment_type: formData.payment_type,
-      need_receipt: formData.need_receipt,
-      format: formData.format,
-      meeting_link: formData.meeting_link || null,
-      notes_encrypted: formData.notes ? encrypt(formData.notes) : null, // Шифруем заметки перед отправкой
-      status: formData.status, // Статус при создании по умолчанию 'active', при редактировании - переданный
-      // Остальные поля (total_sessions, total_paid, debt, created_at, updated_at) будут установлены БД/триггером
-    };
-
-    onSubmit(clientData);
   };
-
-  // Обновляем форму при изменении initialData (например, при переключении между созданием/редактированием)
-  // useEffect(() => {
-  //   if (isEditing && initialData) {
-  //     // Логика обновления состояния при редактировании, если initialData меняется извне
-  //     // Пока что форма инициализируется один раз при монтировании
-  //   }
-  // }, [initialData, isEditing]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Секция 1: Основная информация */}
+      {!isEditing && ( // Показываем поля ID только при создании
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Основная информация</h3>
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-              Имя *
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className={`mt-1 block w-full px-3 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
-            />
-            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
-          </div>
-
+          <h3 className="text-lg font-medium text-gray-900">ID клиента</h3>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              ID клиента
+              Тип ID
             </label>
             <div className="flex space-x-4">
               <label className="inline-flex items-center">
@@ -238,6 +240,27 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 {errors.manualId && <p className="mt-1 text-sm text-red-600">{errors.manualId}</p>}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Секция 1: Основная информация */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900">Основная информация</h3>
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              Имя *
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className={`mt-1 block w-full px-3 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+            />
+            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
           </div>
 
           <div>
@@ -499,7 +522,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
           type="submit"
           loading={isLoading}
         >
-          {isEditing ? 'Сохранить' : 'Создать клиента'}
+          {isEditing ? 'Сохранить изменения' : 'Создать клиента'}
         </Button>
       </div>
     </form>
