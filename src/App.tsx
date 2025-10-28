@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import AuthScreen from './components/auth/AuthScreen';
 import Dashboard from './components/layout/Dashboard';
-import CalendarScreen from './components/screens/CalendarScreen';
+import CalendarScreen from './components/calendar/CalendarScreen';
 import ClientsScreen from './components/screens/ClientsScreen';
 import FinancesScreen from './components/screens/FinancesScreen';
 import SettingsScreen from './components/screens/SettingsScreen';

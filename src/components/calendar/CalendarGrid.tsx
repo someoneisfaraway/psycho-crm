@@ -65,7 +65,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, onDateSelect, sel
                 key={idx}
                 className={`w-2 h-2 rounded-full ${
                   session.status === 'completed'
-                    ? session.payment_status === 'paid' ? 'bg-green-500' : 'bg-yellow-50'
+                    ? session.payment_status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'
                     : 'bg-blue-500'
                 }`}
               />
