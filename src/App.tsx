@@ -3,10 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import AuthScreen from './components/auth/AuthScreen';
 import Dashboard from './components/layout/Dashboard';
-import CalendarScreen from './components/calendar/CalendarScreen';
-import ClientsScreen from './components/screens/ClientsScreen';
-import FinancesScreen from './components/screens/FinancesScreen';
-import SettingsScreen from './components/screens/SettingsScreen';
+import CalendarScreen from './pages/CalendarScreen';
+import ClientsScreen from './pages/ClientsScreen';
+import FinancesScreen from './pages/FinancesScreen';
+import SettingsScreen from './pages/SettingsScreen';
 import './App.css';
 
 function App() {
