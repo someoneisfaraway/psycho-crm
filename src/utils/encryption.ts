@@ -1,67 +1,76 @@
-import CryptoJS from 'crypto-js';
+import CryptoJS from 'crypto-js'
 
 /**
- * Encrypts plain text using AES-256
- * @param text The plain text to encrypt
- * @param key The encryption key
- * @returns The encrypted text in Base64 format
+ * Get or generate encryption key
+ * Key is stored in localStorage
  */
-export const encryptText = (text: string, key: string): string => {
+const getEncryptionKey = (): string => {
+  const KEY_STORAGE = 'psycho_crm_encryption_key'
+  
+  let key = localStorage.getItem(KEY_STORAGE)
+  
+  if (!key) {
+    // Generate new key on first use
+    key = CryptoJS.lib.WordArray.random(32).toString()
+    localStorage.setItem(KEY_STORAGE, key)
+    
+    console.warn('New encryption key generated. If you clear localStorage, encrypted data will be lost.')
+  }
+  
+  return key
+}
+
+/**
+ * Encrypt text using AES-256
+ */
+export const encrypt = (text: string): string => {
+  if (!text) return ''
+  
   try {
-    const encrypted = CryptoJS.AES.encrypt(text, key);
-    return encrypted.toString();
+    const key = getEncryptionKey()
+    const encrypted = CryptoJS.AES.encrypt(text, key).toString()
+    return encrypted
   } catch (error) {
-    console.error('Encryption error:', error);
-    throw new Error('Failed to encrypt text');
+    console.error('Encryption error:', error)
+    throw new Error('Failed to encrypt data')
   }
-};
+}
 
 /**
- * Decrypts encrypted text using AES-256
- * @param encryptedText The encrypted text to decrypt
- * @param key The encryption key
- * @returns The decrypted plain text
+ * Decrypt text using AES-256
  */
-export const decryptText = (encryptedText: string, key: string): string => {
+export const decrypt = (encryptedText: string): string => {
+  if (!encryptedText) return ''
+  
   try {
-    const decrypted = CryptoJS.AES.decrypt(encryptedText, key);
-    return decrypted.toString(CryptoJS.enc.Utf8);
+    const key = getEncryptionKey()
+    const decrypted = CryptoJS.AES.decrypt(encryptedText, key)
+    return decrypted.toString(CryptoJS.enc.Utf8)
   } catch (error) {
-    console.error('Decryption error:', error);
-    throw new Error('Failed to decrypt text');
+    console.error('Decryption error:', error)
+    return '[Ошибка расшифровки]'
   }
-};
+}
 
 /**
- * Generates a hash for a given text using SHA-256
- * @param text The text to hash
- * @returns The hashed text
+ * Export encryption key for backup
  */
-export const hashText = (text: string): string => {
-  try {
-    return CryptoJS.SHA256(text).toString();
-  } catch (error) {
-    console.error('Hashing error:', error);
-    throw new Error('Failed to hash text');
-  }
-};
+export const exportEncryptionKey = (): string => {
+  return getEncryptionKey()
+}
 
 /**
- * Generates a secure encryption key from a password and salt
- * @param password The user's password
- * @param salt The salt value
- * @returns The derived encryption key
+ * Import encryption key from backup
  */
-export const deriveKey = (password: string, salt: string): string => {
- try {
-    // Using PBKDF2 to derive a key from the password
-    const key = CryptoJS.PBKDF2(password, salt, {
-      keySize: 256 / 32,
-      iterations: 1000
-    });
-    return key.toString();
-  } catch (error) {
-    console.error('Key derivation error:', error);
-    throw new Error('Failed to derive encryption key');
-  }
-};
+export const importEncryptionKey = (key: string): void => {
+  const KEY_STORAGE = 'psycho_crm_encryption_key'
+  localStorage.setItem(KEY_STORAGE, key)
+}
+
+/**
+ * Check if encryption key exists
+ */
+export const hasEncryptionKey = (): boolean => {
+  const KEY_STORAGE = 'psycho_crm_encryption_key'
+  return !!localStorage.getItem(KEY_STORAGE)
+}

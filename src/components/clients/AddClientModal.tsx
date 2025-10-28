@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { NewClient } from '../../api/clients';
+import type { Client } from '../../types/database';
 import ClientForm from './ClientForm';
 import { X } from 'lucide-react';
 
@@ -22,13 +23,27 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
     return null;
   }
 
-  const handleAdd = async (data: NewClient) => {
+  const handleAdd = async (data: NewClient | Partial<Client>) => {
     try {
       setIsSaving(true);
       // Here we would typically call an API to create the client
       // For now, we'll just simulate the save operation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      onAdd(data);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      // Ensure we're passing a complete NewClient object to onAdd
+      const newClientData: NewClient = {
+        user_id: userId, // Ensure user_id is included
+        client_id: data.client_id || '',
+        first_name: data.first_name || '',
+        last_name: data.last_name || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        birth_date: data.birth_date || '',
+        gender: data.gender || '',
+        notes: data.notes || '',
+        encrypted_notes: data.encrypted_notes || '',
+        status: data.status || 'active',
+      };
+      onAdd(newClientData);
       onClose();
     } catch (error) {
       console.error('Error adding client:', error);
@@ -56,7 +71,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
             onSubmit={handleAdd}
             onCancel={onClose}
             isLoading={isSaving}
-            initialData={{ user_id: userId } as Partial<NewClient>}
+            initialData={{ user_id: userId, status: 'active', client_id: '', first_name: '', last_name: '', notes: '', encrypted_notes: '', birth_date: '', gender: '', email: '', phone: '' } as Partial<Client>}
           />
         </div>
       </div>
