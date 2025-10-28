@@ -3,17 +3,17 @@ import type { Session, Client } from '../../types/database';
 import { Button } from '../ui/Button';
 
 interface SessionModalProps {
- isOpen: boolean;
- onClose: () => void;
+  isOpen: boolean;
+  onClose: () => void;
   onSave: (session: Partial<Session>) => void;
   session?: Session;
-  clients: Client[];
+ clients: Client[];
 }
 
 const SessionModal: React.FC<SessionModalProps> = ({ isOpen, onClose, onSave, session, clients }) => {
   const [formData, setFormData] = useState<Partial<Session>>({
     client_id: '',
-    date: '',
+    date: new Date().toISOString().split('T')[0],
     start_time: '',
     end_time: '',
     session_number: 1,

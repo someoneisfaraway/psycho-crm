@@ -6,8 +6,10 @@ import CalendarGrid from './CalendarGrid';
 import SessionsList from './SessionsList';
 import SessionModal from './SessionModal';
 import { Button } from '../ui/Button';
-import { LoadingSpinner } from '../common/LoadingSpinner';
-import { EmptyState } from '../common/EmptyState';
+import LoadingSpinner from '../common/LoadingSpinner';
+import EmptyState from '../common/EmptyState';
+import { getSessions, createSession, updateSession } from '../../api/sessions';
+import { getClients } from '../../api/clients';
 
 const CalendarScreen: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -18,119 +20,20 @@ const CalendarScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Mock data loading - in real app this would come from API
+  // Load data from API
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // In a real app, we would get the current user ID from auth context
+        const userId = 'current-user-id'; // This would come from auth context in real app
         
-        // Mock sessions data
-        const mockSessions: Session[] = [
-          {
-            id: '1',
-            client_id: '1',
-            user_id: 'user1',
-            session_number: 1,
-            date: new Date().toISOString(),
-            start_time: '10:00',
-            end_time: '11:00',
-            status: 'completed',
-            payment_status: 'paid',
-            payment_amount: 5000,
-            notes: 'Первая сессия с новым клиентом',
-            receipt_sent: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: '2',
-            client_id: '2',
-            user_id: 'user1',
-            session_number: 2,
-            date: new Date().toISOString(),
-            start_time: '14:00',
-            end_time: '15:00',
-            status: 'scheduled',
-            payment_status: 'pending',
-            payment_amount: 5000,
-            notes: 'Плановая сессия',
-            receipt_sent: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: '3',
-            client_id: '3',
-            user_id: 'user1',
-            session_number: 3,
-            date: new Date(Date.now() + 8640000).toISOString(), // tomorrow
-            start_time: '16:00',
-            end_time: '17:00',
-            status: 'scheduled',
-            payment_status: 'pending',
-            payment_amount: 5000,
-            notes: 'Новая сессия',
-            receipt_sent: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ];
+        const [sessionsData, clientsData] = await Promise.all([
+          getSessions(userId),
+          getClients(userId)
+        ]);
         
-        // Mock clients data
-        const mockClients: Client[] = [
-          {
-            id: '1',
-            user_id: 'user1',
-            client_id: 'client1',
-            first_name: 'Анна',
-            last_name: 'Иванова',
-            email: 'anna@example.com',
-            phone: '+79991234567',
-            birth_date: '1990-05-15',
-            gender: 'female',
-            notes: 'Клиент с опытом терапии',
-            encrypted_notes: '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            status: 'active'
-          },
-          {
-            id: '2',
-            user_id: 'user1',
-            client_id: 'client2',
-            first_name: 'Мария',
-            last_name: 'Петрова',
-            email: 'maria@example.com',
-            phone: '+79991234568',
-            birth_date: '1985-10-20',
-            gender: 'female',
-            notes: 'Новый клиент',
-            encrypted_notes: '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            status: 'active'
-          },
-          {
-            id: '3',
-            user_id: 'user1',
-            client_id: 'client3',
-            first_name: 'Дмитрий',
-            last_name: 'Сидоров',
-            email: 'dmitry@example.com',
-            phone: '+79991234569',
-            birth_date: '1980-03-10',
-            gender: 'male',
-            notes: 'Клиент с тревожностью',
-            encrypted_notes: '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            status: 'active'
-          }
-        ];
-        
-        setSessions(mockSessions);
-        setClients(mockClients);
+        setSessions(sessionsData);
+        setClients(clientsData);
       } catch (err) {
         setError('Ошибка загрузки данных');
         console.error(err);
@@ -156,31 +59,43 @@ const CalendarScreen: React.FC = () => {
     setShowSessionModal(true);
   };
 
-  const handleSaveSession = (sessionData: Partial<Session>) => {
-    if (currentSession) {
-      // Update existing session
-      setSessions(prev => prev.map(s => 
-        s.id === currentSession.id ? { ...s, ...sessionData } as Session : s
-      ));
-    } else {
-      // Create new session
-      const newSession: Session = {
-        id: `session_${Date.now()}`,
-        user_id: 'user1', // In real app, this would come from auth context
-        client_id: sessionData.client_id || '',
-        session_number: sessions.length + 1,
-        date: sessionData.date || new Date().toISOString(),
-        start_time: sessionData.start_time || '',
-        end_time: sessionData.end_time || '',
-        status: sessionData.status || 'scheduled',
-        payment_status: sessionData.payment_status || 'pending',
-        payment_amount: sessionData.payment_amount || 0,
-        notes: sessionData.notes || '',
-        receipt_sent: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      setSessions(prev => [...prev, newSession]);
+  const handleSaveSession = async (sessionData: Partial<Session>) => {
+    try {
+      if (currentSession) {
+        // Update existing session
+        const updatedSession = await updateSession(currentSession.id, sessionData);
+        setSessions(prev => prev.map(s =>
+          s.id === currentSession.id ? updatedSession : s
+        ));
+      } else {
+        // Create new session
+        // Ensure required fields are present
+        if (!sessionData.client_id) {
+          setError('Выберите клиента');
+          return;
+        }
+        
+        const newSessionData = {
+          client_id: sessionData.client_id,
+          user_id: 'current-user-id', // This would come from auth context
+          session_number: sessions.length + 1,
+          date: sessionData.date || new Date().toISOString(),
+          start_time: sessionData.start_time,
+          end_time: sessionData.end_time,
+          status: sessionData.status || 'scheduled',
+          payment_status: sessionData.payment_status || 'pending',
+          payment_amount: sessionData.payment_amount || 0,
+          notes: sessionData.notes,
+          receipt_sent: false
+        };
+        
+        const newSession = await createSession(newSessionData);
+        setSessions(prev => [...prev, newSession]);
+      }
+      setShowSessionModal(false);
+    } catch (error) {
+      console.error('Error saving session:', error);
+      setError('Ошибка сохранения сессии');
     }
   };
 
@@ -189,7 +104,7 @@ const CalendarScreen: React.FC = () => {
   }
 
   if (error) {
-    return <EmptyState title="Ошибка" message={error} />;
+    return <EmptyState title="Ошибка" description={error} />;
   }
 
   return (
