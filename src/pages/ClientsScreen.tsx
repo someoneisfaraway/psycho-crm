@@ -1,8 +1,8 @@
 // src/pages/ClientsScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getClients, createClient, updateClient, deleteClient, getClientById } from '../../api/clients'; // Импортируем функции из существующего файла
-import type { Client } from '../../types/database'; // Импортируем типы
+import { getClients, createClient, updateClient, deleteClient } from '../../api/clients'; // Импортируем функции из существующего файла
+import type { Client, NewClient, UpdateClient } from '../../types/database'; // Импортируем типы
 import ClientsList from '../components/clients/ClientsList'; // Путь может отличаться, если ты перемещал
 import AddClientModal from '../components/clients/AddClientModal';
 import EditClientModal from '../components/clients/EditClientModal';
@@ -79,7 +79,7 @@ const ClientsScreen: React.FC = () => {
   };
 
   // Функция для добавления клиента
-  const handleAddClient = async (newClientData: Omit<Client, 'id' | 'total_sessions' | 'total_paid' | 'debt' | 'created_at' | 'updated_at'>) => {
+  const handleAddClient = async (newClientData: Omit<NewClient, 'id' | 'total_sessions' | 'total_paid' | 'debt' | 'created_at' | 'updated_at'>) => {
     if (!user?.id) return; // Защита
 
     try {
@@ -102,14 +102,14 @@ const ClientsScreen: React.FC = () => {
   };
 
   // Функция для редактирования клиента
-  const handleEditClient = async (updatedClientData: Partial<Omit<Client, 'id' | 'user_id'>> & Pick<Client, 'id'>) => {
-    if (!updatedClientData.id) return; // Защита
+  const handleEditClient = async (updatedClientData: UpdateClient & { id: string }) => {
+    // id передаётся отдельно, остальные обновления в updates
+    const { id, ...updates } = updatedClientData;
 
     try {
-      // Убираем user_id из обновления, если он там есть, так как его нельзя менять
-      const { user_id, ...updates } = updatedClientData;
-      const updatedClient = await updateClient(updatedClientData.id, updates);
+      const updatedClient = await updateClient(id, updates); // Передаём id и обновления отдельно
 
+      // Обновляем список клиентов локально
       setClients(prevClients => prevClients.map(client => client.id === updatedClient.id ? updatedClient : client));
 
       // Если редактируется выбранный клиент в деталях, обновляем его там тоже
@@ -117,7 +117,7 @@ const ClientsScreen: React.FC = () => {
         setSelectedClient(updatedClient);
       }
 
-      setIsEditModalOpen(false); // Закрываем модалку
+      setIsEditModalOpen(false); // Закрываем модалку редактирования
     } catch (err) {
       console.error('Failed to edit client:', err);
       // Обработка ошибки
@@ -165,6 +165,13 @@ const ClientsScreen: React.FC = () => {
           setIsEditModalOpen(true);
         }}
         onClose={handleCloseDetails}
+        // Передаём функцию для обновления selectedClient и списка
+        onClientUpdated={(updatedClient) => {
+          // Обновляем selectedClient
+          setSelectedClient(updatedClient);
+          // Обновляем список клиентов в состоянии
+          setClients(prevClients => prevClients.map(c => c.id === updatedClient.id ? updatedClient : c));
+        }}
       />
     );
   }

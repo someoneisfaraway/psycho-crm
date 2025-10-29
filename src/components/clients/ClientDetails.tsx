@@ -1,19 +1,24 @@
 // src/components/clients/ClientDetails.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import type { Client } from '../../types/database';
 import { Button } from '../ui/Button';
-import { X, User, Phone, Mail, MessageCircle, Calendar, CreditCard, Receipt, AlertTriangle, Edit, PlusCircle } from 'lucide-react';
+import { X, User, Phone, Mail, MessageCircle, Calendar, CreditCard, Receipt, AlertTriangle, Edit, PlusCircle, MoreVertical, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale'; // Убедитесь, что локаль установлена, если нужна русская локализация
+import { updateClient } from '../../api/clients'; // Импортируем функцию обновления
 
 interface ClientDetailsProps {
   client: Client;
   onEdit: (client: Client) => void; // Передаётся клиент для редактирования
   onClose: () => void; // Закрывает детальный вид
   onScheduleSession?: (clientId: string) => void; // Опционально, если вызывается из ClientsScreen
+  onClientUpdated?: (updatedClient: Client) => void; // Опционально, для обновления состояния в родителе
 }
 
-const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, onScheduleSession }) => {
+const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, onScheduleSession, onClientUpdated }) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false); // Состояние для меню "ещё"
+
   // Форматирование дат
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Не указана';
@@ -30,6 +35,26 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
       return format(new Date(dateString), 'd MMMM yyyy в HH:mm', { locale: ru });
     } catch {
       return dateString;
+    }
+  };
+
+  // Функция для изменения статуса клиента на 'completed'
+  const handleCompleteClient = async () => {
+    if (window.confirm(`Вы уверены, что хотите завершить работу с клиентом ${client.name}? Это изменит статус на "Завершён".`)) {
+      try {
+        setIsUpdating(true);
+        const updatedClientData = { ...client, status: 'completed' };
+        const updatedClient = await updateClient(client.id, updatedClientData);
+        // Обновляем локальное состояние
+        onClientUpdated?.(updatedClient); // Если передана функция обновления родителя
+        // Закрываем меню
+        setShowMoreOptions(false);
+      } catch (error) {
+        console.error('Error completing client:', error);
+        alert('Ошибка при завершении работы с клиентом: ' + (error as Error).message);
+      } finally {
+        setIsUpdating(false);
+      }
     }
   };
 
@@ -66,6 +91,30 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
                 {client.status === 'active' ? 'Активный' : client.status === 'paused' ? 'На паузе' : 'Завершён'}
               </span>
               <span className="ml-2 text-gray-600 capitalize">{client.source}</span>
+            </div>
+            {/* Меню "ещё" для действий типа "Завершить работу" */}
+            <div className="relative">
+              <Button variant="ghost" size="sm" onClick={() => setShowMoreOptions(!showMoreOptions)}>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+              {showMoreOptions && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                  {/* Кнопка "Завершить работу" видна только для активных и на паузе клиентов */}
+                  {(client.status === 'active' || client.status === 'paused') && (
+                    <button
+                      onClick={handleCompleteClient}
+                      disabled={isUpdating}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      Завершить работу
+                    </button>
+                  )}
+                  {/* Можно добавить другие действия, например, "Поставить на паузу" */}
+                  {/* <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    Поставить на паузу
+                  </button> */}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -169,18 +218,8 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
           <div className="bg-white shadow rounded-lg p-6 mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Примечания</h2>
             <p className="text-gray-600">
-              {/* Заметки хранятся зашифрованными. Их нужно расшифровать перед отображением. */}
-              {/* Псевдо-расшифровка для примера. В реальности нужен доступ к ключу. */}
-              {/* Ниже показано место, где будет отображена расшифрованная заметка. */}
-              {/* Для MVP, если ключ недоступен в этом компоненте, можно показать зашифрованный текст или сообщение. */}
-              {/* Пока что, покажем зашифрованный текст. */}
-              {/* В идеальной реализации, `client.notes_encrypted` был бы передан сюда уже расшифрованным или функция decrypt была бы доступна. */}
               {/* Псевдо-расшифровка: */}
-              {/* {decrypt(client.notes_encrypted)} */}
-              {/* Просто покажем зашифрованный текст: */}
               {client.notes_encrypted}
-              {/* Или сообщение: */}
-              {/* "Примечание зашифровано и не может быть отображено без ключа." */}
             </p>
           </div>
         )}
