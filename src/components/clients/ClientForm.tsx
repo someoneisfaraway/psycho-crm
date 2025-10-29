@@ -1,4 +1,4 @@
-// src/components/clients/ClientForm.tsx (обновлённый вариант)
+// src/components/clients/ClientForm.tsx
 import React, { useState, useEffect } from 'react';
 import type { Client, NewClient, UpdateClient } from '../../types/database'; // Обновим тип, чтобы он не включал id при создании, если генерируется
 import { Button } from '../ui/Button';
@@ -124,6 +124,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
       ...prev,
       [name]: processedValue
     }));
+
+    // Очищаем ошибку для этого поля при изменении
+    if (errors[name as keyof FormState]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const handleIdTypeChange = (type: 'auto' | 'manual') => {
@@ -147,6 +152,16 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
     if (formData.session_price <= 0) {
       newErrors.session_price = 'Стоимость должна быть больше 0';
+    }
+    // Проверка обязательных полей: source, type, payment_type
+    if (!formData.source) {
+      newErrors.source = 'Источник обязателен';
+    }
+    if (!formData.type) {
+      newErrors.type = 'Тип клиента обязателен';
+    }
+    if (!formData.payment_type) {
+      newErrors.payment_type = 'Форма оплаты обязательна';
     }
 
     setErrors(newErrors);
@@ -315,15 +330,17 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="source"
               value={formData.source}
               onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className={`mt-1 block w-full px-3 py-2 border ${errors.source ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
               disabled={isEditing} // Предположим, source нельзя менять при редактировании
             >
+              <option value="">Выберите источник</option>
               <option value="private">Частный клиент</option>
               <option value="yasno">Ясно</option>
               <option value="zigmund">Зигмунд</option>
               <option value="alter">Alter</option>
               <option value="other">Другое</option>
             </select>
+            {errors.source && <p className="mt-1 text-sm text-red-600">{errors.source}</p>}
           </div>
 
           <div>
@@ -335,11 +352,13 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="type"
               value={formData.type}
               onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className={`mt-1 block w-full px-3 py-2 border ${errors.type ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
             >
+              <option value="">Выберите тип</option>
               <option value="regular">Системный (регулярные сессии)</option>
               <option value="one-time">Разовый</option>
             </select>
+            {errors.type && <p className="mt-1 text-sm text-red-600">{errors.type}</p>}
           </div>
         </div>
 
@@ -432,13 +451,15 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="payment_type"
               value={formData.payment_type}
               onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className={`mt-1 block w-full px-3 py-2 border ${errors.payment_type ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
             >
+              <option value="">Выберите форму оплаты</option>
               <option value="self-employed">Самозанятый (чеки нужны)</option>
               <option value="ip">ИП (чеки нужны)</option>
               <option value="cash">Наличные (без чеков)</option>
               <option value="platform">Через платформу</option>
             </select>
+            {errors.payment_type && <p className="mt-1 text-sm text-red-600">{errors.payment_type}</p>}
           </div>
 
           <div className="flex items-center">
