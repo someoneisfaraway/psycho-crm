@@ -218,8 +218,8 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
           <div className="bg-white shadow rounded-lg p-6 mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Примечания</h2>
             <p className="text-gray-600">
-              {/* Псевдо-расшифровка: */}
-              {client.notes_encrypted}
+              {/* Расшифровка заметки перед отображением */}
+              {decrypt(client.notes_encrypted)}
             </p>
           </div>
         )}
