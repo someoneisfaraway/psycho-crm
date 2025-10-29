@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import type { Client, NewClient, UpdateClient } from '../../types/database'; // Обновим тип, чтобы он не включал id при создании, если генерируется
 import { Button } from '../ui/Button';
 import { Mail, Phone, User } from 'lucide-react';
-import { encrypt } from '../../utils/encryption'; // Импортируем функцию шифрования
+import { encrypt, decrypt } from '../../utils/encryption'; // Импортируем функции шифрования/расшифровки
 
 // Определим тип пропсов для формы
 interface ClientFormProps {
-  initialData?: Partial<Client>; // Данные для редактирования (необязательны)
+  initialData?: Partial<Client> & { notes?: string }; // Данные для редактирования (необязательны). Добавим notes как отдельное поле, если оно уже расшифровано
+  initialEncryptedNotes?: string; // Альтернатива - передать зашифрованные заметки для редактирования
   onSubmit: ( NewClient | (UpdateClient & { id: string })) => void; // Функция для отправки данных. Принимает NewClient или UpdateClient с id
   onCancel: () => void; // Функция для отмены
   userId: string; // ID текущего пользователя (обязательно для создания)
@@ -39,6 +40,7 @@ interface FormState {
 
 const ClientForm: React.FC<ClientFormProps> = ({
   initialData,
+  initialEncryptedNotes, // Новое свойство
   onSubmit,
   onCancel,
   userId,
@@ -50,29 +52,38 @@ const ClientForm: React.FC<ClientFormProps> = ({
   // При редактировании, initialData будет содержать id, source, type, и т.д.
   // При создании, initialData будет undefined или пустой объект.
   const [formData, setFormData] = useState<FormState>(() => {
-    if (isEditing && initialData) {
-      // Для редактирования: используем данные из initialData
+    if (isEditing && (initialData || initialEncryptedNotes)) {
+      // Для редактирования: используем данные из initialData или initialEncryptedNotes
       // idType будет 'manual', так как id уже задан
       // manualId будет равен initialData.id
-      // notes приходит как расшифрованный текст
+      let decryptedNotes = '';
+      if (initialData && initialData.notes !== undefined) {
+        // Если notes переданы как расшифрованные
+        decryptedNotes = initialData.notes;
+      } else if (initialEncryptedNotes) {
+        // Если передана зашифрованная строка, расшифровываем её
+        decryptedNotes = decrypt(initialEncryptedNotes);
+      }
+      // Если ни то, ни другое не передано, оставляем пустую строку
+
       return {
-        name: initialData.name || '',
-        age: initialData.age || undefined,
-        location: initialData.location || '',
-        source: initialData.source || 'private',
-        type: initialData.type || 'regular',
-        phone: initialData.phone || '',
-        email: initialData.email || '',
-        telegram: initialData.telegram || '',
-        session_price: initialData.session_price || 0,
-        payment_type: initialData.payment_type || 'self-employed',
-        need_receipt: initialData.need_receipt !== undefined ? initialData.need_receipt : true,
-        format: initialData.format || 'online',
-        meeting_link: initialData.meeting_link || '',
-        notes: initialData.notes || '', // Используем расшифрованные заметки
-        status: initialData.status || 'active', // Статус при редактировании
+        name: initialData?.name || '',
+        age: initialData?.age || undefined,
+        location: initialData?.location || '',
+        source: initialData?.source || 'private',
+        type: initialData?.type || 'regular',
+        phone: initialData?.phone || '',
+        email: initialData?.email || '',
+        telegram: initialData?.telegram || '',
+        session_price: initialData?.session_price || 0,
+        payment_type: initialData?.payment_type || 'self-employed',
+        need_receipt: initialData?.need_receipt !== undefined ? initialData.need_receipt : true,
+        format: initialData?.format || 'online',
+        meeting_link: initialData?.meeting_link || '',
+        notes: decryptedNotes, // Используем расшифрованные заметки
+        status: initialData?.status || 'active', // Статус при редактировании
         idType: 'manual', // ID уже задан, значит, ручной ввод (но поле ID не меняется)
-        manualId: initialData.id || '', // Используем существующий id
+        manualId: initialData?.id || '', // Используем существующий id
       };
     } else {
       // Для создания: начальные значения
