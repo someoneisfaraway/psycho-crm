@@ -1,139 +1,154 @@
-import React, { useState } from 'react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth, isSameDay, parseISO } from 'date-fns';
-import { ru } from 'date-fns/locale';
-import type { Session } from '../../types/database';
+// src/components/calendar/CalendarGrid.tsx
+import React, { useState, useEffect } from 'react';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth, isSameDay, addDays, parseISO } from 'date-fns';
+import { ru } from 'date-fns/locale'; // Убедитесь, что локаль установлена, если нужна русская локализация
+import type { Session } from '../../types/database'; // Импортируем тип Session
 
 interface CalendarGridProps {
-  sessions: Session[];
-  onDateSelect: (date: Date) => void;
-  selectedDate: Date;
+  sessions: Session[]; // Список сессий для отображения индикаторов
+  selectedDate: Date | null; // Выбранная дата
+  onDateSelect: (date: Date) => void; // Функция для выбора даты
+  onNewSessionClick: (date: Date) => void; // Функция для создания новой сессии
 }
 
-const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, onDateSelect, selectedDate }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onDateSelect, onNewSessionClick }) => {
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [daysInMonth, setDaysInMonth] = useState<Date[]>([]);
 
-  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
-  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-  const goToToday = () => setCurrentMonth(new Date());
+  // Функция для получения индикаторов сессий для конкретного дня
+  const getSessionIndicators = (date: Date) => {
+    // Фильтруем сессии на выбранную дату
+    const sessionsForDate = sessions.filter(session => isSameDay(parseISO(session.scheduled_at), date));
+    const total = sessionsForDate.length;
+    if (total === 0) return null;
 
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(monthStart);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday as start of week
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    // Подсчитываем оплаченные и неоплаченные
+    const paid = sessionsForDate.filter(s => s.paid).length;
+    const unpaid = total - paid;
 
-  const dateFormat = 'd';
-  const rows = [];
+    // Определяем цвет индикатора (для простоты используем зелёный/жёлтый)
+    // В реальности можно использовать разные цвета или иконки
+    const indicatorColor = unpaid > 0 ? 'bg-yellow-500' : 'bg-green-500';
 
-  let days = [];
-  let day = startDate;
-  let formattedDate = '';
+    // Ограничиваем количество отображаемых точек
+    const maxDots = 3;
+    const dotsToShow = Math.min(total, maxDots);
+    const hasMore = total > maxDots;
 
-  while (day <= endDate) {
-    for (let i = 0; i < 7; i++) {
-      formattedDate = format(day, dateFormat);
-      const cloneDay = day;
-      
-      // Get sessions for this day
-      const daySessions = sessions.filter(session =>
-        isSameDay(parseISO(session.date), cloneDay)
-      );
-      
-      // Count completed and unpaid sessions
-      const completedSessions = daySessions.filter(s => s.status === 'completed');
-      const unpaidSessions = completedSessions.filter(s => s.payment_status === 'unpaid');
-      
-      days.push(
-        <div
-          key={day.toString()}
-          className={`relative min-h-24 p-1 border border-gray-200 cursor-pointer
-            ${!isSameMonth(day, monthStart) ? 'bg-gray-100 text-gray-400' : ''}
-            ${isSameDay(day, new Date()) ? 'bg-blue-50' : ''}
-            ${isSameDay(day, selectedDate) ? 'ring-2 ring-blue-500' : ''}
-          `}
-          onClick={() => onDateSelect(cloneDay)}
-        >
-          <div className="flex justify-between">
-            <span className={`text-sm ${isSameDay(day, new Date()) ? 'font-bold' : ''}`}>
-              {formattedDate}
-            </span>
-          </div>
-          
-          {/* Session indicators */}
-          <div className="mt-1 flex flex-wrap gap-1">
-            {daySessions.slice(0, 3).map((session, idx) => (
-              <div
-                key={idx}
-                className={`w-2 h-2 rounded-full ${
-                  session.status === 'completed'
-                    ? session.payment_status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'
-                    : 'bg-blue-500'
-                }`}
-              />
-            ))}
-            {daySessions.length > 3 && (
-              <span className="text-xs text-gray-500">+{daySessions.length - 3}</span>
-            )}
-          </div>
+    return (
+      <div className="flex justify-center mt-1">
+        <div className="flex space-x-0.5">
+          {Array.from({ length: dotsToShow }).map((_, i) => (
+            <div key={i} className={`w-1.5 h-1.5 rounded-full ${indicatorColor}`}></div>
+          ))}
+          {hasMore && <span className="text-xs text-gray-500 ml-1">+{total - maxDots}</span>}
         </div>
-      );
-      day = addDays(day, 1);
-    }
-    rows.push(
-      <div key={day.toString()} className="grid grid-cols-7 gap-0">
-        {days}
       </div>
     );
-    days = [];
-  }
+  };
+
+  // Обновляем дни месяца при изменении currentDate
+  useEffect(() => {
+    const start = startOfWeek(startOfMonth(currentDate));
+    const end = endOfWeek(endOfMonth(currentDate));
+    const days = [];
+    let day = start;
+
+    while (day <= end) {
+      days.push(new Date(day));
+      day = addDays(day, 1);
+    }
+
+    setDaysInMonth(days);
+  }, [currentDate]);
+
+  // Обработчики навигации
+  const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
+  const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
+  const goToToday = () => setCurrentDate(new Date());
+
+  // Определяем, является ли день сегодняшним
+  const isToday = (date: Date) => isSameDay(date, new Date());
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="flex items-center justify-between p-4">
-        <button
-          onClick={prevMonth}
-          className="p-2 rounded-full hover:bg-gray-100"
-        >
-          {'<'}
-        </button>
-        <h2 className="text-xl font-semibold">
-          {format(currentMonth, 'LLLL yyyy', { locale: ru })}
+    <div className="bg-white rounded-lg shadow p-4">
+      {/* Заголовок с навигацией */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">
+          {format(currentDate, 'LLLL yyyy', { locale: ru })}
         </h2>
-        <div className="flex items-center gap-2">
-          <button 
+        <div className="flex space-x-2">
+          <button
             onClick={goToToday}
-            className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+            className="px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md"
           >
             Сегодня
           </button>
           <button
-            onClick={nextMonth}
-            className="p-2 rounded-full hover:bg-gray-100"
+            onClick={prevMonth}
+            className="p-1 text-gray-600 hover:bg-gray-100 rounded-full"
+            aria-label="Предыдущий месяц"
           >
-            {'>'}
+            <
+          </button>
+          <button
+            onClick={nextMonth}
+            className="p-1 text-gray-600 hover:bg-gray-100 rounded-full"
+            aria-label="Следующий месяц"
+          >
+            >
           </button>
         </div>
       </div>
-      
-      <div className="grid grid-cols-7 gap-0 border-b border-gray-200">
-        {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day, idx) => (
-          <div key={idx} className="p-2 text-center text-sm font-medium text-gray-700 bg-gray-50">
+
+      {/* Заголовки дней недели */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day, index) => (
+          <div key={index} className="text-center text-xs font-medium text-gray-500 py-1">
             {day}
           </div>
         ))}
       </div>
-      
-      <div className="grid grid-rows-6 gap-0">
-        {rows}
+
+      {/* Сетка дней */}
+      <div className="grid grid-cols-7 gap-1">
+        {daysInMonth.map((day, index) => {
+          const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
+          const isCurrentMonth = isSameMonth(day, currentDate);
+
+          return (
+            <div
+              key={index}
+              className={`
+                min-h-16 p-1 border rounded-lg flex flex-col items-center justify-start
+                ${isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400'}
+                ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}
+                ${isToday(day) ? 'border-2 border-blue-600' : ''}
+                hover:bg-gray-50 cursor-pointer
+              `}
+              onClick={() => onDateSelect(day)}
+            >
+              <div className={`text-sm ${isToday(day) ? 'font-bold' : ''}`}>
+                {format(day, 'd')}
+              </div>
+              {getSessionIndicators(day)}
+              {isCurrentMonth && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Останавливаем всплытие, чтобы не вызвать onDateSelect
+                    onNewSessionClick(day);
+                  }}
+                  className="mt-auto text-xs text-blue-600 hover:text-blue-800"
+                >
+                  +
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
-
-// Helper function to add days
-function addDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
 
 export default CalendarGrid;
