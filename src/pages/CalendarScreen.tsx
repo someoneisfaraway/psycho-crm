@@ -50,7 +50,7 @@ const CalendarScreen: React.FC = () => {
         setClients(clientsMap);
 
       } catch (err) {
-        console.error('Failed to fetch calendar ', err);
+        console.error('Failed to fetch calendar data:', err);
         setError('Failed to load calendar data. Please try again later.');
       } finally {
         setLoading(false);
@@ -125,9 +125,10 @@ const CalendarScreen: React.FC = () => {
     }
   };
 
-  const handleMarkPaid = async (id: string, paymentMethod: string = 'cash') => { // paymentMethod можно передавать из UI
+  // Обработчик отметки оплаты - принимает ID и метод оплаты
+  const handleMarkPaid = async (id: string, paymentMethod: string) => {
     try {
-      const updatedSession = await sessionsApi.markPaid(id, paymentMethod);
+      const updatedSession = await sessionsApi.markPaid(id, paymentMethod); // Передаём ID и метод оплаты в API
       updateLocalSessions(updatedSession);
       setIsSessionDetailModalOpen(false); // Закрываем детальный модал после обновления
     } catch (err) {
@@ -186,14 +187,34 @@ const CalendarScreen: React.FC = () => {
     let updatedSession: Session;
 
     if (modalMode === 'create') {
-      // Если это создание, `updatedSessionData` - это `sessionData` из формы
-      // `api/sessions.ts` в `create` возвращает полный объект сессии
-      // Поэтому `updatedSessionData` должен быть полной сессией
-      updatedSession = updatedSessionData as Session;
+      // Если это новая сессия (предположим, что `updatedSessionData` не содержит `id` при вызове из `onSave` в `SessionModal` при создании)
+      // Нет, `SessionModal` при `onSave` передаёт `sessionData` (без `id`) при `isCreating`.
+      // `api/sessions.ts` в `create` добавляет `id`, `client`, `session_number` и возвращает полный объект.
+      // `onSave` в `CalendarScreen` получает этот *новый* объект `updatedSession`.
+      // Поэтому `updatedSessionData` будет содержать `id`, `client`, и т.д.
+      // Определить `isCreating` можно по `modalMode` на момент вызова `onSave`, или передавать флаг.
+      // Упрощённо: если `updatedSessionData` не содержит `id`, значит, это создание, и `api` должен был добавить `id`.
+      // Но `api` *должен* вернуть `id`.
+      // Пока что, просто добавим к списку.
+      // Найдём `client` по `client_id` из `updatedSessionData` и добавим его к `updatedSessionData`.
+      // `api/sessions.ts` в `create` возвращает `*, clients(id, name)`.
+      // Значит, `updatedSessionData` уже содержит `clients` как объект.
+      // const client = clients[updatedSessionData.client_id];
+      // if (!client) {
+      //     console.error("Client not found in local cache for new session:", updatedSessionData.client_id);
+      //     // Возможно, стоит повторно загрузить клиентов или передать `client` из формы
+      //     // Пока что, просто добавим с `null` клиентом
+      //     updatedSession = { ...updatedSessionData, id: updatedSessionData.id || crypto.randomUUID(), clients: null } as Session;
+      // } else {
+      //     updatedSession = { ...updatedSessionData, id: updatedSessionData.id || crypto.randomUUID(), clients: client } as Session;
+      // }
+      // Более точно: `updatedSessionData` уже содержит `clients` как объект из `api/sessions.ts -> create`.
+      updatedSession = { ...updatedSessionData, id: updatedSessionData.id || crypto.randomUUID() } as Session; // `clients` уже внутри
       setSessions(prev => [...prev, updatedSession]);
     } else {
-      // Если это редактирование, `updatedSessionData` - это `sessionData` с `id`
-      // `api/sessions.ts` в `update` возвращает полный объект сессии
+      // Если это редактирование, `updatedSessionData` содержит `id` и обновлённые поля
+      // `api/sessions.ts` в `update` возвращает `*, clients(id, name)`.
+      // Значит, `updatedSessionData` уже содержит `clients` как объект.
       updatedSession = updatedSessionData as Session;
       setSessions(prev => prev.map(s => s.id === updatedSession.id ? updatedSession : s));
     }
@@ -241,7 +262,7 @@ const CalendarScreen: React.FC = () => {
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 0 0-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               </div>
               <div className="ml-3">
@@ -344,7 +365,9 @@ const CalendarScreen: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <h3 className="mt-2 text-sm font-medium text-gray-900">Нет сессий</h3>
-                    <p className="mt-1 text-sm text-gray-500">На этот день запланировано 0 сессий.</p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      На этот день запланировано 0 сессий.
+                    </p>
                     <div className="mt-6">
                       <Button onClick={() => handleNewSessionClick(selectedDate)}>
                         <Plus className="mr-2 h-4 w-4" />
@@ -383,7 +406,7 @@ const CalendarScreen: React.FC = () => {
           onClose={() => setIsSessionDetailModalOpen(false)} // Обработчик закрытия детального модала
           onEdit={handleEditSession} // Передаём функцию открытия модала редактирования
           onMarkCompleted={handleMarkCompleted}
-          onMarkPaid={handleMarkPaid}
+          onMarkPaid={handleMarkPaid} // Передаём обновлённый обработчик с методом оплаты
           onMarkReceiptSent={handleMarkReceiptSent}
           onReschedule={handleRescheduleSession}
           onForgiveDebt={handleForgiveDebt}

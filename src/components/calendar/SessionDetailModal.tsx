@@ -1,5 +1,5 @@
 // src/components/calendar/SessionDetailModal.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale'; // Убедитесь, что локаль установлена, если нужна русская локализация
 import type { Session, Client } from '../../types/database';
@@ -14,7 +14,7 @@ interface SessionDetailModalProps {
   onClose: () => void; // Функция закрытия
   onEdit: (session: Session) => void; // Функция редактирования
   onMarkCompleted: (id: string) => void; // Функция отметки завершения
-  onMarkPaid: (id: string, paymentMethod: string) => void; // Функция отметки оплаты
+  onMarkPaid: (id: string, paymentMethod: string) => void; // Функция отметки оплаты (обновлена)
   onMarkReceiptSent: (id: string) => void; // Функция отметки отправки чека
   onReschedule: (session: Session) => void; // Функция переноса
   onForgiveDebt: (id: string) => void; // Функция списания долга
@@ -27,11 +27,28 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onClose,
   onEdit,
   onMarkCompleted,
-  onMarkPaid,
+  onMarkPaid, // Теперь ожидает id и paymentMethod
   onMarkReceiptSent,
   onReschedule,
   onForgiveDebt,
 }) => {
+  // Состояние для меню выбора способа оплаты
+  const [showPaymentMenu, setShowPaymentMenu] = useState(false);
+  const [tempPaymentMethod, setTempPaymentMethod] = useState(session.payment_method || 'cash'); // Используем текущий метод или 'cash' как дефолт
+
+  // Обработчик кнопки "Отметить оплату" - показывает меню
+  const handleShowPaymentMenu = () => {
+    setShowPaymentMenu(true);
+  };
+
+  // Обработчик выбора способа оплаты
+  const handleSelectPaymentMethod = (method: string) => {
+    setTempPaymentMethod(method);
+    // Закрываем меню и сразу вызываем onMarkPaid
+    setShowPaymentMenu(false);
+    onMarkPaid(session.id, method); // Передаём ID и выбранный метод
+  };
+
   if (!isOpen || !session || !client) {
     return null;
   }
@@ -190,16 +207,40 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                   <Edit className="mr-2 h-4 w-4" />
                   Перенести
                 </Button>
+                {/* Добавляем кнопку Отменить */}
+                <Button
+                  variant="destructive"
+                  onClick={() => onMarkCancelled(session.id)} // Вызываем новую функцию
+                >
+                  Отменить
+                </Button>
               </>
             )}
             {session.status === 'completed' && !session.paid && (
-              <Button
-                variant="outline"
-                onClick={() => onMarkPaid(session.id, 'cash')} // По умолчанию 'cash', можно сделать выбор
-              >
-                <CreditCard className="mr-2 h-4 w-4" />
-                Отметить оплату
-              </Button>
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  onClick={handleShowPaymentMenu} // Показываем меню выбора
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Отметить оплату
+                </Button>
+                {showPaymentMenu && (
+                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 border border-gray-200">
+                    {['cash', 'card', 'platform', 'transfer'].map((method) => (
+                      <button
+                        key={method}
+                        onClick={() => handleSelectPaymentMethod(method)}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        {method === 'cash' ? 'Наличные' :
+                         method === 'card' ? 'Карта' :
+                         method === 'platform' ? 'Через платформу' : 'Перевод'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             {session.status === 'completed' && session.paid && !session.receipt_sent && (
               <Button
