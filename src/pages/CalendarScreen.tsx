@@ -137,6 +137,25 @@ const CalendarScreen: React.FC = () => {
     }
   };
 
+  // НОВЫЙ ОБРАБОТЧИК: Обработчик отмены сессии
+  const handleMarkCancelled = async (id: string) => {
+    // Подтверждение действия
+    if (window.confirm("Вы уверены, что хотите отменить эту сессию?")) {
+      try {
+        // Вызываем функцию API для отмены сессии
+        const updatedSession = await sessionsApi.markCancelled(id);
+        // Обновляем локальное состояние
+        updateLocalSessions(updatedSession);
+        // Закрываем модальное окно деталей сессии
+        setIsSessionDetailModalOpen(false);
+      } catch (err) {
+        console.error('Failed to mark session as cancelled:', err);
+        // Отображаем сообщение об ошибке пользователю
+        setError('Failed to mark session as cancelled. Please try again.');
+      }
+    }
+  };
+
   const handleMarkReceiptSent = async (id: string) => {
     try {
       const updatedSession = await sessionsApi.markReceiptSent(id);
@@ -365,9 +384,7 @@ const CalendarScreen: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <h3 className="mt-2 text-sm font-medium text-gray-900">Нет сессий</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      На этот день запланировано 0 сессий.
-                    </p>
+                    <p className="mt-1 text-sm text-gray-500">На этот день запланировано 0 сессий.</p>
                     <div className="mt-6">
                       <Button onClick={() => handleNewSessionClick(selectedDate)}>
                         <Plus className="mr-2 h-4 w-4" />
@@ -410,6 +427,7 @@ const CalendarScreen: React.FC = () => {
           onMarkReceiptSent={handleMarkReceiptSent}
           onReschedule={handleRescheduleSession}
           onForgiveDebt={handleForgiveDebt}
+          onMarkCancelled={handleMarkCancelled} // ПЕРЕДАЁМ НОВЫЙ ОБРАБОТЧИК
         />
       )}
     </div>

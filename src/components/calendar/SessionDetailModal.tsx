@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale'; // Убедитесь, что локаль установлена, если нужна русская локализация
 import type { Session, Client } from '../../types/database';
 import { Button } from '../ui/Button';
-import { X, Calendar, Clock, User, CreditCard, Mail, CheckCircle, Edit, Send } from 'lucide-react';
+import { X, Calendar, Clock, User, CreditCard, Mail, CheckCircle, Edit, Send, Ban } from 'lucide-react';
 import { decrypt } from '../../utils/encryption'; // Импортируем функцию расшифровки
 
 interface SessionDetailModalProps {
@@ -14,10 +14,11 @@ interface SessionDetailModalProps {
   onClose: () => void; // Функция закрытия
   onEdit: (session: Session) => void; // Функция редактирования
   onMarkCompleted: (id: string) => void; // Функция отметки завершения
-  onMarkPaid: (id: string, paymentMethod: string) => void; // Функция отметки оплаты (обновлена)
+  onMarkPaid: (id: string, paymentMethod: string) => void; // Функция отметки оплаты
   onMarkReceiptSent: (id: string) => void; // Функция отметки отправки чека
   onReschedule: (session: Session) => void; // Функция переноса
   onForgiveDebt: (id: string) => void; // Функция списания долга
+  onMarkCancelled: (id: string) => void; // Новая функция для отмены сессии
 }
 
 const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
@@ -27,14 +28,15 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onClose,
   onEdit,
   onMarkCompleted,
-  onMarkPaid, // Теперь ожидает id и paymentMethod
+  onMarkPaid,
   onMarkReceiptSent,
   onReschedule,
   onForgiveDebt,
+  onMarkCancelled, // Новый пропс
 }) => {
   // Состояние для меню выбора способа оплаты
   const [showPaymentMenu, setShowPaymentMenu] = useState(false);
-  const [tempPaymentMethod, setTempPaymentMethod] = useState(session.payment_method || 'cash'); // Используем текущий метод или 'cash' как дефолт
+  const [tempPaymentMethod, setTempPaymentMethod] = useState(session.payment_method || 'cash');
 
   // Обработчик кнопки "Отметить оплату" - показывает меню
   const handleShowPaymentMenu = () => {
@@ -112,7 +114,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               <div className="flex justify-between">
                 <span className="text-gray-600">Статус:</span>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadgeColor()}`}>
-                  {session.status === 'scheduled' ? 'Запланирована' : session.status === 'completed' ? 'Завершена' : 'Отменена'}
+                  {session.status === 'scheduled' ? 'Запланирована' :
+                   session.status === 'completed' ? 'Завершена' :
+                   session.status === 'cancelled' ? 'Отменена' : session.status}
                 </span>
               </div>
             </div>
@@ -207,11 +211,12 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                   <Edit className="mr-2 h-4 w-4" />
                   Перенести
                 </Button>
-                {/* Добавляем кнопку Отменить */}
+                {/* Кнопка "Отменить" для реализации отмены сессии */}
                 <Button
                   variant="destructive"
                   onClick={() => onMarkCancelled(session.id)} // Вызываем новую функцию
                 >
+                  <Ban className="mr-2 h-4 w-4" />
                   Отменить
                 </Button>
               </>

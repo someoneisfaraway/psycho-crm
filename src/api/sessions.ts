@@ -1,45 +1,45 @@
 // src/api/sessions.ts
 import { supabase } from '../config/supabase';
-import type { Session } from '../types/database';
+import type { Session, CreateSessionDto, UpdateSessionDto } from '../types/database';
 
 // Опционально: тип для создания сессии
-interface CreateSessionDto {
-  user_id: string;
-  client_id: string;
-  // session_number будет сгенерирован автоматически
-  scheduled_at: string; // ISO string
-  completed_at?: string; // ISO string
-  duration?: number;
-  status?: string; // 'scheduled', 'completed', 'cancelled', 'missed', 'rescheduled'
-  price: number;
-  paid?: boolean;
-  paid_at?: string; // ISO string
-  payment_method?: string; // 'card', 'cash', 'platform', 'transfer'
-  receipt_sent?: boolean;
-  receipt_sent_at?: string; // ISO string
-  receipt_reminder?: boolean;
-  format: string; // 'online', 'offline'
-  meeting_link?: string;
-  note_encrypted?: string;
-}
+// interface CreateSessionDto {
+//   user_id: string;
+//   client_id: string;
+//   // session_number будет сгенерирован автоматически
+//   scheduled_at: string; // ISO string
+//   completed_at?: string; // ISO string
+//   duration?: number;
+//   status?: string; // 'scheduled', 'completed', 'cancelled', 'missed', 'rescheduled'
+//   price: number;
+//   paid?: boolean;
+//   paid_at?: string; // ISO string
+//   payment_method?: string; // 'card', 'cash', 'platform', 'transfer'
+//   receipt_sent?: boolean;
+//   receipt_sent_at?: string; // ISO string
+//   receipt_reminder?: boolean;
+//   format: string; // 'online', 'offline'
+//   meeting_link?: string;
+//   note_encrypted?: string;
+// }
 
 // Опционально: тип для обновления сессии
-interface UpdateSessionDto {
-  // ... все поля, которые можно обновить
-  status?: string;
-  paid?: boolean;
-  paid_at?: string;
-  payment_method?: string;
-  receipt_sent?: boolean;
-  receipt_sent_at?: string;
-  receipt_reminder?: boolean;
-  scheduled_at?: string;
-  completed_at?: string;
-  format?: string;
-  meeting_link?: string;
-  note_encrypted?: string;
-  // session_number, user_id, client_id обычно не меняются
-}
+// interface UpdateSessionDto {
+//   // ... все поля, которые можно обновить
+//   status?: string;
+//   paid?: boolean;
+//   paid_at?: string;
+//   payment_method?: string;
+//   receipt_sent?: boolean;
+//   receipt_sent_at?: string;
+//   receipt_reminder?: boolean;
+//   scheduled_at?: string;
+//   completed_at?: string;
+//   format?: string;
+//   meeting_link?: string;
+//   note_encrypted?: string;
+//   // session_number, user_id, client_id обычно не меняются
+// }
 
 export const sessionsApi = {
   // Получить сессии в диапазоне дат
@@ -213,6 +213,30 @@ export const sessionsApi = {
 
     if (error) {
       console.error('Error marking receipt as sent:', error);
+      throw error;
+    }
+
+    return data;
+  },
+
+  // Отметить сессию отменённой
+  async markCancelled(id: string) {
+    const { data, error } = await supabase
+      .from('sessions')
+      .update({
+        status: 'cancelled'
+        // Можно добавить cancelled_at, если нужно
+        // cancelled_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select(`
+        *,
+        clients(id, name) -- Загружаем имя клиента
+      `)
+      .single();
+
+    if (error) {
+      console.error('Error marking session as cancelled:', error);
       throw error;
     }
 
