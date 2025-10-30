@@ -5,7 +5,8 @@ import { sessionsApi } from '../../api/sessions'; // Импортируем API 
 import { clientsApi } from '../../api/clients'; // Импортируем API для клиентов (для получения имён)
 import type { Session, Client } from '../../types/database'; // Импортируем типы
 import CalendarGrid from '../components/calendar/CalendarGrid'; // Импортируем компонент сетки
-import SessionModal from '../components/calendar/SessionModal'; // Импортируем модальное окно сессии
+import SessionModal from '../components/calendar/SessionModal'; // Импортируем модальное окно сессии (для создания/редактирования)
+import SessionDetailModal from '../components/calendar/SessionDetailModal'; // Импортируем модальное окно деталей сессии
 import { Button } from '../components/ui/Button'; // Импортируем кнопку
 import { Plus } from 'lucide-react'; // Импортируем иконку
 import { format, isSameDay, parseISO } from 'date-fns'; // Импортируем функции из date-fns
@@ -20,6 +21,7 @@ const CalendarScreen: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date()); // По умолчанию сегодня
   const [sessionsForSelectedDate, setSessionsForSelectedDate] = useState<Session[]>([]);
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
+  const [isSessionDetailModalOpen, setIsSessionDetailModalOpen] = useState(false); // Новое состояние для детального модала
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
@@ -48,7 +50,7 @@ const CalendarScreen: React.FC = () => {
         setClients(clientsMap);
 
       } catch (err) {
-        console.error('Failed to fetch calendar data:', err);
+        console.error('Failed to fetch calendar ', err);
         setError('Failed to load calendar data. Please try again later.');
       } finally {
         setLoading(false);
@@ -92,22 +94,85 @@ const CalendarScreen: React.FC = () => {
     setIsSessionModalOpen(true); // Открываем модалку
   };
 
+  // Обработчик открытия детального модального окна
   const handleViewSession = (session: Session) => {
-    // Псевдо-расшифровка заметки для передачи в SessionModal (в реальности должна быть реальная расшифровка с ключом)
+    // Псевдо-расшифровка заметки для передачи в SessionModal/SessionDetailModal (в реальности должна быть реальная расшифровка с ключом)
     // const decryptedNote = session.note_encrypted ? decrypt(session.note_encrypted) : '';
     // setSelectedSession({ ...session, note: decryptedNote }); // Передаём расшифрованную заметку как `note`
     setSelectedSession(session); // Пока передаём как есть
-    setModalMode('view'); // Устанавливаем режим просмотра
-    setIsSessionModalOpen(true); // Открываем модалку
+    setIsSessionDetailModalOpen(true); // Открываем детальный модал
   };
 
+  // Обработчик открытия модального окна редактирования
   const handleEditSession = (session: Session) => {
-    // Псевдо-расшифровка заметки для передачи в SessionModal (в реальности должна быть реальная расшифровка с ключом)
+    // Псевдо-расшифровка заметки для передачи в SessionModal/SessionDetailModal (в реальности должна быть реальная расшифровка с ключом)
     // const decryptedNote = session.note_encrypted ? decrypt(session.note_encrypted) : '';
     // setSelectedSession({ ...session, note: decryptedNote }); // Передаём расшифрованную заметку как `note`
     setSelectedSession(session); // Пока передаём как есть
     setModalMode('edit'); // Устанавливаем режим редактирования
-    setIsSessionModalOpen(true); // Открываем модалку
+    setIsSessionModalOpen(true); // Открываем модалку редактирования
+  };
+
+  // Обработчики действий из детального модального окна
+  const handleMarkCompleted = async (id: string) => {
+    try {
+      const updatedSession = await sessionsApi.markCompleted(id);
+      updateLocalSessions(updatedSession);
+      setIsSessionDetailModalOpen(false); // Закрываем детальный модал после обновления
+    } catch (err) {
+      console.error('Failed to mark session as completed:', err);
+      setError('Failed to mark session as completed. Please try again.');
+    }
+  };
+
+  const handleMarkPaid = async (id: string, paymentMethod: string = 'cash') => { // paymentMethod можно передавать из UI
+    try {
+      const updatedSession = await sessionsApi.markPaid(id, paymentMethod);
+      updateLocalSessions(updatedSession);
+      setIsSessionDetailModalOpen(false); // Закрываем детальный модал после обновления
+    } catch (err) {
+      console.error('Failed to mark session as paid:', err);
+      setError('Failed to mark session as paid. Please try again.');
+    }
+  };
+
+  const handleMarkReceiptSent = async (id: string) => {
+    try {
+      const updatedSession = await sessionsApi.markReceiptSent(id);
+      updateLocalSessions(updatedSession);
+      setIsSessionDetailModalOpen(false); // Закрываем детальный модал после обновления
+    } catch (err) {
+      console.error('Failed to mark receipt as sent:', err);
+      setError('Failed to mark receipt as sent. Please try again.');
+    }
+  };
+
+  const handleRescheduleSession = (session: Session) => {
+    // Для переноса сессии, возможно, проще открыть модал редактирования
+    setSelectedSession(session);
+    setModalMode('edit');
+    setIsSessionModalOpen(true);
+    setIsSessionDetailModalOpen(false); // Закрываем детальный модал
+  };
+
+  const handleForgiveDebt = async (id: string) => {
+    // Подтверждение действия
+    if (window.confirm("Вы уверены, что хотите списать долг по этой сессии? Это пометит сессию как оплаченную без фактической оплаты.")) {
+      try {
+        // Обычно списание долга требует обновления поля paid и, возможно, payment_method
+        // Создадим функцию в api, если её нет, или используем update
+        // Пример: const updatedSession = await sessionsApi.update(id, { paid: true, payment_method: 'forgiven' });
+        // Для MVP, используем markPaid с фиктивным методом, если БД позволяет
+        // Или, как вариант, обновить напрямую через supabase-js, если нужен особый статус
+        // Пока используем markPaid, предполагая, что 'forgiven' - это валидный payment_method или он необязателен
+        const updatedSession = await sessionsApi.markPaid(id, 'forgiven'); // или используем update
+        updateLocalSessions(updatedSession);
+        setIsSessionDetailModalOpen(false); // Закрываем детальный модал после обновления
+      } catch (err) {
+        console.error('Failed to forgive debt:', err);
+        setError('Failed to forgive debt. Please try again.');
+      }
+    }
   };
 
   const handleModalClose = () => {
@@ -296,16 +361,32 @@ const CalendarScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Модальное окно для сессии */}
+      {/* Модальное окно для сессии (для создания/редактирования) */}
       {isSessionModalOpen && (
         <SessionModal
           mode={modalMode}
           session={selectedSession}
           clients={Object.values(clients)} // Передаём список клиентов
           isOpen={isSessionModalOpen}
-          onClose={handleModalClose}
+          onClose={handleModalClose} // Обработчик закрытия модала создания/редактирования
           onSave={updateLocalSessions} // Передаём функцию для обновления состояния
           selectedDate={selectedDate || undefined} // Передаём выбранную дату для создания новой сессии
+        />
+      )}
+
+      {/* Модальное окно для деталей сессии */}
+      {isSessionDetailModalOpen && selectedSession && (
+        <SessionDetailModal
+          session={selectedSession}
+          client={clients[selectedSession.client_id]} // Передаём клиента, связанного с сессией
+          isOpen={isSessionDetailModalOpen}
+          onClose={() => setIsSessionDetailModalOpen(false)} // Обработчик закрытия детального модала
+          onEdit={handleEditSession} // Передаём функцию открытия модала редактирования
+          onMarkCompleted={handleMarkCompleted}
+          onMarkPaid={handleMarkPaid}
+          onMarkReceiptSent={handleMarkReceiptSent}
+          onReschedule={handleRescheduleSession}
+          onForgiveDebt={handleForgiveDebt}
         />
       )}
     </div>
