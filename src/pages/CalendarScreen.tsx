@@ -1,13 +1,15 @@
-// src/pages/CalendarScreen.tsx (или путь к вашему экрану календаря)
+// src/pages/CalendarScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { sessionsApi } from '../../api/sessions'; // Импортируем API для сессий
 import { clientsApi } from '../../api/clients'; // Импортируем API для клиентов (для получения имён)
 import type { Session, Client } from '../../types/database'; // Импортируем типы
 import CalendarGrid from '../components/calendar/CalendarGrid'; // Импортируем компонент сетки
-import SessionModal from '../components/calendar/SessionModal'; // Импортируем модальное окно сессии (создадим позже)
+import SessionModal from '../components/calendar/SessionModal'; // Импортируем модальное окно сессии
 import { Button } from '../components/ui/Button'; // Импортируем кнопку
 import { Plus } from 'lucide-react'; // Импортируем иконку
+import { format, isSameDay, parseISO } from 'date-fns'; // Импортируем функции из date-fns
+import { ru } from 'date-fns/locale'; // Импортируем русскую локаль
 
 const CalendarScreen: React.FC = () => {
   const { user } = useAuth();
@@ -29,8 +31,12 @@ const CalendarScreen: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        // Загружаем сессии для текущего пользователя
-        const sessionsData = await sessionsApi.getForDateRange(user.id, new Date(2025, 0, 1), new Date(2025, 11, 31)); // Пример: загрузка на год
+        // Загружаем сессии для текущего пользователя за ближайший месяц (или другой диапазон)
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        const sessionsData = await sessionsApi.getForDateRange(user.id, startOfMonth, endOfMonth);
         setSessions(sessionsData);
 
         // Загружаем всех клиентов текущего пользователя для получения имён
@@ -87,54 +93,65 @@ const CalendarScreen: React.FC = () => {
   };
 
   const handleViewSession = (session: Session) => {
-    setSelectedSession(session);
+    // Псевдо-расшифровка заметки для передачи в SessionModal (в реальности должна быть реальная расшифровка с ключом)
+    // const decryptedNote = session.note_encrypted ? decrypt(session.note_encrypted) : '';
+    // setSelectedSession({ ...session, note: decryptedNote }); // Передаём расшифрованную заметку как `note`
+    setSelectedSession(session); // Пока передаём как есть
     setModalMode('view'); // Устанавливаем режим просмотра
     setIsSessionModalOpen(true); // Открываем модалку
   };
 
   const handleEditSession = (session: Session) => {
-    setSelectedSession(session);
+    // Псевдо-расшифровка заметки для передачи в SessionModal (в реальности должна быть реальная расшифровка с ключом)
+    // const decryptedNote = session.note_encrypted ? decrypt(session.note_encrypted) : '';
+    // setSelectedSession({ ...session, note: decryptedNote }); // Передаём расшифрованную заметку как `note`
+    setSelectedSession(session); // Пока передаём как есть
     setModalMode('edit'); // Устанавливаем режим редактирования
     setIsSessionModalOpen(true); // Открываем модалку
   };
 
   const handleModalClose = () => {
     setIsSessionModalOpen(false);
-    // После закрытия модалки, возможно, стоит обновить данные календаря
-    // fetchCalendarData(); // Можно вызвать, если данные могли измениться
+    // Сбросим выбранную сессию при закрытии, чтобы избежать "артефактов" при повторном открытии
+    // setSelectedSession(null); // Опционально
   };
 
   // Функция для обновления локального состояния после создания/редактирования сессии
-  const updateLocalSessions = (updatedSession: Session) => {
-    // Если это новая сессия
-    if (!sessions.some(s => s.id === updatedSession.id)) {
+  const updateLocalSessions = (updatedSessionData: any) => { // any, потому что при create приходит только данные, а при edit - данные + id
+    let updatedSession: Session;
+
+    if (modalMode === 'create') {
+      // Если это создание, `updatedSessionData` - это `sessionData` из формы
+      // `api/sessions.ts` в `create` возвращает полный объект сессии
+      // Поэтому `updatedSessionData` должен быть полной сессией
+      updatedSession = updatedSessionData as Session;
       setSessions(prev => [...prev, updatedSession]);
-      // И обновляем словарь клиентов, если клиента ещё нет
-      if (!clients[updatedSession.client_id]) {
-        // Здесь нужно будет загрузить или получить клиента по ID, чтобы добавить в словарь
-        // Это требует дополнительного вызова API или передачи данных о клиенте из формы
-        // Пока опустим для упрощения
-      }
     } else {
-      // Если это редактирование
+      // Если это редактирование, `updatedSessionData` - это `sessionData` с `id`
+      // `api/sessions.ts` в `update` возвращает полный объект сессии
+      updatedSession = updatedSessionData as Session;
       setSessions(prev => prev.map(s => s.id === updatedSession.id ? updatedSession : s));
     }
 
     // Обновляем список сессий для выбранной даты
-    if (selectedDate && isSameDay(new Date(updatedSession.scheduled_at), selectedDate)) {
-      setSessionsForSelectedDate(prev => {
-        const existingIndex = prev.findIndex(s => s.id === updatedSession.id);
-        if (existingIndex >= 0) {
-          const updatedList = [...prev];
-          updatedList[existingIndex] = updatedSession;
-          return updatedList;
-        } else {
-          // Если это новая сессия на эту дату
-          const newList = [...prev, updatedSession];
-          newList.sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
-          return newList;
-        }
-      });
+    if (selectedDate && updatedSession.scheduled_at) {
+      const sessionDate = new Date(updatedSession.scheduled_at);
+      if (isSameDay(sessionDate, selectedDate)) {
+        setSessionsForSelectedDate(prev => {
+          const existingIndex = prev.findIndex(s => s.id === updatedSession.id);
+          if (existingIndex >= 0) {
+            const updatedList = [...prev];
+            updatedList[existingIndex] = updatedSession;
+            // Сортировка не требуется, так как индекс известен
+            return updatedList;
+          } else {
+            // Если это новая сессия на эту дату
+            const newList = [...prev, updatedSession];
+            newList.sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+            return newList;
+          }
+        });
+      }
     }
   };
 
@@ -279,7 +296,7 @@ const CalendarScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Модальное окно для сессии (пока не реализовано, но место есть) */}
+      {/* Модальное окно для сессии */}
       {isSessionModalOpen && (
         <SessionModal
           mode={modalMode}
