@@ -270,7 +270,46 @@ const FinancialSummaryScreen: React.FC = () => {
           )}
         </div>
 
-        {/* ... (блок Напоминания о чеках остается без изменений) ... */}
+        {/* --- ОБНОВЛЕНО: Блок Напоминания о чеках --- */}
+        <div className="bg-white p-4 rounded-lg shadow-sm md:col-span-2">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">Напоминания о чеках</h2>
+          {/* Отображение списка напоминаний */}
+          {summary.receiptReminders.length > 0 ? (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Клиент
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Дата сессии
+                  </th>
+                  {/* Можно добавить колонку для действия, например, "Отправить чек" */}
+                  {/* <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Действие
+                  </th> */}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {summary.receiptReminders.map((reminder) => (
+                  <tr key={reminder.session_id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {reminder.client_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(reminder.session_date).toLocaleDateString('ru-RU')}
+                    </td>
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <button className="text-blue-600 hover:text-blue-900">Отправить чек</button>
+                    </td> */}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>Нет напоминаний о чеках за выбранный период.</p>
+          )}
+        </div>
 
       </div>
     </div>
