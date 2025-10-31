@@ -236,7 +236,41 @@ const FinancialSummaryScreen: React.FC = () => {
           )}
         </div>
 
-        {/* ... (блоки Должники и Напоминания о чеках остается без изменений) ... */}
+        {/* --- ОБНОВЛЕНО: Блок Должники --- */}
+        <div className="bg-white p-4 rounded-lg shadow-sm md:col-span-2">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">Должники</h2>
+          {/* Отображение списка должников */}
+          {summary.debtors.length > 0 ? (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Клиент
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Сумма долга
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {summary.debtors.map((debtor) => (
+                  <tr key={debtor.client_id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {debtor.client_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium text-red-600">
+                      {debtor.debt_amount.toLocaleString('ru-RU')} руб.
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>Нет должников за выбранный период.</p>
+          )}
+        </div>
+
+        {/* ... (блок Напоминания о чеках остается без изменений) ... */}
 
       </div>
     </div>
