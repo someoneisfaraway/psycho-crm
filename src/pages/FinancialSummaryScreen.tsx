@@ -204,31 +204,40 @@ const FinancialSummaryScreen: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+      {/* Убираем временный блок с JSON */}
+      {/* <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-2">Данные сводки (временное отображение)</h2>
         <pre className="whitespace-pre-wrap break-words">{JSON.stringify(summary, null, 2)}</pre>
-      </div>
+      </div> */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* --- ОБНОВЛЕНО: Блок Общий доход --- */}
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">Общий доход</h2>
-          <p>Данные по доходу появятся здесь.</p>
+          {/* Отображение общей суммы */}
+          <p className="text-2xl font-bold text-green-600">{summary.totalRevenue.toLocaleString('ru-RU')} руб.</p>
         </div>
 
+        {/* --- ОБНОВЛЕНО: Блок Разбивка по типам оплаты --- */}
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">Разбивка по типам оплаты</h2>
-          <p>Разбивка появится здесь.</p>
+          {/* Отображение разбивки */}
+          {Object.entries(summary.revenueBreakdown).length > 0 ? (
+            <ul className="space-y-1">
+              {Object.entries(summary.revenueBreakdown).map(([method, amount]) => (
+                <li key={method} className="flex justify-between">
+                  <span>{method}:</span>
+                  <span className="font-medium">{amount.toLocaleString('ru-RU')} руб.</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Нет данных о типах оплаты за выбранный период.</p>
+          )}
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-sm md:col-span-2">
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Должники</h2>
-          <p>Список должников появится здесь.</p>
-        </div>
+        {/* ... (блоки Должники и Напоминания о чеках остается без изменений) ... */}
 
-        <div className="bg-white p-4 rounded-lg shadow-sm md:col-span-2">
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Напоминания о чеках</h2>
-          <p>Напоминания появятся здесь.</p>
-        </div>
       </div>
     </div>
   );
