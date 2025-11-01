@@ -1,6 +1,13 @@
 // src/pages/SettingsScreen.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext'; // Импортируем контекст аутентификации
+
+// --- Тип для настроек уведомлений ---
+interface NotificationSettingsData {
+  sessionReminders: boolean;
+  receiptReminders: boolean;
+  // Добавьте другие типы уведомлений при необходимости
+}
 
 // --- Компонент профиля ---
 interface UserProfileProps {
@@ -146,6 +153,59 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdateProfile, loadin
   );
 };
 
+// --- Компонент настроек уведомлений ---
+interface NotificationSettingsProps {
+  settings: NotificationSettingsData;
+  onUpdateSettings: (newSettings: NotificationSettingsData) => void;
+}
+
+const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, onUpdateSettings }) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    // Обновляем только одно поле в настройках
+    onUpdateSettings({ ...settings, [name]: checked });
+  };
+
+  return (
+    <div className="bg-white shadow rounded-lg p-6 mb-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Настройки уведомлений</h2>
+      <ul className="space-y-4">
+        <li className="flex items-center justify-between">
+          <div className="flex items-center">
+            <input
+              id="sessionReminders"
+              name="sessionReminders"
+              type="checkbox"
+              checked={settings.sessionReminders}
+              onChange={handleChange}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="sessionReminders" className="ml-2 block text-sm text-gray-900">
+              Напоминания о сессиях
+            </label>
+          </div>
+        </li>
+        <li className="flex items-center justify-between">
+          <div className="flex items-center">
+            <input
+              id="receiptReminders"
+              name="receiptReminders"
+              type="checkbox"
+              checked={settings.receiptReminders}
+              onChange={handleChange}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="receiptReminders" className="ml-2 block text-sm text-gray-900">
+              Напоминания о чеках
+            </label>
+          </div>
+        </li>
+        {/* Добавьте другие типы уведомлений при необходимости */}
+      </ul>
+    </div>
+  );
+};
+
 // --- Основной компонент экрана настроек ---
 const SettingsScreen: React.FC = () => {
   const { user: authUser } = useAuth(); // Получаем данные пользователя из контекста
@@ -160,6 +220,20 @@ const SettingsScreen: React.FC = () => {
       </div>
     );
   }
+
+  // --- НОВОЕ: Состояние для настроек уведомлений ---
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsData>({
+    sessionReminders: true, // Значение по умолчанию
+    receiptReminders: false, // Значение по умолчанию
+  });
+
+  // --- НОВОЕ: Функция для обновления настроек уведомлений ---
+  const handleUpdateNotificationSettings = (newSettings: NotificationSettingsData) => {
+    console.log("Попытка обновить настройки уведомлений:", newSettings);
+    setNotificationSettings(newSettings);
+    // Здесь будет вызов API для сохранения настроек в Supabase
+    // await updateNotificationSettingsInSupabase(newSettings);
+  };
 
   // Функция для обновления профиля (заглушка)
   const handleUpdateProfile = async (data: { full_name?: string; phone?: string; registration_type?: string }) => {
@@ -179,12 +253,13 @@ const SettingsScreen: React.FC = () => {
         loading={false} // Заглушка
       />
 
-      {/* Другие секции настроек (уведомления, рабочие настройки) будут добавлены позже */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Настройки уведомлений (заглушка)</h2>
-        <p>Эта секция будет реализована в следующих шагах.</p>
-      </div>
+      {/* --- НОВОЕ: Компонент настроек уведомлений --- */}
+      <NotificationSettings
+        settings={notificationSettings}
+        onUpdateSettings={handleUpdateNotificationSettings}
+      />
 
+      {/* Другие секции настроек (рабочие настройки) будут добавлены позже */}
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Рабочие настройки (заглушка)</h2>
         <p>Эта секция будет реализована в следующих шагах.</p>
