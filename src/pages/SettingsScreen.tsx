@@ -9,6 +9,14 @@ interface NotificationSettingsData {
   // Добавьте другие типы уведомлений при необходимости
 }
 
+// --- Тип для рабочих настроек ---
+interface WorkSettingsData {
+  defaultSessionPrice: number;
+  defaultSessionDuration: number; // в минутах
+  timezone: string;
+  // Добавьте другие рабочие настройки при необходимости
+}
+
 // --- Компонент профиля ---
 interface UserProfileProps {
   user: {
@@ -206,6 +214,135 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, o
   );
 };
 
+// --- Компонент рабочих настроек ---
+interface WorkSettingsProps {
+  settings: WorkSettingsData;
+  onUpdateSettings: (newSettings: WorkSettingsData) => void;
+}
+
+const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings }) => {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [formData, setFormData] = React.useState<WorkSettingsData>(settings);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: name === 'defaultSessionPrice' || name === 'defaultSessionDuration' ? parseInt(value, 10) || 0 : value }));
+  };
+
+  const handleSave = () => {
+    onUpdateSettings(formData);
+    setIsEditing(false);
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    // Сбросим форму к текущим данным
+    setFormData(settings);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    // Сбросим форму к данным из пропсов
+    setFormData(settings);
+  };
+
+  return (
+    <div className="bg-white shadow rounded-lg p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Рабочие настройки</h2>
+      {!isEditing ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-600">Стандартная стоимость сессии</p>
+              <p className="text-gray-900 font-medium">{settings.defaultSessionPrice} ₽</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Стандартная длительность сессии</p>
+              <p className="text-gray-900 font-medium">{settings.defaultSessionDuration} мин</p>
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-sm text-gray-600">Часовой пояс</p>
+              <p className="text-gray-900 font-medium">{settings.timezone}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleEdit}
+            className="mt-2 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Редактировать
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="defaultSessionPrice" className="block text-sm font-medium text-gray-700">
+                Стандартная стоимость сессии (₽)
+              </label>
+              <input
+                type="number"
+                id="defaultSessionPrice"
+                name="defaultSessionPrice"
+                value={formData.defaultSessionPrice}
+                onChange={handleChange}
+                min="0"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="defaultSessionDuration" className="block text-sm font-medium text-gray-700">
+                Стандартная длительность сессии (мин)
+              </label>
+              <input
+                type="number"
+                id="defaultSessionDuration"
+                name="defaultSessionDuration"
+                value={formData.defaultSessionDuration}
+                onChange={handleChange}
+                min="1"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label htmlFor="timezone" className="block text-sm font-medium text-gray-700">
+                Часовой пояс
+              </label>
+              <select
+                id="timezone"
+                name="timezone"
+                value={formData.timezone}
+                onChange={handleChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                {/* Примеры часовых поясов, можно расширить */}
+                <option value="Europe/Moscow">Москва (MSK)</option>
+                <option value="Europe/Kiev">Киев (EET)</option>
+                <option value="Asia/Yekaterinburg">Екатеринбург (YEKT)</option>
+                {/* Добавьте другие по необходимости */}
+              </select>
+            </div>
+          </div>
+          <div className="flex space-x-3">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Сохранить
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Отменить
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+};
+
 // --- Основной компонент экрана настроек ---
 const SettingsScreen: React.FC = () => {
   const { user: authUser } = useAuth(); // Получаем данные пользователя из контекста
@@ -227,6 +364,13 @@ const SettingsScreen: React.FC = () => {
     receiptReminders: false, // Значение по умолчанию
   });
 
+  // --- НОВОЕ: Состояние для рабочих настроек ---
+  const [workSettings, setWorkSettings] = useState<WorkSettingsData>({
+    defaultSessionPrice: 5000, // Значение по умолчанию
+    defaultSessionDuration: 50, // Значение по умолчанию
+    timezone: 'Europe/Moscow', // Значение по умолчанию
+  });
+
   // --- НОВОЕ: Функция для обновления настроек уведомлений ---
   const handleUpdateNotificationSettings = (newSettings: NotificationSettingsData) => {
     console.log("Попытка обновить настройки уведомлений:", newSettings);
@@ -235,8 +379,16 @@ const SettingsScreen: React.FC = () => {
     // await updateNotificationSettingsInSupabase(newSettings);
   };
 
+  // --- НОВОЕ: Функция для обновления рабочих настроек ---
+  const handleUpdateWorkSettings = (newSettings: WorkSettingsData) => {
+    console.log("Попытка обновить рабочие настройки:", newSettings);
+    setWorkSettings(newSettings);
+    // Здесь будет вызов API для сохранения настроек в Supabase
+    // await updateWorkSettingsInSupabase(newSettings);
+  };
+
   // Функция для обновления профиля (заглушка)
-  const handleUpdateProfile = async (data: { full_name?: string; phone?: string; registration_type?: string }) => {
+  const handleUpdateProfile = async ( { full_name?: string; phone?: string; registration_type?: string }) => {
     console.log("Попытка обновить профиль:", data);
     // Здесь будет вызов API для обновления профиля в Supabase
     // await updateProfileInSupabase(data);
@@ -253,17 +405,17 @@ const SettingsScreen: React.FC = () => {
         loading={false} // Заглушка
       />
 
-      {/* --- НОВОЕ: Компонент настроек уведомлений --- */}
+      {/* Компонент настроек уведомлений */}
       <NotificationSettings
         settings={notificationSettings}
         onUpdateSettings={handleUpdateNotificationSettings}
       />
 
-      {/* Другие секции настроек (рабочие настройки) будут добавлены позже */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Рабочие настройки (заглушка)</h2>
-        <p>Эта секция будет реализована в следующих шагах.</p>
-      </div>
+      {/* --- НОВОЕ: Компонент рабочих настроек --- */}
+      <WorkSettings
+        settings={workSettings}
+        onUpdateSettings={handleUpdateWorkSettings}
+      />
     </div>
   );
 };
