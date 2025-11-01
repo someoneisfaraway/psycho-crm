@@ -1,6 +1,7 @@
 // src/pages/SettingsScreen.tsx
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext'; // Импортируем контекст аутентификации
+import { exportUserData } from '../../utils/exportData'; // Импортируем функцию экспорта
 
 // --- Тип для настроек уведомлений ---
 interface NotificationSettingsData {
@@ -31,7 +32,7 @@ interface UserProfileProps {
     };
   };
   // Функция для обновления профиля (реализуем позже)
-  onUpdateProfile: (data: { full_name?: string; phone?: string; registration_type?: string }) => void;
+  onUpdateProfile: ( { full_name?: string; phone?: string; registration_type?: string }) => void;
   // Флаг загрузки (реализуем позже)
   loading: boolean;
 }
@@ -343,6 +344,53 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
   );
 };
 
+// --- Компонент экспорта данных ---
+interface DataExportProps {
+  userId: string; // ID пользователя для экспорта
+}
+
+const DataExport: React.FC<DataExportProps> = ({ userId }) => {
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  const handleExport = async () => {
+    if (!userId) {
+      console.error("Невозможно экспортировать данные: userId отсутствует.");
+      alert("Ошибка: Не удалось получить ID пользователя.");
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      await exportUserData(userId);
+      console.log("Файл экспорта скачан.");
+    } catch (error) {
+      console.error("Ошибка при экспорте:", error);
+      // Сообщение об ошибке уже показывается в exportUserData
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return (
+    <div className="bg-white shadow rounded-lg p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Экспорт и резервные копии</h2>
+      <div className="space-y-4">
+        <div>
+          <p className="text-sm text-gray-600">Экспорт всех данных</p>
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="mt-1 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {isExporting ? 'Экспорт...' : 'Экспортировать данные (JSON)'}
+          </button>
+        </div>
+        {/* Другие элементы управления экспортом/резервным копированием будут добавлены позже */}
+      </div>
+    </div>
+  );
+};
+
 // --- Основной компонент экрана настроек ---
 const SettingsScreen: React.FC = () => {
   const { user: authUser } = useAuth(); // Получаем данные пользователя из контекста
@@ -358,20 +406,20 @@ const SettingsScreen: React.FC = () => {
     );
   }
 
-  // --- НОВОЕ: Состояние для настроек уведомлений ---
+  // --- Состояние для настроек уведомлений ---
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsData>({
     sessionReminders: true, // Значение по умолчанию
     receiptReminders: false, // Значение по умолчанию
   });
 
-  // --- НОВОЕ: Состояние для рабочих настроек ---
+  // --- Состояние для рабочих настроек ---
   const [workSettings, setWorkSettings] = useState<WorkSettingsData>({
     defaultSessionPrice: 5000, // Значение по умолчанию
     defaultSessionDuration: 50, // Значение по умолчанию
     timezone: 'Europe/Moscow', // Значение по умолчанию
   });
 
-  // --- НОВОЕ: Функция для обновления настроек уведомлений ---
+  // --- Функция для обновления настроек уведомлений ---
   const handleUpdateNotificationSettings = (newSettings: NotificationSettingsData) => {
     console.log("Попытка обновить настройки уведомлений:", newSettings);
     setNotificationSettings(newSettings);
@@ -379,7 +427,7 @@ const SettingsScreen: React.FC = () => {
     // await updateNotificationSettingsInSupabase(newSettings);
   };
 
-  // --- НОВОЕ: Функция для обновления рабочих настроек ---
+  // --- Функция для обновления рабочих настроек ---
   const handleUpdateWorkSettings = (newSettings: WorkSettingsData) => {
     console.log("Попытка обновить рабочие настройки:", newSettings);
     setWorkSettings(newSettings);
@@ -411,11 +459,14 @@ const SettingsScreen: React.FC = () => {
         onUpdateSettings={handleUpdateNotificationSettings}
       />
 
-      {/* --- НОВОЕ: Компонент рабочих настроек --- */}
+      {/* Компонент рабочих настроек */}
       <WorkSettings
         settings={workSettings}
         onUpdateSettings={handleUpdateWorkSettings}
       />
+
+      {/* --- НОВОЕ: Компонент экспорта данных --- */}
+      <DataExport userId={authUser.id} />
     </div>
   );
 };
