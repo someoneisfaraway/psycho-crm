@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext'; // Импортируем контекст аутентификации
 import { exportUserData } from '../../utils/exportData'; // Импортируем функцию экспорта
 import { createClient } from '../../utils/supabaseClient'; // Импортируем клиент
+import { useRouter } from 'next/router'; // Импортируем useRouter
 const supabase = createClient();
 
 // --- Тип для настроек уведомлений ---
@@ -473,6 +474,97 @@ const DataExport: React.FC<DataExportProps> = ({ userId }) => {
   );
 };
 
+// --- НОВОЕ: Компонент для удаления аккаунта ---
+interface AccountDeletionSectionProps {
+  userId: string; // ID пользователя для подтверждения
+}
+
+const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = ({ userId }) => {
+  const [confirmationText, setConfirmationText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { signOut } = useAuth(); // Используем функцию выхода из контекста
+  // const router = useRouter(); // Импортируем useRouter из 'next/router' или 'react-router-dom', если используем его
+
+  const isConfirmed = confirmationText === "УДАЛИТЬ МОЙ АККАУНТ";
+
+  const handleDeleteAccount = async () => {
+    if (!isConfirmed) return;
+
+    const confirmed = window.confirm("Вы уверены, что хотите УДАЛИТЬ СВОЙ аккаунт и все связанные с ним данные? Это действие необратимо.");
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      // 1. Вызов Edge Function для удаления данных и аккаунта
+      // Важно: передавать userId напрямую из клиента небезопасно. Функция должна проверять сессию.
+      // Поэтому мы не передаём userId явно, а доверяем сессии внутри функции.
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`, // Замените 'delete-user' на имя вашей функции
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${supabase.auth.getSession().data?.session?.access_token}`, // Передаём токен сессии
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}), // Пустое тело, userId берётся из сессии внутри функции
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Ошибка при удалении аккаунта");
+      }
+
+      // 2. Выход из системы
+      await signOut();
+
+      // 3. Перенаправление на экран аутентификации
+      // router.push('/auth'); // Закомментировано, так как router может не быть
+      window.location.href = '/auth'; // Альтернативный способ перенаправления
+
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      alert((error as Error).message || "Произошла ошибка при удалении аккаунта.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-6 mt-6">
+      <h2 className="text-lg font-semibold text-red-900 mb-2">Удаление аккаунта</h2>
+      <p className="text-sm text-red-700 mb-4">
+        Это действие необратимо. Все ваши данные будут удалены.
+      </p>
+      <div className="mb-4">
+        <label htmlFor="confirm-delete" className="block text-sm font-medium text-red-900 mb-1">
+          Для подтверждения введите "УДАЛИТЬ МОЙ АККАУНТ" в поле ниже:
+        </label>
+        <input
+          type="text"
+          id="confirm-delete"
+          value={confirmationText}
+          onChange={(e) => setConfirmationText(e.target.value)}
+          className="w-full px-3 py-2 border border-red-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+          placeholder="УДАЛИТЬ МОЙ АККАУНТ"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={handleDeleteAccount}
+        disabled={!isConfirmed || isDeleting}
+        className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white ${
+          isConfirmed && !isDeleting
+            ? "bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            : "bg-red-400 cursor-not-allowed"
+        }`}
+      >
+        {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
+      </button>
+    </div>
+  );
+};
+
 // --- Основной компонент экрана настроек ---
 const SettingsScreen: React.FC = () => {
   const { user: authUser } = useAuth(); // Получаем данные пользователя из контекста
@@ -549,6 +641,9 @@ const SettingsScreen: React.FC = () => {
 
       {/* Компонент экспорта данных */}
       <DataExport userId={authUser.id} />
+
+      {/* --- НОВОЕ: Компонент удаления аккаунта --- */}
+      <AccountDeletionSection userId={authUser.id} />
     </div>
   );
 };
