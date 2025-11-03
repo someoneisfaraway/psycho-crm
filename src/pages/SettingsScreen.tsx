@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext'; // Импортируем контекст аутентификации
 import { exportUserData } from '../../utils/exportData'; // Импортируем функцию экспорта
+import { createClient } from '../../utils/supabaseClient'; // Импортируем клиент
+const supabase = createClient();
 
 // --- Тип для настроек уведомлений ---
 interface NotificationSettingsData {
@@ -74,6 +76,44 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdateProfile, loadin
       phone: user.user_metadata?.phone || '',
       registration_type: user.user_metadata?.registration_type || 'individual',
     });
+  };
+
+  // --- НОВОЕ: Состояния и функции для изменения пароля ---
+  const [passwordData, setPasswordData] = useState({ newPassword: '', confirmNewPassword: '' });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
+  const handlePasswordChange = async () => {
+    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+      setPasswordError("Новые пароли не совпадают.");
+      setPasswordSuccess(null);
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) { // Пример минимальной длины
+       setPasswordError("Пароль должен быть не менее 6 символов.");
+       setPasswordSuccess(null);
+       return;
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setPasswordSuccess("Пароль успешно изменён!");
+      setPasswordError(null);
+      // Очистить поля
+      setPasswordData({ newPassword: '', confirmNewPassword: '' });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      setPasswordError((error as Error).message || "Произошла ошибка при изменении пароля.");
+      setPasswordSuccess(null);
+    }
   };
 
   return (
@@ -158,6 +198,48 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdateProfile, loadin
           </div>
         </form>
       )}
+
+      {/* --- НОВОЕ: Раздел изменения пароля --- */}
+      <div className="mt-6 pt-6 border-t border-gray-200">
+        <h3 className="text-md font-medium text-gray-900 mb-2">Изменить пароль</h3>
+        <div className="space-y-2">
+          <div>
+            <label htmlFor="new-password" className="block text-sm font-medium text-gray-700">
+              Новый пароль
+            </label>
+            <input
+              type="password"
+              id="new-password"
+              name="newPassword"
+              value={passwordData.newPassword}
+              onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="confirm-new-password" className="block text-sm font-medium text-gray-700">
+              Подтвердите новый пароль
+            </label>
+            <input
+              type="password"
+              id="confirm-new-password"
+              name="confirmNewPassword"
+              value={passwordData.confirmNewPassword}
+              onChange={(e) => setPasswordData({...passwordData, confirmNewPassword: e.target.value})}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+          {passwordSuccess && <p className="text-sm text-green-600">{passwordSuccess}</p>}
+          <button
+            type="button"
+            onClick={handlePasswordChange}
+            className="px-4 py-2 bg-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Изменить пароль
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -465,7 +547,7 @@ const SettingsScreen: React.FC = () => {
         onUpdateSettings={handleUpdateWorkSettings}
       />
 
-      {/* --- НОВОЕ: Компонент экспорта данных --- */}
+      {/* Компонент экспорта данных */}
       <DataExport userId={authUser.id} />
     </div>
   );
