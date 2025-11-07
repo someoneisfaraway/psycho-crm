@@ -1,7 +1,8 @@
 // src/pages/FinancialSummaryScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { getFinancialSummary, FinancialSummary } from '../../api/finances';
+import { useAuth } from '../contexts/AuthContext';
+import { getFinancialSummary } from '../api/finances';
+import type { FinancialSummary } from '../api/finances';
 
 const FinancialSummaryScreen: React.FC = () => {
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
@@ -227,7 +228,7 @@ const FinancialSummaryScreen: React.FC = () => {
               {Object.entries(summary.revenueBreakdown).map(([method, amount]) => (
                 <li key={method} className="flex justify-between">
                   <span>{method}:</span>
-                  <span className="font-medium">{amount.toLocaleString('ru-RU')} руб.</span>
+                  <span className="font-medium">{(amount as number).toLocaleString('ru-RU')} руб.</span>
                 </li>
               ))}
             </ul>
@@ -253,7 +254,7 @@ const FinancialSummaryScreen: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {summary.debtors.map((debtor) => (
+                {summary.debtors.map((debtor: { client_id: string; client_name: string; debt_amount: number }) => (
                   <tr key={debtor.client_id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {debtor.client_name}
@@ -291,7 +292,7 @@ const FinancialSummaryScreen: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {summary.receiptReminders.map((reminder) => (
+                {summary.receiptReminders.map((reminder: { client_id: string; client_name: string; session_date: string; session_id: string }) => (
                   <tr key={reminder.session_id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {reminder.client_name}

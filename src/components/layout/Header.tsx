@@ -35,14 +35,14 @@ const Header: React.FC<HeaderProps> = ({ title, showMenu = false, onMenuClick })
                 <Menu size={24} />
               </button>
             )}
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+            <h1 className="text-base font-bold text-gray-900">{title}</h1>
           </div>
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-700 hidden md:block">
-              Welcome, {user?.email?.split('@')[0]}
+              {user?.email?.split('@')[0]}
             </span>
-            <Button onClick={handleSignOut} variant="outline" size="sm">
-              Sign Out
+            <Button onClick={handleSignOut} variant="outline" size="sm" className="text-sm">
+              Выйти
             </Button>
           </div>
         </div>

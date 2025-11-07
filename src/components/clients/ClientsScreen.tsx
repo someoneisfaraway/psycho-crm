@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Client, NewClient } from '../../types/database';
+import type { Client, NewClient, UpdateClient } from '../../types/database';
 import ClientsList from './ClientsList';
 import AddClientModal from './AddClientModal';
 import EditClientModal from './EditClientModal';
@@ -13,7 +13,6 @@ const ClientsScreen: React.FC = () => {
   const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -26,34 +25,46 @@ const ClientsScreen: React.FC = () => {
       {
         id: '1',
         user_id: user?.id || '',
-        client_id: 'CLI001',
-        first_name: 'John',
-        last_name: 'Doe',
+        name: 'John Doe',
         email: 'john.doe@example.com',
         phone: '+1234567890',
-        birth_date: '1980-01-15',
-        gender: 'male',
-        notes: 'Long-term client with anxiety issues',
-        encrypted_notes: '',
+        age: 43,
+        location: 'New York',
+        source: 'private',
+        type: 'regular',
+        status: 'active',
+        session_price: 100,
+        payment_type: 'self-employed',
+        need_receipt: true,
+        format: 'online',
+        total_sessions: 10,
+        total_paid: 1000,
+        debt: 0,
         created_at: '2023-01-01T00:00:00Z',
         updated_at: '2023-01-01T00:00:00Z',
-        status: 'active'
+        meeting_link: 'https://meet.example.com/john-doe'
       },
       {
         id: '2',
         user_id: user?.id || '',
-        client_id: 'CLI002',
-        first_name: 'Jane',
-        last_name: 'Smith',
+        name: 'Jane Smith',
         email: 'jane.smith@example.com',
         phone: '+0987654321',
-        birth_date: '1990-05-20',
-        gender: 'female',
-        notes: 'New client seeking therapy for depression',
-        encrypted_notes: '',
+        age: 33,
+        location: 'Los Angeles',
+        source: 'yasno',
+        type: 'regular',
+        status: 'active',
+        session_price: 120,
+        payment_type: 'ip',
+        need_receipt: false,
+        format: 'offline',
+        total_sessions: 5,
+        total_paid: 600,
+        debt: 0,
         created_at: '2023-02-01T00:00:00Z',
         updated_at: '2023-02-01T00:00:00Z',
-        status: 'active'
+        meeting_link: 'https://meet.example.com/jane-smith'
       }
     ];
 
@@ -76,14 +87,14 @@ const ClientsScreen: React.FC = () => {
     setClients([...clients, client]);
   };
 
-  const handleEditClient = (updatedClient: Client) => {
+  const handleEditClient = (updatedClient: UpdateClient & { id: string }) => {
     // In a real app, we would call an API to update the client
     setClients(clients.map(client => 
-      client.id === updatedClient.id ? updatedClient : client
+      client.id === updatedClient.id ? { ...client, ...updatedClient } : client
     ));
     
     if (selectedClient && selectedClient.id === updatedClient.id) {
-      setSelectedClient(updatedClient);
+      setSelectedClient({ ...selectedClient, ...updatedClient });
     }
   };
 
@@ -125,16 +136,13 @@ const ClientsScreen: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <Button onClick={() => setIsAddModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Client
-          </Button>
+          {/* Кнопка Add Client удалена по просьбе пользователя */}
         </div>
         
         <ClientsList
           clients={clients}
           loading={loading}
-          error={error}
+          error={null}
           onAddClient={() => setIsAddModalOpen(true)}
           onEditClient={(client: Client) => {
             setSelectedClient(client);
@@ -145,7 +153,6 @@ const ClientsScreen: React.FC = () => {
             setIsDeleteModalOpen(true);
           }}
           onViewClientDetails={handleViewClientDetails}
-          refetch={() => {}}
         />
       </div>
       

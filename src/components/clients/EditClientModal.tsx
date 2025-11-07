@@ -30,7 +30,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
     // Нужно аккуратно извлечь обновляемые поля, исключив id и user_id
 
     // Поля, которые не должны обновляться при редактировании через эту форму (или обновляются другими способами)
-    const { id: formId, user_id, total_sessions, total_paid, debt, created_at, updated_at, last_session_at, next_session_at, ...updates } = formData;
+    const { id: formId, total_sessions, total_paid, debt, created_at, updated_at, last_session_at, next_session_at, ...updates } = formData;
 
     // Проверим, что id в URL параметрах совпадает с id в formData (для безопасности на бэкенде, но на фронте тоже проверим)
     if (formId && formId !== client.id) {
@@ -102,7 +102,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
             onCancel={onClose}
             userId="" // userId не используется при редактировании
             // Передаём зашифрованные заметки отдельно
-            initialEncryptedNotes={client.notes_encrypted}
+            initialEncryptedNotes={client.notes_encrypted || undefined}
             initialData={{ // Передаём остальные данные, исключая notes_encrypted
               name: client.name,
               age: client.age,

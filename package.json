@@ -22,11 +22,16 @@
     "react-hook-form": "^7.65.0",
     "react-router-dom": "^7.9.4",
     "tailwind-merge": "^3.3.1",
+    "workbox-expiration": "^7.3.0",
+    "workbox-precaching": "^7.3.0",
+    "workbox-routing": "^7.3.0",
+    "workbox-strategies": "^7.3.0",
     "zod": "^4.1.12",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@tailwindcss/vite": "^4.1.16",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.16",

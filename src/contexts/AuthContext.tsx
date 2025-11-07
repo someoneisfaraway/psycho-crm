@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
 
@@ -30,13 +30,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check active session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-      setLoading(false);
+    let unsubscribe: (() => void) | undefined;
 
-      // Listen for auth changes
+    const init = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user || null);
+      } catch (e) {
+        console.error('Error fetching session:', e);
+      } finally {
+        setLoading(false);
+      }
+
       const { data: { subscription } } = await supabase.auth.onAuthStateChange(
         (_event: any, session: any) => {
           setUser(session?.user || null);
@@ -44,19 +49,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       );
 
-      return () => {
+      unsubscribe = () => {
         subscription.unsubscribe();
       };
     };
 
-    checkSession();
+    init();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    const redirectTo = `${import.meta.env.VITE_APP_URL}/auth/callback`;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-    });
+      options: { emailRedirectTo: redirectTo },
+    } as any);
 
     if (error) {
       console.error('Sign up error:', error.message);
@@ -77,6 +88,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw error;
     }
 
+    // Ensure context reflects authenticated state immediately
+    setUser(data.user ?? null);
+    setLoading(false);
+
     return data;
   };
 
@@ -89,7 +104,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const forgotPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const redirectTo = `${import.meta.env.VITE_APP_URL}/reset-password`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo } as any);
     if (error) {
       console.error('Forgot password error:', error.message);
       throw error;

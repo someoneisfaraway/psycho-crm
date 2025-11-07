@@ -1,11 +1,10 @@
 // src/components/calendar/SessionDetailModal.tsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale'; // Убедитесь, что локаль установлена, если нужна русская локализация
 import type { Session, Client } from '../../types/database';
 import { Button } from '../ui/Button';
-import { X, CheckCircle, Edit, Ban } from 'lucide-react';
+import { X, CreditCard, CheckCircle, Edit, Send, Ban } from 'lucide-react';
 import { decrypt } from '../../utils/encryption'; // Импортируем функцию расшифровки
 
 interface SessionDetailModalProps {
@@ -17,8 +16,6 @@ interface SessionDetailModalProps {
   onMarkCompleted: (id: string) => void; // Функция отметки завершения
   onMarkPaid: (id: string, paymentMethod: string) => void; // Функция отметки оплаты
   onMarkReceiptSent: (id: string) => void; // Функция отметки отправки чека
-  onUnmarkPaid: (id: string) => void; // Снять отметку оплаты
-  onUnmarkReceiptSent: (id: string) => void; // Снять отметку отправки чека
   onReschedule: (session: Session) => void; // Функция переноса
   onForgiveDebt: (id: string) => void; // Функция списания долга
   onMarkCancelled: (id: string) => void; // Новая функция для отмены сессии
@@ -35,8 +32,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onMarkCompleted,
   onMarkPaid,
   onMarkReceiptSent,
-  onUnmarkPaid,
-  onUnmarkReceiptSent,
   onReschedule,
   onForgiveDebt,
   onMarkCancelled,
@@ -45,7 +40,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 }) => {
   // Состояние для меню выбора способа оплаты
   const [showPaymentMenu, setShowPaymentMenu] = useState(false);
-  const navigate = useNavigate();
   // const [tempPaymentMethod, setTempPaymentMethod] = useState(session.payment_method || 'cash');
 
   // Обработчик кнопки "Отметить оплату" - показывает меню
@@ -91,7 +85,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 text-gray-900">
+        <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-900">
               Сессия #{session.session_number} с {client.name}
@@ -213,15 +207,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                 <span className="font-medium">{client.total_sessions}</span>
               </div>
               <div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => {
-                    onClose();
-                    navigate('/clients', { state: { clientId: client.id, openDetails: true } });
-                  }}
-                >
+                <Button variant="outline" size="sm" className="mt-2">
                   Открыть карточку клиента →
                 </Button>
               </div>
@@ -242,66 +228,100 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           <div className="flex flex-wrap gap-2 mt-6">
             {session.status === 'scheduled' && (
               <>
-                <Button variant="outline" onClick={() => onMarkCompleted(session.id)}>
+                <Button
+                  variant="outline"
+                  onClick={() => onMarkCompleted(session.id)}
+                >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Отметить завершённой
                 </Button>
-                <Button variant="outline" onClick={() => onReschedule(session)}>
+                <Button
+                  variant="outline"
+                  onClick={() => onReschedule(session)}
+                >
                   <Edit className="mr-2 h-4 w-4" />
                   Перенести
                 </Button>
-                <Button variant="destructive" onClick={() => onMarkCancelled(session.id)}>
+                {/* Кнопка "Отменить" для реализации отмены сессии */}
+                <Button
+                  variant="destructive"
+                  onClick={() => onMarkCancelled(session.id)} // Вызываем новую функцию
+                >
                   <Ban className="mr-2 h-4 w-4" />
                   Отменить
                 </Button>
               </>
             )}
-            {session.status !== 'cancelled' && (
+            {session.status === 'completed' && !session.paid && (
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  onClick={handleShowPaymentMenu} // Показываем меню выбора
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Отметить оплату
+                </Button>
+                {showPaymentMenu && (
+                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 border border-gray-200">
+                    {['cash', 'card', 'platform', 'transfer'].map((method) => (
+                      <button
+                        key={method}
+                        onClick={() => handleSelectPaymentMethod(method)}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        {method === 'cash' ? 'Наличные' :
+                         method === 'card' ? 'Карта' :
+                         method === 'platform' ? 'Через платформу' : 'Перевод'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {session.status === 'completed' && session.paid && !session.receipt_sent && (
               <Button
                 variant="outline"
-                onClick={() => { onClose(); setTimeout(() => onEdit(session), 0); }}
+                onClick={() => onMarkReceiptSent(session.id)}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Отправить чек
+              </Button>
+            )}
+            {session.status === 'completed' && session.paid && session.receipt_sent && (
+              <Button
+                variant="outline"
+                onClick={() => onEdit(session)}
               >
                 <Edit className="mr-2 h-4 w-4" />
                 Редактировать
               </Button>
             )}
-
-            {/* Оплата / Чек */}
+            {session.status === 'completed' && session.paid && !session.receipt_sent && (
+              <Button
+                variant="outline"
+                onClick={() => onEdit(session)}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Редактировать
+              </Button>
+            )}
+            {session.status === 'completed' && session.paid && session.receipt_sent && (
+              <Button
+                variant="outline"
+                onClick={() => onForgiveDebt(session.id)}
+              >
+                Списать долг
+              </Button>
+            )}
+            {/* Кнопка "Редактировать" всегда видна, если статус не "cancelled" */}
             {session.status !== 'cancelled' && (
-              <>
-                {!session.paid ? (
-                  <>
-                    <Button variant="default" onClick={handleShowPaymentMenu}>
-                      Отметить оплату
-                    </Button>
-                    {showPaymentMenu && (
-                      <div className="flex gap-2 items-center">
-                        <span className="text-sm text-gray-600">Способ:</span>
-                        <Button size="sm" variant="outline" onClick={() => handleSelectPaymentMethod('cash')}>Наличные</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleSelectPaymentMethod('card')}>Карта</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleSelectPaymentMethod('platform')}>Платформа</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleSelectPaymentMethod('transfer')}>Перевод</Button>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <Button variant="outline" onClick={() => onUnmarkPaid(session.id)}>
-                    Снять оплату
-                  </Button>
-                )}
-
-                {session.paid && (
-                  !session.receipt_sent ? (
-                    <Button variant="default" onClick={() => onMarkReceiptSent(session.id)}>
-                      Отправить чек
-                    </Button>
-                  ) : (
-                    <Button variant="outline" onClick={() => onUnmarkReceiptSent(session.id)}>
-                      Снять чек
-                    </Button>
-                  )
-                )}
-              </>
+              <Button
+                variant="outline"
+                onClick={() => onEdit(session)}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Редактировать
+              </Button>
             )}
           </div>
         </div>

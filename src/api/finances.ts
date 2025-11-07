@@ -1,8 +1,5 @@
 // src/api/finances.ts
-import { createClient } from '../utils/supabaseClient';
-import { Session } from '../types/database'; // Предполагаем, что тип Session определён
-
-const supabase = createClient();
+import { supabase } from '../config/supabase';
 
 // Тип для финансовой сводки
 export interface FinancialSummary {
@@ -10,6 +7,18 @@ export interface FinancialSummary {
   revenueBreakdown: Record<string, number>; // e.g., { 'card': 5000, 'cash': 3000 }
   debtors: Array<{ client_id: string; client_name: string; debt_amount: number }>;
   receiptReminders: Array<{ client_id: string; client_name: string; session_date: string; session_id: string }>;
+}
+
+// Локальный тип для минимального набора полей сессии, необходимых для финансовой сводки
+interface SessionSummaryRow {
+  id: string;
+  client_id: string;
+  status: 'scheduled' | 'completed' | 'cancelled' | 'missed' | 'rescheduled';
+  paid?: boolean;
+  payment_method?: string | null;
+  price: number;
+  scheduled_at: string;
+  receipt_sent?: boolean;
 }
 
 /**
@@ -32,29 +41,30 @@ export const getFinancialSummary = async (
     console.log(`Запрос финансовой сводки для пользователя ${userId} за период ${startISO} - ${endISO}`);
 
     // Запрос для получения всех сессий пользователя за период
-    // Предполагаем, что в таблице sessions есть поля: user_id, status, payment_status, payment_method, amount, client_id
-    // Также предполагаем, что дата сессии хранится в поле start_time или scheduled_date
-    const { data: sessions, error: sessionsError } = await supabase
+    // Поля соответствуют текущей схеме: paid, payment_method, price, scheduled_at и т.д.
+    const { data, error: sessionsError } = await supabase
       .from('sessions')
-      .select('id, client_id, status, payment_status, payment_method, amount, start_time') // Уточни поля в зависимости от твоей таблицы
+      .select('id, client_id, status, paid, payment_method, price, scheduled_at, receipt_sent')
       .eq('user_id', userId)
-      .gte('start_time', startISO) // Фильтр по дате начала
-      .lte('start_time', endISO)   // Фильтр по дате окончания
-      .in('status', ['completed', 'paid']); // Считаем доход только по завершённым или оплаченным сессиям
+      .gte('scheduled_at', startISO)
+      .lte('scheduled_at', endISO)
+      .order('scheduled_at', { ascending: true });
 
     if (sessionsError) {
       console.error('Ошибка при получении сессий для финансовой сводки:', sessionsError);
       throw new Error(`Ошибка при получении данных: ${sessionsError.message}`);
     }
 
+    const sessions: SessionSummaryRow[] = (data || []) as SessionSummaryRow[];
+
     // Запрос для получения данных клиентов (имя, для списка должников)
     // Сначала получим уникальные ID клиентов из сессий
-    const clientIds = [...new Set(sessions?.map(s => s.client_id) || [])];
+    const clientIds = [...new Set(sessions.map((s: SessionSummaryRow) => s.client_id))];
     let clientNames: Record<string, string> = {};
     if (clientIds.length > 0) {
       const { data: clients, error: clientsError } = await supabase
         .from('clients')
-        .select('id, name') // Уточни поля в зависимости от твоей таблицы
+        .select('id, name')
         .in('id', clientIds);
 
       if (clientsError) {
@@ -63,7 +73,7 @@ export const getFinancialSummary = async (
         clientNames = {};
       } else {
         // Создаём маппинг ID -> Имя
-        clientNames = clients.reduce((acc, client) => {
+        clientNames = (clients || []).reduce((acc: Record<string, string>, client: { id: string; name: string }) => {
           acc[client.id] = client.name;
           return acc;
         }, {} as Record<string, string>);
@@ -75,19 +85,19 @@ export const getFinancialSummary = async (
     const revenueBreakdown: Record<string, number> = {};
     const debtorsMap: Record<string, number> = {}; // client_id -> сумма долга
 
-    sessions?.forEach(session => {
+    sessions.forEach((session: SessionSummaryRow) => {
       // 1. Расчёт общего дохода и разбивки
-      if (session.payment_status === 'paid') { // Или status === 'completed' && session.amount?
-        const amount = session.amount || 0; // Убедимся, что amount определён
+      if (session.paid) {
+        const amount = session.price || 0;
         totalRevenue += amount;
 
-        const method = session.payment_method || 'unknown'; // Уточни поле метода оплаты
+        const method = session.payment_method || 'unknown';
         revenueBreakdown[method] = (revenueBreakdown[method] || 0) + amount;
       }
 
       // 2. Расчёт задолженности (например, сессия завершена, но не оплачена)
-      if (session.status === 'completed' && session.payment_status !== 'paid') {
-         const amount = session.amount || 0;
+      if (session.status === 'completed' && !session.paid) {
+         const amount = session.price || 0;
          debtorsMap[session.client_id] = (debtorsMap[session.client_id] || 0) + amount;
       }
     });
@@ -95,20 +105,19 @@ export const getFinancialSummary = async (
     // 3. Формирование списка должников
     const debtors = Object.entries(debtorsMap).map(([client_id, debt_amount]) => ({
       client_id,
-      client_name: clientNames[client_id] || 'Unknown Client', // Используем имя из маппинга
+      client_name: clientNames[client_id] || 'Unknown Client',
       debt_amount,
     }));
 
     // 4. Формирование списка напоминаний о чеках (например, сессии оплачены, но чек не отправлен)
-    // Предположим, есть поле receipt_sent (boolean) в таблице sessions
     const receiptReminders = sessions
-      ?.filter(session => session.payment_status === 'paid' && !session.receipt_sent) // Чек не отправлен
-      .map(session => ({
+      .filter((session: SessionSummaryRow) => !!session.paid && !session.receipt_sent)
+      .map((session: SessionSummaryRow) => ({
         client_id: session.client_id,
         client_name: clientNames[session.client_id] || 'Unknown Client',
-        session_date: session.start_time,
+        session_date: session.scheduled_at,
         session_id: session.id,
-      })) || [];
+      }));
 
     // --- Возврат результата ---
     const summary: FinancialSummary = {

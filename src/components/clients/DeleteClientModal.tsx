@@ -62,11 +62,12 @@ const DeleteClientModal: React.FC<DeleteClientModalProps> = ({
               </h3>
               <div className="mt-2">
                 <p className="text-sm text-gray-500">
-                  <span className="font-medium">{client.first_name} {client.last_name}</span> will be permanently deleted.
+                  <span className="font-medium">{client.name}</span> will be permanently deleted.
                   This action cannot be undone.
                 </p>
               </div>
             </div>
+          </div>
           
           <div className="flex justify-end space-x-3">
             <Button

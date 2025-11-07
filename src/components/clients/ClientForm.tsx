@@ -1,15 +1,15 @@
 // src/components/clients/ClientForm.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Client, NewClient, UpdateClient } from '../../types/database'; // Обновим тип, чтобы он не включал id при создании, если генерируется
 import { Button } from '../ui/Button';
-import { Mail, Phone, User } from 'lucide-react';
+import { Mail, Phone, Wallet } from 'lucide-react';
 import { encrypt, decrypt } from '../../utils/encryption'; // Импортируем функции шифрования/расшифровки
 
 // Определим тип пропсов для формы
 interface ClientFormProps {
   initialData?: Partial<Client> & { notes?: string }; // Данные для редактирования (необязательны). Добавим notes как отдельное поле, если оно уже расшифровано
   initialEncryptedNotes?: string; // Альтернатива - передать зашифрованные заметки для редактирования
-  onSubmit: ( NewClient | (UpdateClient & { id: string })) => void; // Функция для отправки данных. Принимает NewClient или UpdateClient с id
+  onSubmit: (data: NewClient | (UpdateClient & { id: string })) => void; // Функция для отправки данных. Принимает NewClient или UpdateClient с id
   onCancel: () => void; // Функция для отмены
   userId: string; // ID текущего пользователя (обязательно для создания)
   isLoading?: boolean;
@@ -32,7 +32,7 @@ interface FormState {
   format: string;
   meeting_link: string;
   notes: string; // Нешифрованные заметки
-  status: string; // Статус
+  status: 'active' | 'paused' | 'completed'; // Статус - теперь с правильным типом
   // Поля, специфичные для создания
   idType: 'auto' | 'manual'; // Тип генерации ID
   manualId: string; // Поле для ручного ввода ID
@@ -109,7 +109,13 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   });
 
-  const [errors, setErrors] = useState<Partial<FormState>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  // Локальное состояние для форматированного ввода стоимости сессии (с разделителем разрядов)
+  const [sessionPriceInput, setSessionPriceInput] = useState<string>(() => {
+    const price = isEditing ? (initialData?.session_price || 0) : 0;
+    return price > 0 ? new Intl.NumberFormat('ru-RU').format(price) : '';
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -126,7 +132,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }));
 
     // Очищаем ошибку для этого поля при изменении
-    if (errors[name as keyof FormState]) {
+    if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
@@ -143,7 +149,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
   };
 
   const validate = (): boolean => {
-    const newErrors: Partial<FormState> = {};
+    const newErrors: FormErrors = {};
     if (!formData.name || formData.name.trim().length < 2) {
       newErrors.name = 'Имя обязательно и должно быть не короче 2 символов';
     }
@@ -176,11 +182,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
       // Режим редактирования
       // Подготовка данных для отправки (UpdateClient)
       // Исключаем id и user_id из обновления
-      const { idType, manualId, ...updates } = formData; // idType и manualId не обновляются
+      const { idType, manualId, notes, ...updates } = formData; // idType и manualId не обновляются, notes не существует в таблице БД
       const updatePayload: UpdateClient & { id: string } = {
         ...updates,
         notes_encrypted: formData.notes ? encrypt(formData.notes) : null, // Шифруем заметки перед отправкой
-        id: initialData!.id, // id обновляемого клиента
+        id: initialData?.id || '', // id обновляемого клиента
       };
       onSubmit(updatePayload);
     } else {
@@ -224,7 +230,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         <div className="space-y-4">
           <h3 className="text-lg font-medium text-gray-900">ID клиента</h3>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-900 mb-1">
               Тип ID
             </label>
             <div className="flex space-x-4">
@@ -237,7 +243,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   disabled={isEditing} // Нельзя менять тип ID при редактировании
                 />
-                <span className="ml-2">Автоматический (auto_123)</span>
+                <span className="ml-2 text-gray-900">Автоматический (auto_123)</span>
               </label>
               <label className="inline-flex items-center">
                 <input
@@ -248,7 +254,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   disabled={isEditing} // Нельзя менять тип ID при редактировании
                 />
-                <span className="ml-2">Ручной ввод</span>
+                <span className="ml-2 text-gray-900">Ручной ввод</span>
               </label>
             </div>
             {formData.idType === 'manual' && (
@@ -260,7 +266,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                   value={formData.manualId}
                   onChange={handleChange}
                   placeholder="yasno_123 или другое"
-                  className={`mt-1 block w-full px-3 py-2 border ${errors.manualId ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                  className={`mt-1 block w-full px-3 py-2 border ${errors.manualId ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
                   disabled={isEditing} // Нельзя менять ID при редактировании
                 />
                 {errors.manualId && <p className="mt-1 text-sm text-red-600">{errors.manualId}</p>}
@@ -284,7 +290,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`mt-1 block w-full px-3 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+              className={`mt-1 block w-full px-3 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
             />
             {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
           </div>
@@ -299,7 +305,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="age"
               value={formData.age || ''}
               onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             />
           </div>
 
@@ -313,7 +319,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="location"
               value={formData.location}
               onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             />
           </div>
         </div>
@@ -330,11 +336,11 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="source"
               value={formData.source}
               onChange={handleChange}
-              className={`mt-1 block w-full px-3 py-2 border ${errors.source ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+              className={`mt-1 block w-full px-3 py-2 border ${errors.source ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
               disabled={isEditing} // Предположим, source нельзя менять при редактировании
             >
               <option value="">Выберите источник</option>
-              <option value="private">Частный клиент</option>
+              <option value="private">Личный</option>
               <option value="yasno">Ясно</option>
               <option value="zigmund">Зигмунд</option>
               <option value="alter">Alter</option>
@@ -352,7 +358,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="type"
               value={formData.type}
               onChange={handleChange}
-              className={`mt-1 block w-full px-3 py-2 border ${errors.type ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+              className={`mt-1 block w-full px-3 py-2 border ${errors.type ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
             >
               <option value="">Выберите тип</option>
               <option value="regular">Системный (регулярные сессии)</option>
@@ -416,7 +422,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
               value={formData.telegram}
               onChange={handleChange}
               placeholder="@username"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             />
           </div>
         </div>
@@ -428,16 +434,32 @@ const ClientForm: React.FC<ClientFormProps> = ({
             <label htmlFor="session_price" className="block text-sm font-medium text-gray-700">
               Стоимость сессии *
             </label>
-            <div className="flex items-center">
+            <div className="relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Wallet className="h-5 w-5 text-gray-400" />
+              </div>
               <input
-                type="number"
+                type="text"
                 id="session_price"
                 name="session_price"
-                value={formData.session_price}
-                onChange={handleChange}
-                className={`mt-1 block w-3/4 px-3 py-2 border ${errors.session_price ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                value={sessionPriceInput}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  // Форматируем ввод сразу с разделителями
+                  const digits = raw.replace(/[^\d]/g, '');
+                  const num = parseInt(digits, 10) || 0;
+                  const formatted = num > 0 ? new Intl.NumberFormat('ru-RU').format(num) : '';
+                  setSessionPriceInput(formatted);
+                  setFormData(prev => ({ ...prev, session_price: num }));
+                  if (errors.session_price) {
+                    setErrors(prev => ({ ...prev, session_price: undefined }));
+                  }
+                }}
+                className={`focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-8 py-2 border ${errors.session_price ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm leading-5 bg-white placeholder-gray-500 text-gray-900 sm:text-sm`}
               />
-              <span className="ml-2 mt-3">₽</span>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span className="text-gray-500 sm:text-sm">₽</span>
+              </div>
             </div>
             {errors.session_price && <p className="mt-1 text-sm text-red-600">{errors.session_price}</p>}
           </div>
@@ -451,7 +473,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
               name="payment_type"
               value={formData.payment_type}
               onChange={handleChange}
-              className={`mt-1 block w-full px-3 py-2 border ${errors.payment_type ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+              className={`mt-1 block w-full px-3 py-2 border ${errors.payment_type ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
             >
               <option value="">Выберите форму оплаты</option>
               <option value="self-employed">Самозанятый (чеки нужны)</option>
@@ -460,20 +482,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
               <option value="platform">Через платформу</option>
             </select>
             {errors.payment_type && <p className="mt-1 text-sm text-red-600">{errors.payment_type}</p>}
-          </div>
-
-          <div className="flex items-center">
-            <input
-              id="need_receipt"
-              name="need_receipt"
-              type="checkbox"
-              checked={formData.need_receipt}
-              onChange={handleChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="need_receipt" className="ml-2 block text-sm text-gray-900">
-              Нужны ли чеки клиенту
-            </label>
           </div>
         </div>
 
@@ -490,7 +498,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 onChange={handleChange}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
               />
-              <span className="ml-2">Онлайн</span>
+              <span className="ml-2 text-gray-900">Онлайн</span>
             </label>
             <label className="inline-flex items-center">
               <input
@@ -501,7 +509,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 onChange={handleChange}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
               />
-              <span className="ml-2">Офлайн</span>
+              <span className="ml-2 text-gray-900">Офлайн</span>
             </label>
           </div>
           {formData.format === 'online' && (
@@ -516,7 +524,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 value={formData.meeting_link}
                 onChange={handleChange}
                 placeholder="https://zoom.us/j/..."
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               />
             </div>
           )}
@@ -535,7 +543,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
               value={formData.notes}
               onChange={handleChange}
               rows={4}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             />
           </div>
         </div>
@@ -562,3 +570,13 @@ const ClientForm: React.FC<ClientFormProps> = ({
 };
 
 export default ClientForm;
+
+// Тип для ошибок валидации
+interface FormErrors {
+  name?: string;
+  manualId?: string;
+  session_price?: string;
+  source?: string;
+  type?: string;
+  payment_type?: string;
+}

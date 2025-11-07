@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import LoginForm from './LoginForm';
 import SignupForm from './SignupForm';
 import ForgotPasswordForm from './ForgotPasswordForm';
 
 const AuthScreen: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgotPassword'>('login');
+  const navigate = useNavigate();
 
   const handleLoginSuccess = () => {
-    // Redirect to main application
-    window.location.href = '/dashboard';
+    // Redirect to main application without full page reload
+    navigate('/calendar', { replace: true });
   };
 
   const handleSignupSuccess = () => {
@@ -16,7 +18,7 @@ const AuthScreen: React.FC = () => {
     setAuthMode('login');
   };
 
- const handleEmailSent = () => {
+  const handleEmailSent = () => {
     // After email sent for password reset, switch to login mode
     setAuthMode('login');
   };

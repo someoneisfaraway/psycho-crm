@@ -1,6 +1,6 @@
 import React from 'react';
-import Header from '../layout/Header';
-import BottomNavigation from '../layout/BottomNavigation';
+import Header from '../components/layout/Header';
+import BottomNavigation from '../components/layout/BottomNavigation';
 
 const FinancesScreen: React.FC = () => {
   return (

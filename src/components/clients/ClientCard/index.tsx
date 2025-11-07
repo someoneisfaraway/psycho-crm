@@ -2,7 +2,7 @@
 import React from 'react';
 import type { Client } from '../../../types/database';
 import { Button } from '../../ui/Button';
-import { User, Phone, Mail, MessageCircle, CreditCard, Receipt, AlertTriangle, Calendar, MapPin } from 'lucide-react';
+import { Phone, Mail, MessageCircle, CreditCard, AlertTriangle, MapPin } from 'lucide-react';
 
 interface ClientCardProps {
   client: Client;
@@ -14,7 +14,7 @@ interface ClientCardProps {
 const ClientCard: React.FC<ClientCardProps> = ({
   client,
   onEdit,
-  onDelete,
+  // onDelete, // unused
   onViewDetails
 }) => {
   // Функция для определения цвета статуса
@@ -51,13 +51,9 @@ const ClientCard: React.FC<ClientCardProps> = ({
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Не указана';
     try {
-      // Используем date-fns для форматирования, если установлен
-      // import { format } from 'date-fns'; import { ru } from 'date-fns/locale';
-      // return format(new Date(dateString), 'd MMM', { locale: ru });
-      // Пока используем стандартный метод
       return new Date(dateString).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
     } catch {
-      return dateString;
+      return dateString as string;
     }
   };
 
@@ -141,9 +137,14 @@ const ClientCard: React.FC<ClientCardProps> = ({
                   <span>{client.telegram}</span>
                 </div>
               )}
+              {client.age && (
+                <div className="flex items-center text-gray-600">
+                  <span>{client.age} лет</span>
+                </div>
+              )}
               {client.location && (
-                <div className="flex items-center">
-                  <MapPin className="mr-1 h-3 w-3" />
+                <div className="flex items-center text-gray-600">
+                  <MapPin className="mr-2 h-4 w-4" />
                   <span>{client.location}</span>
                 </div>
               )}
@@ -152,14 +153,17 @@ const ClientCard: React.FC<ClientCardProps> = ({
         )}
 
         {/* Кнопки действий */}
-        <div className="mt-4 flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => onViewDetails(client)}>
-            Подробнее
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onEdit(client)}>
-            Редактировать
-          </Button>
-        </div>
+-        <div className="mt-4 flex space-x-2">
+-          <Button variant="outline" size="sm" onClick={() => onViewDetails(client)}>
++        <div className="mt-4 flex space-x-2 justify-start">
++          <Button variant="outline" size="sm" className="px-2" onClick={() => onViewDetails(client)}>
+             Подробнее
+           </Button>
+-          <Button variant="outline" size="sm" onClick={() => onEdit(client)}>
++          <Button variant="outline" size="sm" className="px-2" onClick={() => onEdit(client)}>
+             Редактировать
+           </Button>
+         </div>
       </div>
     </div>
   );

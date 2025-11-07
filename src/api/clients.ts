@@ -13,6 +13,13 @@ interface GetClientsOptions {
 }
 
 /**
+ * Get all clients for the authenticated user (simple wrapper)
+ */
+export const getAll = async (userId: string) => {
+  return getClients({ userId });
+};
+
+/**
  * Get all clients for the authenticated user with optional search and filters
  */
 export const getClients = async (options: GetClientsOptions) => {
@@ -76,9 +83,23 @@ export const createClient = async (clientData: Omit<Client, 'total_sessions' | '
     // Пример генерации ID, можно улучшить
     clientData.id = `auto_${Date.now()}`;
   }
+
+  // Supabase строг к схемам: если в таблице нет колонки, вставка с таким ключом даст 400.
+  // В некоторых инстансах таблицы 'clients' нет колонки 'meeting_link'. Уберем её из payload.
+  const { meeting_link, ...rest } = clientData as any;
+  // Также удалим undefined-значения, чтобы не слать лишние ключи
+  const cleanedPayload = Object.fromEntries(
+    Object.entries(rest).filter(([_, v]) => v !== undefined)
+  );
+  // Нормализуем строки: trim и пустые строки -> null
+  const normalizeValue = (v: any) => typeof v === 'string' ? (v.trim() === '' ? null : v.trim()) : v;
+  const normalizedPayload = Object.fromEntries(
+    Object.entries(cleanedPayload).map(([k, v]) => [k, normalizeValue(v)])
+  );
+
   const { data, error } = await supabase
     .from('clients')
-    .insert([clientData])
+    .insert([normalizedPayload])
     .select()
     .single();
 
@@ -89,6 +110,33 @@ export const createClient = async (clientData: Omit<Client, 'total_sessions' | '
 
   return data;
 };
+
+export const updateClient = async (id: string, clientData: Partial<Omit<Client, 'id' | 'user_id'>>) => {
+  // Аналогично sanitize payload: убрать meeting_link и undefined
+  const { meeting_link, notes, ...rest } = clientData as any; // 'notes' не является колонкой в таблице, используем 'notes_encrypted'
+  const cleanedPayload = Object.fromEntries(
+    Object.entries(rest).filter(([_, v]) => v !== undefined)
+  );
+  // Нормализуем строки: trim и пустые строки -> null
+  const normalizeValue = (v: any) => typeof v === 'string' ? (v.trim() === '' ? null : v.trim()) : v;
+  const normalizedPayload = Object.fromEntries(
+    Object.entries(cleanedPayload).map(([k, v]) => [k, normalizeValue(v)])
+  );
+
+  const { data, error } = await supabase
+    .from('clients')
+    .update(normalizedPayload)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating client:', error);
+    throw new Error(error.message);
+  }
+
+  return data;
+}
 
 /**
  * Get a specific client by ID
@@ -108,24 +156,7 @@ export const getClientById = async (id: string) => {
   return data;
 };
 
-/**
- * Update a specific client
- */
-export const updateClient = async (id: string, clientData: Partial<Omit<Client, 'id' | 'user_id'>>) => {
-  const { data, error } = await supabase
-    .from('clients')
-    .update(clientData)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error updating client:', error);
-    throw new Error(error.message);
-  }
-
-  return data;
-};
+// Duplicate updateClient removed; using the sanitized version defined above.
 
 /**
  * Delete a specific client
@@ -146,3 +177,13 @@ export const deleteClient = async (id: string) => {
 
 // Export types
 export type { Client };
+
+// Export as API object for consistency with sessions API
+export const clientsApi = {
+  getAll,
+  getClients,
+  getClientById,
+  createClient,
+  updateClient,
+  deleteClient
+};

@@ -10,14 +10,14 @@ interface FinancialPeriod {
  */
 export const calculateTotalRevenue = (sessions: Session[], period: FinancialPeriod): number => {
   const filteredSessions = sessions.filter(session => {
-    const sessionDate = new Date(session.date);
+    const sessionDate = new Date(session.scheduled_at);
     const fromDate = new Date(period.from);
     const toDate = new Date(period.to);
-    return sessionDate >= fromDate && sessionDate <= toDate && session.payment_status === 'paid';
+    return sessionDate >= fromDate && sessionDate <= toDate && session.paid === true;
   });
 
   return filteredSessions.reduce((total, session) => {
-    return total + (session.payment_amount || 0);
+    return total + (session.price || 0);
   }, 0);
 };
 
@@ -26,14 +26,14 @@ export const calculateTotalRevenue = (sessions: Session[], period: FinancialPeri
  */
 export const calculateOutstandingAmount = (sessions: Session[], period: FinancialPeriod): number => {
   const filteredSessions = sessions.filter(session => {
-    const sessionDate = new Date(session.date);
+    const sessionDate = new Date(session.scheduled_at);
     const fromDate = new Date(period.from);
     const toDate = new Date(period.to);
-    return sessionDate >= fromDate && sessionDate <= toDate && session.payment_status === 'unpaid';
+    return sessionDate >= fromDate && sessionDate <= toDate && session.paid === false;
   });
 
   return filteredSessions.reduce((total, session) => {
-    return total + (session.payment_amount || 0);
+    return total + (session.price || 0);
   }, 0);
 };
 
@@ -42,7 +42,7 @@ export const calculateOutstandingAmount = (sessions: Session[], period: Financia
  */
 export const calculatePaymentRate = (sessions: Session[], period: FinancialPeriod): number => {
   const allFilteredSessions = sessions.filter(session => {
-    const sessionDate = new Date(session.date);
+    const sessionDate = new Date(session.scheduled_at);
     const fromDate = new Date(period.from);
     const toDate = new Date(period.to);
     return sessionDate >= fromDate && sessionDate <= toDate && session.status !== 'cancelled';
@@ -52,7 +52,7 @@ export const calculatePaymentRate = (sessions: Session[], period: FinancialPerio
     return 0;
   }
 
- const paidSessions = allFilteredSessions.filter(session => session.payment_status === 'paid');
+ const paidSessions = allFilteredSessions.filter(session => session.paid === true);
   return (paidSessions.length / allFilteredSessions.length) * 100;
 };
 
@@ -61,18 +61,18 @@ export const calculatePaymentRate = (sessions: Session[], period: FinancialPerio
  */
 export const getRevenueByPaymentType = (sessions: Session[], period: FinancialPeriod) => {
   const filteredSessions = sessions.filter(session => {
-    const sessionDate = new Date(session.date);
+    const sessionDate = new Date(session.scheduled_at);
     const fromDate = new Date(period.from);
     const toDate = new Date(period.to);
     return sessionDate >= fromDate && sessionDate <= toDate && 
-           session.payment_status === 'paid' && session.payment_type;
+           session.paid === true && session.payment_method;
   });
 
   const breakdown: Record<string, number> = {};
 
   filteredSessions.forEach(session => {
-    const type = session.payment_type || 'unknown';
-    const amount = session.payment_amount || 0;
+    const type = session.payment_method || 'unknown';
+    const amount = session.price || 0;
     breakdown[type] = (breakdown[type] || 0) + amount;
   });
 
@@ -84,11 +84,11 @@ export const getRevenueByPaymentType = (sessions: Session[], period: FinancialPe
  */
 export const getDebtorsList = (sessions: Session[], period: FinancialPeriod) => {
   const filteredSessions = sessions.filter(session => {
-    const sessionDate = new Date(session.date);
+    const sessionDate = new Date(session.scheduled_at);
     const fromDate = new Date(period.from);
     const toDate = new Date(period.to);
     return sessionDate >= fromDate && sessionDate <= toDate && 
-           session.payment_status === 'unpaid' && session.payment_amount;
+           session.paid === false && session.price;
   });
 
   // Group by client_id and sum up the amounts
@@ -96,7 +96,7 @@ export const getDebtorsList = (sessions: Session[], period: FinancialPeriod) => 
 
   filteredSessions.forEach(session => {
     const clientId = session.client_id;
-    const amount = session.payment_amount || 0;
+    const amount = session.price || 0;
     
     if (!debtors[clientId]) {
       debtors[clientId] = {
@@ -118,11 +118,11 @@ export const getDebtorsList = (sessions: Session[], period: FinancialPeriod) => 
  */
 export const calculateAverageSessionFee = (sessions: Session[], period: FinancialPeriod): number => {
   const paidSessions = sessions.filter(session => {
-    const sessionDate = new Date(session.date);
+    const sessionDate = new Date(session.scheduled_at);
     const fromDate = new Date(period.from);
     const toDate = new Date(period.to);
     return sessionDate >= fromDate && sessionDate <= toDate && 
-           session.payment_status === 'paid' && session.payment_amount;
+           session.paid === true && session.price;
   });
 
  if (paidSessions.length === 0) {
@@ -130,7 +130,7 @@ export const calculateAverageSessionFee = (sessions: Session[], period: Financia
   }
 
   const totalAmount = paidSessions.reduce((sum, session) => {
-    return sum + (session.payment_amount || 0);
+    return sum + (session.price || 0);
   }, 0);
 
   return totalAmount / paidSessions.length;

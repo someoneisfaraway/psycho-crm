@@ -36,17 +36,6 @@ function App() {
           <Routes>
             {/* Открытые маршруты (для аутентификации) */}
             <Route path="/auth" element={<AuthScreen />} />
-            {/* Корневой маршрут перенаправляет на /auth, если не авторизован, или на /calendar, если авторизован */}
-            <Route path="/" element={
-              <Routes>
-                <Route index element={<Navigate to="/auth" />} />
-                {/* Этот маршрут будет защищённым, но с редиректом на календарь */}
-                <Route element={<ProtectedRoute />}>
-                  {/* Редирект с / на /calendar, если пользователь авторизован */}
-                  <Route path="/" element={<Navigate to="/calendar" replace />} />
-                </Route>
-              </Routes>
-            } />
 
             {/* Защищённые маршруты (только для вошедших пользователей) */}
             {/* Все защищённые маршруты обёрнуты в ProtectedRoute */}

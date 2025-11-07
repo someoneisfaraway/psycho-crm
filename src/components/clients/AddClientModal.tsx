@@ -1,6 +1,6 @@
 // src/components/clients/AddClientModal.tsx
 import React, { useState } from 'react';
-import type { NewClient } from '../../types/database'; // Используем тип из database.ts
+import type { NewClient, UpdateClient } from '../../types/database'; // Используем тип из database.ts
 import ClientForm from './ClientForm'; // Импортируем обновлённую форму
 import { X } from 'lucide-react'; // Импортируем иконку закрытия
 
@@ -23,16 +23,18 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
     return null;
   }
 
-  const handleAdd = async (data: NewClient) => { // Принимаем NewClient
+  const handleAdd = async (data: NewClient | (UpdateClient & { id: string })) => { // Принимаем union тип
     try {
       setIsSaving(true);
-      // Данные из формы уже соответствуют типу NewClient (с учетом id, user_id)
-      // и подготовлены для отправки в API
-      onAdd(data);
-      onClose(); // Закрываем модалку после успешного добавления
+      // Обрабатываем только создание клиента
+      if ('user_id' in data) {
+        onAdd(data as NewClient);
+        onClose();
+      } else {
+        console.warn('Получены данные редактирования в режиме добавления, игнорируем.');
+      }
     } catch (error) {
       console.error('Error adding client:', error);
-      // В реальном приложении показали бы пользователю сообщение об ошибке
       alert('Error adding client: ' + (error as Error).message);
     } finally {
       setIsSaving(false);

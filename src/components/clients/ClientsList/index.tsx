@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Client } from '../../../types/database';
 import ClientCard from '../ClientCard';
-import { Button } from '../../ui/Button';
-import { Plus, Search } from 'lucide-react';
 
 interface ClientsListProps {
   clients: Client[];
@@ -12,7 +10,7 @@ interface ClientsListProps {
   onEditClient: (client: Client) => void;
   onDeleteClient: (client: Client) => void;
   onViewClientDetails: (client: Client) => void;
-  refetch: () => void;
+  refetch?: () => Promise<void>;
 }
 
 const ClientsList: React.FC<ClientsListProps> = ({
@@ -23,26 +21,14 @@ const ClientsList: React.FC<ClientsListProps> = ({
   onEditClient,
   onDeleteClient,
   onViewClientDetails,
-  refetch,
+  // refetch,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  // Убираем поиск и фильтрацию по строке, просто отображаем клиентов
   const [filteredClients, setFilteredClients] = useState<Client[]>(clients);
 
   useEffect(() => {
-    // Filter clients based on search term
-    const filtered = clients.filter(client => {
-      const clientName = `${client.first_name} ${client.last_name}`.toLowerCase();
-      const clientId = client.client_id.toLowerCase();
-      const email = client.email?.toLowerCase() || '';
-      return (
-        clientName.includes(searchTerm.toLowerCase()) ||
-        clientId.includes(searchTerm.toLowerCase()) ||
-        email.includes(searchTerm.toLowerCase())
-      );
-    });
-    
-    setFilteredClients(filtered);
-  }, [clients, searchTerm]);
+    setFilteredClients(clients);
+  }, [clients]);
 
   if (loading) {
     return (
@@ -74,29 +60,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
 
   return (
     <div>
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-        <div className="w-full sm:w-1/3">
-          <div className="relative rounded-md shadow-sm">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm leading-5 bg-white placeholder-gray-500 text-gray-900 sm:text-sm"
-              placeholder="Поиск клиентов..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-        <Button 
-          onClick={onAddClient}
-          className="w-full sm:w-auto"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Добавить клиента
-        </Button>
-      </div>
+      {/* Удалена панель с поиском и кнопкой добавления */}
 
       {filteredClients.length === 0 ? (
         <div className="text-center py-12">
@@ -105,14 +69,9 @@ const ClientsList: React.FC<ClientsListProps> = ({
           </svg>
           <h3 className="mt-2 text-sm font-medium text-gray-900">Клиенты не найдены</h3>
           <p className="mt-1 text-sm text-gray-500">
-            {searchTerm ? 'Нет клиентов, соответствующих поиску.' : 'Начните с создания нового клиента.'}
+            Начните с создания нового клиента.
           </p>
-          <div className="mt-6">
-            <Button onClick={onAddClient}>
-              <Plus className="mr-2 h-4 w-4" />
-              Добавить клиента
-            </Button>
-          </div>
+          {/* Кнопка «Добавить клиента» удалена по просьбе пользователя */}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

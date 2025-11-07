@@ -1,0 +1,19 @@
+{
+  "short_name": "PsychoCRM",
+  "name": "CRM для психологов",
+  "description": "Приложение для управления клиентами и сессиями психолога",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

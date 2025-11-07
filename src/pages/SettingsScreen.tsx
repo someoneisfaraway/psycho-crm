@@ -1,10 +1,8 @@
 // src/pages/SettingsScreen.tsx
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext'; // Импортируем контекст аутентификации
-import { exportUserData } from '../../utils/exportData'; // Импортируем функцию экспорта
-import { createClient } from '../../utils/supabaseClient'; // Импортируем клиент
-import { useRouter } from 'next/router'; // Импортируем useRouter
-const supabase = createClient();
+import { useAuth } from '../contexts/AuthContext'; // Импортируем контекст аутентификации
+import { exportUserData } from '../utils/exportData'; // Импортируем функцию экспорта
+import { supabase } from '../config/supabase'; // Импортируем клиент
 
 // --- Тип для настроек уведомлений ---
 interface NotificationSettingsData {
@@ -26,7 +24,7 @@ interface UserProfileProps {
   user: {
     // Определяем минимально необходимые поля для профиля
     id: string;
-    email: string;
+    email?: string; // Email может быть undefined в Supabase User
     // Предположим, что имя и телефон хранятся в профиле пользователя в Supabase
     user_metadata?: {
       full_name?: string;
@@ -35,7 +33,7 @@ interface UserProfileProps {
     };
   };
   // Функция для обновления профиля (реализуем позже)
-  onUpdateProfile: ( { full_name?: string; phone?: string; registration_type?: string }) => void;
+  onUpdateProfile: (data: { full_name?: string; phone?: string; registration_type?: string }) => void;
   // Флаг загрузки (реализуем позже)
   loading: boolean;
 }
@@ -479,7 +477,7 @@ interface AccountDeletionSectionProps {
   userId: string; // ID пользователя для подтверждения
 }
 
-const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = ({ userId }) => {
+const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = () => {
   const [confirmationText, setConfirmationText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const { signOut } = useAuth(); // Используем функцию выхода из контекста
@@ -498,12 +496,13 @@ const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = ({ userId 
       // 1. Вызов Edge Function для удаления данных и аккаунта
       // Важно: передавать userId напрямую из клиента небезопасно. Функция должна проверять сессию.
       // Поэтому мы не передаём userId явно, а доверяем сессии внутри функции.
+      const session = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`, // Замените 'delete-user' на имя вашей функции
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${supabase.auth.getSession().data?.session?.access_token}`, // Передаём токен сессии
+            "Authorization": `Bearer ${session.data?.session?.access_token}`, // Передаём токен сессии
             "Content-Type": "application/json",
           },
           body: JSON.stringify({}), // Пустое тело, userId берётся из сессии внутри функции
@@ -610,7 +609,7 @@ const SettingsScreen: React.FC = () => {
   };
 
   // Функция для обновления профиля (заглушка)
-  const handleUpdateProfile = async ( { full_name?: string; phone?: string; registration_type?: string }) => {
+  const handleUpdateProfile = async (data: { full_name?: string; phone?: string; registration_type?: string }) => {
     console.log("Попытка обновить профиль:", data);
     // Здесь будет вызов API для обновления профиля в Supabase
     // await updateProfileInSupabase(data);

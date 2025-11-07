@@ -1,5 +1,4 @@
 import { supabase } from '../config/supabase';
-import { getSessions } from './sessions';
 
 /**
  * Get sessions for a specific month

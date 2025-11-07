@@ -7,23 +7,23 @@ const BottomNavigation: React.FC = () => {
 
   const navItems = [
     {
-      name: 'Calendar',
-      path: '/dashboard/calendar',
+      name: 'Календарь',
+      path: '/calendar',
       icon: Calendar,
     },
     {
-      name: 'Clients',
-      path: '/dashboard/clients',
+      name: 'Клиенты',
+      path: '/clients',
       icon: Users,
     },
     {
-      name: 'Finances',
-      path: '/dashboard/finances',
+      name: 'Финансы',
+      path: '/finances',
       icon: DollarSign,
     },
     {
-      name: 'Settings',
-      path: '/dashboard/settings',
+      name: 'Настройки',
+      path: '/settings',
       icon: Settings,
     },
   ];

@@ -1,8 +1,6 @@
 // src/utils/exportData.ts
-import { createClient } from './supabaseClient'; // Импортируем клиент
-import { Client, Session } from '../types/database'; // Импортируем типы, если они существуют
-
-const supabase = createClient();
+import { supabase } from '../config/supabase'; // Импортируем клиент из config
+import type { Client, Session } from '../types/database'; // Импортируем типы с type-only import
 
 // Тип для объединённых данных экспорта
 interface ExportedData {

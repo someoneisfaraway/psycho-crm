@@ -1,29 +1,51 @@
 // src/pages/CalendarScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { sessionsApi } from '../../api/sessions'; // Импортируем API для сессий
-import { clientsApi } from '../../api/clients'; // Импортируем API для клиентов (для получения имён)
-import type { Session, Client } from '../../types/database'; // Импортируем типы
+import { useAuth } from '../contexts/AuthContext';
+import { sessionsApi } from '../api/sessions'; // Импортируем API для сессий
+import { clientsApi } from '../api/clients'; // Импортируем API для клиентов (для получения имён)
+import type { Session, Client } from '../types/database'; // Импортируем типы
 import CalendarGrid from '../components/calendar/CalendarGrid'; // Импортируем компонент сетки
 import SessionModal from '../components/calendar/SessionModal'; // Импортируем модальное окно сессии (для создания/редактирования)
 import SessionDetailModal from '../components/calendar/SessionDetailModal'; // Импортируем модальное окно деталей сессии
-import { Button } from '../components/ui/Button'; // Импортируем кнопку
+// import { Button } from '../components/ui/Button'; // Кнопка больше не используется здесь
 import { Plus } from 'lucide-react'; // Импортируем иконку
-import { format, isSameDay, parseISO } from 'date-fns'; // Импортируем функции из date-fns
+import { format, isSameDay } from 'date-fns'; // Импортируем функции из date-fns
 import { ru } from 'date-fns/locale'; // Импортируем русскую локаль
+import { useLocation } from 'react-router-dom';
+// Удалены импорты отладочных утилит
+
+// Интерфейс для сессии с информацией о клиенте (для отображения в календаре)
+interface SessionWithClient extends Session {
+  clients?: {
+    id: string;
+    name: string;
+  };
+}
 
 const CalendarScreen: React.FC = () => {
   const { user } = useAuth();
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<SessionWithClient[]>([]);
+  const [sessionsForSelectedDate, setSessionsForSelectedDate] = useState<SessionWithClient[]>([]);
   const [clients, setClients] = useState<Record<string, Client>>({}); // Словарь клиентов для быстрого доступа по ID
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date()); // По умолчанию сегодня
-  const [sessionsForSelectedDate, setSessionsForSelectedDate] = useState<Session[]>([]);
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isSessionDetailModalOpen, setIsSessionDetailModalOpen] = useState(false); // Новое состояние для детального модала
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [selectedSession, setSelectedSession] = useState<SessionWithClient | null>(null);
+  const [operationError, setOperationError] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const location = useLocation();
+  const navState = location.state as { clientId?: string; mode?: 'create' | 'edit' | 'view' } | null;
+
+  useEffect(() => {
+    if (navState?.mode === 'create' && navState?.clientId) {
+      setSelectedSession(null);
+      setModalMode('create');
+      setIsSessionModalOpen(true);
+    }
+  }, [navState]);
 
   // Загружаем сессии и клиентов при монтировании и при изменении user.id
   useEffect(() => {
@@ -37,21 +59,39 @@ const CalendarScreen: React.FC = () => {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
+        console.log('Loading sessions for date range:', startOfMonth, 'to', endOfMonth);
         const sessionsData = await sessionsApi.getForDateRange(user.id, startOfMonth, endOfMonth);
-        setSessions(sessionsData);
+        console.log('Loaded sessions from DB:', sessionsData);
+        if (sessionsData && Array.isArray(sessionsData) && sessionsData.length > 0) {
+          // Check if the first item has the expected structure
+          const hasValidStructure = sessionsData[0] && typeof sessionsData[0] === 'object' && 'id' in sessionsData[0];
+          if (hasValidStructure) {
+            setSessions(sessionsData as unknown as SessionWithClient[]);
+          } else {
+            console.warn('Sessions data has invalid structure:', sessionsData);
+            setSessions([]);
+          }
+        } else {
+          setSessions([]);
+        }
 
         // Загружаем всех клиентов текущего пользователя для получения имён
         const clientsData = await clientsApi.getAll(user.id);
-        const clientsMap = clientsData.reduce((acc, client) => {
-          acc[client.id] = client;
-          return acc;
-        }, {} as Record<string, Client>);
-        setClients(clientsMap);
+        if (clientsData && Array.isArray(clientsData)) {
+          const clientsMap = clientsData.reduce((acc: Record<string, Client>, client: Client) => {
+            acc[client.id] = client;
+            return acc;
+          }, {} as Record<string, Client>);
+          setClients(clientsMap);
+        } else {
+          setClients({});
+        }
 
       } catch (err) {
         console.error('Failed to fetch calendar data:', err);
         setError('Failed to load calendar data. Please try again later.');
+        setSessions([]);
+        setClients({});
       } finally {
         setLoading(false);
       }
@@ -95,7 +135,7 @@ const CalendarScreen: React.FC = () => {
   };
 
   // Обработчик открытия детального модального окна
-  const handleViewSession = (session: Session) => {
+  const handleViewSession = (session: SessionWithClient) => {
     // Псевдо-расшифровка заметки для передачи в SessionModal/SessionDetailModal (в реальности должна быть реальная расшифровка с ключом)
     // const decryptedNote = session.note_encrypted ? decrypt(session.note_encrypted) : '';
     // setSelectedSession({ ...session, note: decryptedNote }); // Передаём расшифрованную заметку как `note`
@@ -104,7 +144,7 @@ const CalendarScreen: React.FC = () => {
   };
 
   // Обработчик открытия модального окна редактирования
-  const handleEditSession = (session: Session) => {
+  const handleEditSession = (session: SessionWithClient) => {
     // Псевдо-расшифровка заметки для передачи в SessionModal/SessionDetailModal (в реальности должна быть реальная расшифровка с ключом)
     // const decryptedNote = session.note_encrypted ? decrypt(session.note_encrypted) : '';
     // setSelectedSession({ ...session, note: decryptedNote }); // Передаём расшифрованную заметку как `note`
@@ -115,25 +155,70 @@ const CalendarScreen: React.FC = () => {
 
   // Обработчики действий из детального модального окна
   const handleMarkCompleted = async (id: string) => {
+    setIsProcessing(true);
+    setOperationError('');
+    
     try {
       const updatedSession = await sessionsApi.markCompleted(id);
-      updateLocalSessions(updatedSession);
-      setIsSessionDetailModalOpen(false); // Закрываем детальный модал после обновления
-    } catch (err) {
+      if (updatedSession && !('error' in updatedSession)) {
+        updateLocalSessions(updatedSession);
+        setIsSessionDetailModalOpen(false);
+      } else if (updatedSession && 'error' in updatedSession) {
+        // API вернуло ошибку
+        throw new Error(updatedSession.error);
+      }
+    } catch (err: any) {
       console.error('Failed to mark session as completed:', err);
-      setError('Failed to mark session as completed. Please try again.');
+      
+      let errorMessage = 'Не удалось отметить сессию как завершенную. Попробуйте еще раз.';
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      } else if (err.response?.status === 404) {
+        errorMessage = 'Сессия не найдена. Возможно, она была удалена.';
+      } else if (err.response?.status === 400) {
+        errorMessage = 'Невозможно завершить сессию. Проверьте статус сессии.';
+      }
+      
+      setOperationError(errorMessage);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   // Обработчик отметки оплаты - принимает ID и метод оплаты
   const handleMarkPaid = async (id: string, paymentMethod: string) => {
+    setIsProcessing(true);
+    setOperationError('');
+    
     try {
-      const updatedSession = await sessionsApi.markPaid(id, paymentMethod); // Передаём ID и метод оплаты в API
-      updateLocalSessions(updatedSession);
-      setIsSessionDetailModalOpen(false); // Закрываем детальный модал после обновления
-    } catch (err) {
+      const updatedSession = await sessionsApi.markPaid(id, paymentMethod);
+      if (updatedSession && !('error' in updatedSession)) {
+        updateLocalSessions(updatedSession);
+        setIsSessionDetailModalOpen(false);
+      } else if (updatedSession && 'error' in updatedSession) {
+        throw new Error(updatedSession.error);
+      }
+    } catch (err: any) {
       console.error('Failed to mark session as paid:', err);
-      setError('Failed to mark session as paid. Please try again.');
+      
+      let errorMessage = 'Не удалось отметить сессию как оплаченную. Попробуйте еще раз.';
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      } else if (err.response?.status === 404) {
+        errorMessage = 'Сессия не найдена. Возможно, она была удалена.';
+      } else if (err.response?.status === 400) {
+        errorMessage = 'Невозможно отметить оплату. Проверьте статус сессии.';
+      }
+      
+      setOperationError(errorMessage);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -141,43 +226,162 @@ const CalendarScreen: React.FC = () => {
   const handleMarkCancelled = async (id: string) => {
     // Подтверждение действия
     if (window.confirm("Вы уверены, что хотите отменить эту сессию?")) {
+      setIsProcessing(true);
+      setOperationError('');
+      
       try {
         // Вызываем функцию API для отмены сессии
         const updatedSession = await sessionsApi.markCancelled(id);
-        // Обновляем локальное состояние
-        updateLocalSessions(updatedSession);
-        // Закрываем модальное окно деталей сессии
-        setIsSessionDetailModalOpen(false);
-      } catch (err) {
+        if (updatedSession && !('error' in updatedSession)) {
+          updateLocalSessions(updatedSession);
+          setIsSessionDetailModalOpen(false);
+        } else if (updatedSession && 'error' in updatedSession) {
+          throw new Error(updatedSession.error);
+        }
+      } catch (err: any) {
         console.error('Failed to mark session as cancelled:', err);
-        // Отображаем сообщение об ошибке пользователю
-        setError('Failed to mark session as cancelled. Please try again.');
+        
+        let errorMessage = 'Не удалось отменить сессию. Попробуйте еще раз.';
+        
+        if (err.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        } else if (err.response?.status === 404) {
+          errorMessage = 'Сессия не найдена. Возможно, она была удалена.';
+        } else if (err.response?.status === 400) {
+          errorMessage = 'Невозможно отменить сессию. Проверьте статус сессии.';
+        }
+        
+        setOperationError(errorMessage);
+      } finally {
+        setIsProcessing(false);
       }
     }
   };
 
   const handleMarkReceiptSent = async (id: string) => {
+    setIsProcessing(true);
+    setOperationError('');
+    
     try {
       const updatedSession = await sessionsApi.markReceiptSent(id);
-      updateLocalSessions(updatedSession);
-      setIsSessionDetailModalOpen(false); // Закрываем детальный модал после обновления
-    } catch (err) {
-      console.error('Failed to mark receipt as sent:', err);
-      setError('Failed to mark receipt as sent. Please try again.');
+      if (updatedSession && !('error' in updatedSession)) {
+        updateLocalSessions(updatedSession);
+        setIsSessionDetailModalOpen(false);
+      } else if (updatedSession && 'error' in updatedSession) {
+        throw new Error(updatedSession.error);
+      }
+    } catch (err: any) {
+      console.error('Failed to send receipt:', err);
+      
+      let errorMessage = 'Не удалось отправить чек. Попробуйте еще раз.';
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      } else if (err.response?.status === 404) {
+        errorMessage = 'Сессия не найдена. Возможно, она была удалена.';
+      } else if (err.response?.status === 400) {
+        errorMessage = 'Невозможно отправить чек. Проверьте статус сессии.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Ошибка сервера при отправке чека. Попробуйте позже.';
+      }
+      
+      setOperationError(errorMessage);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleRescheduleSession = (session: Session) => {
-    // Для переноса сессии, возможно, проще открыть модал редактирования
-    setSelectedSession(session);
-    setModalMode('edit');
-    setIsSessionModalOpen(true);
-    setIsSessionDetailModalOpen(false); // Закрываем детальный модал
+  // Снять отметку оплаты
+  const handleUnmarkPaid = async (id: string) => {
+    setIsProcessing(true);
+    setOperationError('');
+
+    try {
+      const updatedSession = await sessionsApi.unmarkPaid(id);
+      if (updatedSession && !('error' in updatedSession)) {
+        updateLocalSessions(updatedSession);
+        setIsSessionDetailModalOpen(false);
+      } else if (updatedSession && 'error' in updatedSession) {
+        throw new Error(updatedSession.error);
+      }
+    } catch (err: any) {
+      console.error('Failed to unmark session as paid:', err);
+      let errorMessage = 'Не удалось снять отметку об оплате. Попробуйте ещё раз.';
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setOperationError(errorMessage);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleForgiveDebt = async (id: string) => {
+  // Снять отметку отправки чека
+  const handleUnmarkReceiptSent = async (id: string) => {
+    setIsProcessing(true);
+    setOperationError('');
+
+    try {
+      const updatedSession = await sessionsApi.unmarkReceiptSent(id);
+      if (updatedSession && !('error' in updatedSession)) {
+        updateLocalSessions(updatedSession);
+        setIsSessionDetailModalOpen(false);
+      } else if (updatedSession && 'error' in updatedSession) {
+        throw new Error(updatedSession.error);
+      }
+    } catch (err: any) {
+      console.error('Failed to unmark receipt as sent:', err);
+      let errorMessage = 'Не удалось снять отметку о чеке. Попробуйте ещё раз.';
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setOperationError(errorMessage);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRescheduleSession = async (sessionId: string, newDate: Date, newTime: string) => {
+    setIsProcessing(true);
+    setOperationError('');
+    
+    try {
+      const updatedSession = await sessionsApi.reschedule(sessionId, newDate, newTime);
+      updateLocalSessions(updatedSession);
+      setIsSessionDetailModalOpen(false);
+    } catch (err: any) {
+      console.error('Error rescheduling session:', err);
+      
+      let errorMessage = 'Не удалось перенести сессию. Попробуйте ещё раз.';
+      
+      if (err.response?.status === 404) {
+        errorMessage = 'Сессия не найдена. Возможно, она была удалена.';
+      } else if (err.response?.status === 400) {
+        errorMessage = 'Невозможно перенести сессию на выбранное время. Возможно, оно уже занято.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Ошибка сервера при переносе сессии. Попробуйте позже.';
+      }
+      
+      setOperationError(errorMessage);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleForgiveDebt = async (sessionId: string) => {
     // Подтверждение действия
     if (window.confirm("Вы уверены, что хотите списать долг по этой сессии? Это пометит сессию как оплаченную без фактической оплаты.")) {
+      setIsProcessing(true);
+      setOperationError('');
+      
       try {
         // Обычно списание долга требует обновления поля paid и, возможно, payment_method
         // Создадим функцию в api, если её нет, или используем update
@@ -185,12 +389,33 @@ const CalendarScreen: React.FC = () => {
         // Для MVP, используем markPaid с фиктивным методом, если БД позволяет
         // Или, как вариант, обновить напрямую через supabase-js, если нужен особый статус
         // Пока используем markPaid, предполагая, что 'forgiven' - это валидный payment_method или он необязателен
-        const updatedSession = await sessionsApi.markPaid(id, 'forgiven'); // или используем update
-        updateLocalSessions(updatedSession);
-        setIsSessionDetailModalOpen(false); // Закрываем детальный модал после обновления
-      } catch (err) {
+        const updatedSession = await sessionsApi.markPaid(sessionId, 'forgiven');
+        if (updatedSession && !('error' in updatedSession)) {
+          updateLocalSessions(updatedSession);
+          setIsSessionDetailModalOpen(false);
+        } else if (updatedSession && 'error' in updatedSession) {
+          throw new Error(updatedSession.error);
+        }
+      } catch (err: any) {
         console.error('Failed to forgive debt:', err);
-        setError('Failed to forgive debt. Please try again.');
+        
+        let errorMessage = 'Не удалось списать долг. Попробуйте ещё раз.';
+        
+        if (err.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        } else if (err.response?.status === 404) {
+          errorMessage = 'Сессия не найдена. Возможно, она была удалена.';
+        } else if (err.response?.status === 400) {
+          errorMessage = 'Невозможно списать долг. Возможно, сессия не оплачена или долг уже списан.';
+        } else if (err.response?.status === 500) {
+          errorMessage = 'Ошибка сервера при списании долга. Попробуйте позже.';
+        }
+        
+        setOperationError(errorMessage);
+      } finally {
+        setIsProcessing(false);
       }
     }
   };
@@ -201,62 +426,83 @@ const CalendarScreen: React.FC = () => {
     // setSelectedSession(null); // Опционально
   };
 
-  // Функция для обновления локального состояния после создания/редактирования сессии
-  const updateLocalSessions = (updatedSessionData: any) => { // any, потому что при create приходит только данные, а при edit - данные + id
-    let updatedSession: Session;
-
-    if (modalMode === 'create') {
-      // Если это новая сессия (предположим, что `updatedSessionData` не содержит `id` при вызове из `onSave` в `SessionModal` при создании)
-      // Нет, `SessionModal` при `onSave` передаёт `sessionData` (без `id`) при `isCreating`.
-      // `api/sessions.ts` в `create` добавляет `id`, `client`, `session_number` и возвращает полный объект.
-      // `onSave` в `CalendarScreen` получает этот *новый* объект `updatedSession`.
-      // Поэтому `updatedSessionData` будет содержать `id`, `client`, и т.д.
-      // Определить `isCreating` можно по `modalMode` на момент вызова `onSave`, или передавать флаг.
-      // Упрощённо: если `updatedSessionData` не содержит `id`, значит, это создание, и `api` должен был добавить `id`.
-      // Но `api` *должен* вернуть `id`.
-      // Пока что, просто добавим к списку.
-      // Найдём `client` по `client_id` из `updatedSessionData` и добавим его к `updatedSessionData`.
-      // `api/sessions.ts` в `create` возвращает `*, clients(id, name)`.
-      // Значит, `updatedSessionData` уже содержит `clients` как объект.
-      // const client = clients[updatedSessionData.client_id];
-      // if (!client) {
-      //     console.error("Client not found in local cache for new session:", updatedSessionData.client_id);
-      //     // Возможно, стоит повторно загрузить клиентов или передать `client` из формы
-      //     // Пока что, просто добавим с `null` клиентом
-      //     updatedSession = { ...updatedSessionData, id: updatedSessionData.id || crypto.randomUUID(), clients: null } as Session;
-      // } else {
-      //     updatedSession = { ...updatedSessionData, id: updatedSessionData.id || crypto.randomUUID(), clients: client } as Session;
-      // }
-      // Более точно: `updatedSessionData` уже содержит `clients` как объект из `api/sessions.ts -> create`.
-      updatedSession = { ...updatedSessionData, id: updatedSessionData.id || crypto.randomUUID() } as Session; // `clients` уже внутри
-      setSessions(prev => [...prev, updatedSession]);
-    } else {
-      // Если это редактирование, `updatedSessionData` содержит `id` и обновлённые поля
-      // `api/sessions.ts` в `update` возвращает `*, clients(id, name)`.
-      // Значит, `updatedSessionData` уже содержит `clients` как объект.
-      updatedSession = updatedSessionData as Session;
-      setSessions(prev => prev.map(s => s.id === updatedSession.id ? updatedSession : s));
+  // Функция для сохранения сессии в БД
+  const handleSaveSession = async (sessionData: any) => {
+    console.log('handleSaveSession called with:', sessionData);
+    console.log('Current user:', user);
+    console.log('User ID:', user?.id);
+    console.log('Client ID from sessionData:', sessionData.client_id);
+    console.log('Client ID type:', typeof sessionData.client_id);
+    
+    if (!user?.id) {
+      console.error('User is not authenticated!');
+      setError('Ошибка: Пользователь не авторизован. Пожалуйста, войдите снова.');
+      return;
     }
+    
+    try {
+      let savedSession: SessionWithClient;
 
-    // Обновляем список сессий для выбранной даты
-    if (selectedDate && updatedSession.scheduled_at) {
-      const sessionDate = new Date(updatedSession.scheduled_at);
-      if (isSameDay(sessionDate, selectedDate)) {
-        setSessionsForSelectedDate(prev => {
-          const existingIndex = prev.findIndex(s => s.id === updatedSession.id);
-          if (existingIndex >= 0) {
-            const updatedList = [...prev];
-            updatedList[existingIndex] = updatedSession;
-            // Сортировка не требуется, так как индекс известен
-            return updatedList;
-          } else {
-            // Если это новая сессия на эту дату
-            const newList = [...prev, updatedSession];
-            newList.sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
-            return newList;
-          }
-        });
+      if (modalMode === 'create') {
+        // Создаем новую сессию в БД
+        console.log('Creating session with data:', sessionData);
+        savedSession = await sessionsApi.create(sessionData);
+        console.log('Session created successfully:', savedSession);
+      } else {
+        // Обновляем существующую сессию в БД
+        console.log('Updating session with data:', sessionData);
+        savedSession = await sessionsApi.update(sessionData.id, sessionData);
+        console.log('Session updated successfully:', savedSession);
       }
+
+      // Обновляем локальное состояние с данными из БД
+      updateLocalSessions(savedSession);
+      
+      return savedSession;
+    } catch (err) {
+      console.error('Error saving session to database:', err);
+      throw err;
+    }
+  };
+
+  // Функция для обновления локального состояния после создания/редактирования сессии
+  const updateLocalSessions = (updatedSessionData: SessionWithClient) => {
+    try {
+      console.log('updateLocalSessions called with:', updatedSessionData);
+      const updatedSession = updatedSessionData as SessionWithClient;
+      // Всегда обновляем по ID; если записи нет — добавляем.
+      console.log('Upserting session in local state by ID:', updatedSession.id);
+      setSessions(prev => {
+        const existingIndex = prev.findIndex(s => s.id === updatedSession.id);
+        if (existingIndex >= 0) {
+          const updatedList = [...prev];
+          updatedList[existingIndex] = updatedSession;
+          return updatedList;
+        }
+        return [...prev, updatedSession];
+      });
+
+      if (selectedDate && updatedSession.scheduled_at) {
+        const sessionDate = new Date(updatedSession.scheduled_at);
+        if (isSameDay(sessionDate, selectedDate)) {
+          setSessionsForSelectedDate(prev => {
+            const existingIndex = prev.findIndex(s => s.id === updatedSession.id);
+            if (existingIndex >= 0) {
+              const updatedList = [...prev];
+              updatedList[existingIndex] = updatedSession;
+              return updatedList;
+            } else {
+              const newList = [...prev, updatedSession];
+              newList.sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+              return newList;
+            }
+          });
+        }
+      }
+      console.log('Local sessions updated successfully');
+    } catch (err) {
+      console.error('Error updating local sessions:', err);
+      setError('Не удалось обновить данные сессии. Попробуйте ещё раз.');
     }
   };
 
@@ -297,15 +543,19 @@ const CalendarScreen: React.FC = () => {
     );
   }
 
+  // Удалены обработчики отладочных действий
+
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        {/* Удалены отладочные кнопки */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Календарь</h1>
-          <Button variant="outline" onClick={() => handleNewSessionClick(new Date())}>
+          {/* Убираем кнопку «Новая сессия», оставляем только вариант внутри правой панели */}
+          {/* <Button variant="default" onClick={() => handleNewSessionClick(new Date())}>
             <Plus className="mr-2 h-4 w-4" />
             Новая сессия
-          </Button>
+          </Button> */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -323,18 +573,18 @@ const CalendarScreen: React.FC = () => {
           <div className="bg-white rounded-lg shadow p-4">
             {selectedDate ? (
               <>
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                  {format(selectedDate, 'EEEE, d MMMM yyyy', { locale: ru })}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-4"
-                    onClick={() => handleNewSessionClick(selectedDate)}
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold text-gray-800">
+                    {format(selectedDate, 'EEEE, d MMMM yyyy', { locale: ru })}
+                  </h2>
+                  <button
+                    onClick={() => handleNewSessionClick(selectedDate!)}
+                    className="px-3 py-1 text-sm font-medium text-white rounded-md hover:bg-black/80 flex items-center gap-1"
                   >
-                    <Plus className="mr-1 h-3 w-3" />
-                    + Сессия
-                  </Button>
-                </h2>
+                    <Plus className="h-4 w-4" />
+                    Запланировать сессию
+                  </button>
+                </div>
                 {sessionsForSelectedDate.length > 0 ? (
                   <div className="space-y-3">
                     {sessionsForSelectedDate.map((session) => {
@@ -380,58 +630,59 @@ const CalendarScreen: React.FC = () => {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <svg className="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3M3 11h18M3 15h18M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">Нет сессий</h3>
-                    <p className="mt-1 text-sm text-gray-500">На этот день запланировано 0 сессий.</p>
-                    <div className="mt-6">
-                      <Button onClick={() => handleNewSessionClick(selectedDate)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Запланировать сессию
-                      </Button>
-                    </div>
+                    <p className="mt-4 text-gray-600">Нет сессий</p>
+                    <p className="text-sm text-gray-500">На этот день запланировано 0 сессий.</p>
                   </div>
                 )}
               </>
             ) : (
-              <p className="text-gray-500">Выберите дату</p>
+              <p className="text-gray-500">Выберите дату в календаре</p>
             )}
           </div>
         </div>
+
+        {/* Модальные окна */}
+        {isSessionModalOpen && (
+          <SessionModal
+            mode={modalMode}
+            session={selectedSession as Session}
+            clients={Object.values(clients)} // Передаём список клиентов
+            isOpen={isSessionModalOpen}
+            onClose={handleModalClose}
+            onSave={handleSaveSession}
+            selectedDate={selectedDate!}
+            initialClientId={navState?.clientId}
+            userId={user?.id} // Передаём ID текущего пользователя
+          />
+        )}
+        {isSessionDetailModalOpen && selectedSession && (
+          <SessionDetailModal
+            session={selectedSession}
+            client={clients[selectedSession.client_id]} // Передаём клиента, связанного с сессией
+            isOpen={isSessionDetailModalOpen}
+            onClose={() => {
+              setIsSessionDetailModalOpen(false);
+              setOperationError(''); // Очищаем ошибку при закрытии
+            }}
+            onEdit={(session) => handleEditSession(session)}
+            onReschedule={() => handleRescheduleSession(selectedSession.id, new Date(selectedSession.scheduled_at), format(new Date(selectedSession.scheduled_at), 'HH:mm'))}
+            onMarkCompleted={(id) => handleMarkCompleted(id)}
+            onMarkPaid={(id, method) => handleMarkPaid(id, method)}
+            onUnmarkPaid={(id) => handleUnmarkPaid(id)}
+            onMarkCancelled={(id) => handleMarkCancelled(id)}
+            onForgiveDebt={(id) => handleForgiveDebt(id)}
+            onMarkReceiptSent={(id) => handleMarkReceiptSent(id)}
+            onUnmarkReceiptSent={(id) => handleUnmarkReceiptSent(id)}
+            error={operationError}
+            isProcessing={isProcessing}
+          />
+        )}
       </div>
-
-      {/* Модальное окно для сессии (для создания/редактирования) */}
-      {isSessionModalOpen && (
-        <SessionModal
-          mode={modalMode}
-          session={selectedSession}
-          clients={Object.values(clients)} // Передаём список клиентов
-          isOpen={isSessionModalOpen}
-          onClose={handleModalClose} // Обработчик закрытия модала создания/редактирования
-          onSave={updateLocalSessions} // Передаём функцию для обновления состояния
-          selectedDate={selectedDate || undefined} // Передаём выбранную дату для создания новой сессии
-        />
-      )}
-
-      {/* Модальное окно для деталей сессии */}
-      {isSessionDetailModalOpen && selectedSession && (
-        <SessionDetailModal
-          session={selectedSession}
-          client={clients[selectedSession.client_id]} // Передаём клиента, связанного с сессией
-          isOpen={isSessionDetailModalOpen}
-          onClose={() => setIsSessionDetailModalOpen(false)} // Обработчик закрытия детального модала
-          onEdit={handleEditSession} // Передаём функцию открытия модала редактирования
-          onMarkCompleted={handleMarkCompleted}
-          onMarkPaid={handleMarkPaid} // Передаём обновлённый обработчик с методом оплаты
-          onMarkReceiptSent={handleMarkReceiptSent}
-          onReschedule={handleRescheduleSession}
-          onForgiveDebt={handleForgiveDebt}
-          onMarkCancelled={handleMarkCancelled} // ПЕРЕДАЁМ НОВЫЙ ОБРАБОТЧИК
-        />
-      )}
     </div>
   );
-};
+}
 
 export default CalendarScreen;

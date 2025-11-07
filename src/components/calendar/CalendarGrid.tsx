@@ -49,16 +49,16 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
 
   // Обновляем дни месяца при изменении currentDate
   useEffect(() => {
-    const start = startOfWeek(startOfMonth(currentDate));
-    const end = endOfWeek(endOfMonth(currentDate));
+    const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1, locale: ru });
+    const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1, locale: ru });
     const days = [];
     let day = start;
-
+  
     while (day <= end) {
       days.push(new Date(day));
       day = addDays(day, 1);
     }
-
+  
     setDaysInMonth(days);
   }, [currentDate]);
 
@@ -80,7 +80,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
         <div className="flex space-x-2">
           <button
             onClick={goToToday}
-            className="px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md"
+            className="px-3 py-1 text-sm font-medium text-white rounded-md hover:bg-black/80"
           >
             Сегодня
           </button>
@@ -89,14 +89,14 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
             className="p-1 text-gray-600 hover:bg-gray-100 rounded-full"
             aria-label="Предыдущий месяц"
           >
-            <
+            &lt;
           </button>
           <button
             onClick={nextMonth}
             className="p-1 text-gray-600 hover:bg-gray-100 rounded-full"
             aria-label="Следующий месяц"
           >
-            >
+            &gt;
           </button>
         </div>
       </div>
@@ -128,21 +128,11 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
               `}
               onClick={() => onDateSelect(day)}
             >
-              <div className={`text-sm ${isToday(day) ? 'font-bold' : ''}`}>
+              <div className={`text-sm ${isToday(day) ? 'font-bold' : ''} ${isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}`}>
                 {format(day, 'd')}
               </div>
               {getSessionIndicators(day)}
-              {isCurrentMonth && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // Останавливаем всплытие, чтобы не вызвать onDateSelect
-                    onNewSessionClick(day);
-                  }}
-                  className="mt-auto text-xs text-blue-600 hover:text-blue-800"
-                >
-                  +
-                </button>
-              )}
+              {/* Кнопка создания сессии внутри дня удалена, оставляем только верхнюю кнопку на экране */}
             </div>
           );
         })}

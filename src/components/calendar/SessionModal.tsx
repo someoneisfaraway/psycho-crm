@@ -1,23 +1,26 @@
 // src/components/calendar/SessionModal.tsx
 import React, { useState, useEffect } from 'react';
-import { format, parseISO, set } from 'date-fns';
-import { ru } from 'date-fns/locale'; // Убедитесь, что локаль установлена, если нужна русская локализация
+import { format, parseISO } from 'date-fns';
+import { ru } from 'date-fns/locale'; // РЈР±РµРґРёС‚РµСЃСЊ, С‡С‚Рѕ Р»РѕРєР°Р»СЊ СѓСЃС‚Р°РЅРѕРІР»РµРЅР°, РµСЃР»Рё РЅСѓР¶РЅР° СЂСѓСЃСЃРєР°СЏ Р»РѕРєР°Р»РёР·Р°С†РёСЏ
 import type { Session, Client } from '../../types/database';
 import { Button } from '../ui/Button';
-import { X, Calendar, Clock, User, CreditCard, Mail } from 'lucide-react';
-import { encrypt } from '../../utils/encryption'; // Импортируем функцию шифрования
+import { X, Calendar, Clock, Wallet } from 'lucide-react';
+import { encrypt } from '../../utils/encryption'; // РРјРїРѕСЂС‚РёСЂСѓРµРј С„СѓРЅРєС†РёСЋ С€РёС„СЂРѕРІР°РЅРёСЏ
+import { decrypt } from '../../utils/encryption';
 
 interface SessionModalProps {
-  mode: 'create' | 'edit' | 'view'; // Режим работы модального окна
-  session?: Session | null; // Данные сессии (для редактирования/просмотра)
-  clients: Client[]; // Список клиентов для выбора
-  isOpen: boolean; // Открыт ли модал
-  onClose: () => void; // Функция закрытия
-  onSave: (session: Session) => void; // Функция сохранения (для create/edit)
-  selectedDate?: Date; // Выбранная дата (для создания новой сессии)
+  mode?: 'create' | 'edit' | 'view'; // Р РµР¶РёРј СЂР°Р±РѕС‚С‹ РјРѕРґР°Р»СЊРЅРѕРіРѕ РѕРєРЅР°
+  session?: Session | null; // Р”Р°РЅРЅС‹Рµ СЃРµСЃСЃРёРё (РґР»СЏ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ/РїСЂРѕСЃРјРѕС‚СЂР°)
+  clients: Client[]; // РЎРїРёСЃРѕРє РєР»РёРµРЅС‚РѕРІ РґР»СЏ РІС‹Р±РѕСЂР°
+  isOpen: boolean; // РћС‚РєСЂС‹С‚ Р»Рё РјРѕРґР°Р»
+  onClose: () => void; // Р¤СѓРЅРєС†РёСЏ Р·Р°РєСЂС‹С‚РёСЏ
+  onSave: (session: any) => void; // Р¤СѓРЅРєС†РёСЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ (РґР»СЏ create/edit)
+  selectedDate?: Date; // Р’С‹Р±СЂР°РЅРЅР°СЏ РґР°С‚Р° (РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РЅРѕРІРѕР№ СЃРµСЃСЃРёРё)
+  initialClientId?: string; // РџСЂРµРґСѓСЃС‚Р°РЅРѕРІР»РµРЅРЅС‹Р№ РєР»РёРµРЅС‚ РїСЂРё РѕС‚РєСЂС‹С‚РёРё РјРѕРґР°Р»Р°
+  userId?: string; // ID С‚РµРєСѓС‰РµРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РЅРѕРІРѕР№ СЃРµСЃСЃРёРё)
 }
 
-// Тип для состояния формы
+// РўРёРї РґР»СЏ СЃРѕСЃС‚РѕСЏРЅРёСЏ С„РѕСЂРјС‹
 interface FormState {
   client_id: string;
   scheduled_at: Date;
@@ -25,91 +28,82 @@ interface FormState {
   format: 'online' | 'offline';
   meeting_link: string;
   price: number;
-  note: string; // Нешифрованная заметка
+  note: string; // РќРµС€РёС„СЂРѕРІР°РЅРЅР°СЏ Р·Р°РјРµС‚РєР°
 }
 
-const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isOpen, onClose, onSave, selectedDate }) => {
-  const isCreating = mode === 'create';
-  const isEditing = mode === 'edit';
-  const isViewing = mode === 'view';
+// РўРёРї РѕС€РёР±РѕРє С„РѕСЂРјС‹
+type FormErrors = Partial<Record<keyof FormState, string>>;
+
+const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isOpen, onClose, onSave, selectedDate, initialClientId, userId }) => {
+  const effectiveMode: 'create' | 'edit' | 'view' = mode ?? (session ? 'edit' : 'create');
+  const isCreating = effectiveMode === 'create';
+  const isEditing = effectiveMode === 'edit';
+  const isViewing = effectiveMode === 'view';
+
+
 
   const [formData, setFormData] = useState<FormState>({
     client_id: '',
-    scheduled_at: new Date(), // По умолчанию текущее время или выбранная дата
-    duration: 50, // По умолчанию из ТЗ
+    scheduled_at: new Date(), // РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ С‚РµРєСѓС‰РµРµ РІСЂРµРјСЏ РёР»Рё РІС‹Р±СЂР°РЅРЅР°СЏ РґР°С‚Р°
+    duration: 50, // РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РёР· РўР—
     format: 'online',
     meeting_link: '',
-    price: 0, // Будет заполнено из данных клиента или по умолчанию
+    price: 0, // Р‘СѓРґРµС‚ Р·Р°РїРѕР»РЅРµРЅРѕ РёР· РґР°РЅРЅС‹С… РєР»РёРµРЅС‚Р° РёР»Рё РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
     note: '',
   });
 
-  const [errors, setErrors] = useState<Partial<FormState>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [priceInput, setPriceInput] = useState<string>('');
+  const [submitError, setSubmitError] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Инициализация состояния при открытии модалки
+  // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЃРѕСЃС‚РѕСЏРЅРёСЏ РїСЂРё РѕС‚РєСЂС‹С‚РёРё РјРѕРґР°Р»РєРё
   useEffect(() => {
     if (isCreating && selectedDate) {
-      // Для создания используем выбранную дату, устанавливая время на 00:00, затем добавляем 1 час (или ближайший 15-мин интервал)
+      // Р”Р»СЏ СЃРѕР·РґР°РЅРёСЏ РёСЃРїРѕР»СЊР·СѓРµРј РІС‹Р±СЂР°РЅРЅСѓСЋ РґР°С‚Сѓ
       const defaultTime = new Date(selectedDate);
-      defaultTime.setHours(10, 0, 0, 0); // Установим на 10:00 как пример
+      defaultTime.setHours(10, 0, 0, 0); // РЈСЃС‚Р°РЅРѕРІРёРј РЅР° 10:00 РєР°Рє РїСЂРёРјРµСЂ
       setFormData(prev => ({
         ...prev,
         scheduled_at: defaultTime,
-        client_id: '', // Очищаем клиента при создании
-        note: '', // Очищаем заметку
-        // price будет заполнено при выборе клиента
+        client_id: initialClientId || '', // РџСЂРµРґР·Р°РїРѕР»РЅСЏРµРј РєР»РёРµРЅС‚Р°, РµСЃР»Рё РѕРЅ РїРµСЂРµРґР°РЅ
+        note: '', // РћС‡РёС‰Р°РµРј Р·Р°РјРµС‚РєСѓ
+        // price Р±СѓРґРµС‚ Р·Р°РїРѕР»РЅРµРЅРѕ РїСЂРё РІС‹Р±РѕСЂРµ РєР»РёРµРЅС‚Р°
       }));
     } else if ((isEditing || isViewing) && session) {
-      // Для редактирования/просмотра используем данные сессии
-      // Расшифровываем заметку при редактировании
+      // Р”Р»СЏ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ/РїСЂРѕСЃРјРѕС‚СЂР° РёСЃРїРѕР»СЊР·СѓРµРј РґР°РЅРЅС‹Рµ СЃРµСЃСЃРёРё
       let decryptedNote = '';
       if (isEditing && session.note_encrypted) {
         try {
-          decryptedNote = session.note_encrypted; // Псевдо-расшифровка или передача уже расшифрованной строки
-          // В реальности: decryptedNote = decrypt(session.note_encrypted);
-          // Но для MVP с localStorage ключа, расшифровка может быть сложной без контекста.
-          // Пусть `session` передаётся в `SessionModal` с уже расшифрованной `note` или `notes` вместо `note_encrypted`.
-          // Или `SessionModal` получает `notes` при редактировании.
-          // Пока что, если `note_encrypted` есть и мы редактируем, покажем зашифрованный текст или сообщение.
-          // Лучше всего, чтобы `CalendarScreen` передавал расшифрованную `note` как `notes` или `note`.
-          // Исправим: `CalendarScreen` передаёт `session` с `note` вместо `note_encrypted` при редактировании.
-          // Тогда `session.note` будет нешифрованным.
-          // В ТЗ 6.3.4: "Заметка о планируемой сессии:" - это для создания.
-          // "Заметка о сессии(если есть)" - это для просмотра/редактирования.
-          // В `SessionDetail` (6.3.3) "Заметка о сессии" - это `note_encrypted`, которое нужно расшифровать.
-          // Значит, `session.note_encrypted` нужно расшифровать при передаче в `SessionModal` или `SessionDetail`.
-          // В `CalendarScreen.tsx` при вызове `handleViewSession`/`handleEditSession`:
-          // const decryptedSession = { ...session, note: session.note_encrypted ? decrypt(session.note_encrypted) : '' };
-          // setSelectedSession(decryptedSession);
-          // Пока что, `session.note_encrypted` передаётся как есть.
-          // В `SessionModal` при `isEditing` нужно расшифровать `session.note_encrypted`.
-          // Псевдо-расшифровка:
-          // decryptedNote = session.note_encrypted; // или decrypt(session.note_encrypted);
+          decryptedNote = decrypt(session.note_encrypted);
         } catch (e) {
-          console.error("Decryption failed in SessionModal:", e);
-          decryptedNote = "Ошибка расшифровки заметки."; // Показываем сообщение об ошибке
+          console.error('Decryption failed in SessionModal:', e);
+          decryptedNote = 'РћС€РёР±РєР° СЂР°СЃС€РёС„СЂРѕРІРєРё Р·Р°РјРµС‚РєРё.';
         }
       }
       setFormData({
         client_id: session.client_id,
-        scheduled_at: parseISO(session.scheduled_at), // Преобразуем строку в Date
+        scheduled_at: parseISO(session.scheduled_at),
         duration: session.duration || 50,
         format: session.format as 'online' | 'offline',
         meeting_link: session.meeting_link || '',
         price: session.price,
-        note: isEditing ? decryptedNote : session.note_encrypted || '', // Показываем расшифрованную или зашифрованную
+        note: isEditing ? decryptedNote : session.note_encrypted || '',
       });
+      setPriceInput(session.price > 0 ? new Intl.NumberFormat('ru-RU').format(session.price) : '');
     }
-  }, [isCreating, isEditing, isViewing, session, selectedDate]);
+  }, [isCreating, isEditing, isViewing, session, selectedDate, initialClientId]);
 
-  // Обновляем цену при выборе клиента (только при создании)
+  // РћР±РЅРѕРІР»СЏРµРј С†РµРЅСѓ РїСЂРё РІС‹Р±РѕСЂРµ РєР»РёРµРЅС‚Р° (С‚РѕР»СЊРєРѕ РїСЂРё СЃРѕР·РґР°РЅРёРё)
   useEffect(() => {
     if (isCreating && formData.client_id) {
       const client = clients.find(c => c.id === formData.client_id);
       if (client) {
         setFormData(prev => ({
           ...prev,
-          price: client.session_price // Устанавливаем цену из профиля клиента
+          price: client.session_price // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј С†РµРЅСѓ РёР· РїСЂРѕС„РёР»СЏ РєР»РёРµРЅС‚Р°
         }));
+        setPriceInput(client.session_price > 0 ? new Intl.NumberFormat('ru-RU').format(client.session_price) : '');
       }
     }
   }, [formData.client_id, clients, isCreating]);
@@ -124,34 +118,41 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
       processedValue = new Date(value);
     }
 
-    setFormData(prev => ({
+    setFormData((prev: FormState) => ({
       ...prev,
-      [name]: processedValue
+      [name]: processedValue as any
     }));
 
-    // Очищаем ошибку для этого поля при изменении
     if (errors[name as keyof FormState]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
+      setErrors((prev: FormErrors) => ({ ...prev, [name]: undefined }));
+    }
+    
+    // РћС‡РёС‰Р°РµРј РѕС€РёР±РєСѓ РѕС‚РїСЂР°РІРєРё РїСЂРё РёР·РјРµРЅРµРЅРёРё РґР°РЅРЅС‹С…
+    if (submitError) {
+      setSubmitError('');
     }
   };
 
   const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const clientId = e.target.value;
-    setFormData(prev => ({
+    setFormData((prev: FormState) => ({
       ...prev,
       client_id: clientId
     }));
 
-    // Очищаем ошибку для клиента
     if (errors.client_id) {
-      setErrors(prev => ({ ...prev, client_id: undefined }));
+      setErrors((prev: FormErrors) => ({ ...prev, client_id: undefined }));
     }
 
-    // Обновляем цену, если это создание
+    // РћС‡РёС‰Р°РµРј РѕС€РёР±РєСѓ РѕС‚РїСЂР°РІРєРё РїСЂРё РёР·РјРµРЅРµРЅРёРё РєР»РёРµРЅС‚Р°
+    if (submitError) {
+      setSubmitError('');
+    }
+
     if (isCreating) {
       const client = clients.find(c => c.id === clientId);
       if (client) {
-        setFormData(prev => ({
+        setFormData((prev: FormState) => ({
           ...prev,
           price: client.session_price
         }));
@@ -160,46 +161,106 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
   };
 
   const validate = (): boolean => {
-    const newErrors: Partial<FormState> = {};
+    const newErrors: FormErrors = {};
     if (!formData.client_id) {
       newErrors.client_id = 'Клиент обязателен';
     }
-    if (isNaN(formData.scheduled_at.getTime()) || formData.scheduled_at < new Date(Date.now() - 24 * 60 * 60 * 1000)) { // Проверка на валидность даты и не прошлое (с запасом 1 день)
-      newErrors.scheduled_at = 'Дата и время обязательны и не могут быть в прошлом';
+    
+    // РџСЂРѕРІРµСЂРєР° РґР°С‚С‹ Рё РІСЂРµРјРµРЅРё СЃ СѓС‡РµС‚РѕРј С‡Р°СЃРѕРІРѕРіРѕ РїРѕСЏСЃР°
+    const scheduledDate = formData.scheduled_at;
+    if (!scheduledDate || isNaN(scheduledDate.getTime())) {
+      newErrors.scheduled_at = 'Дата и время обязательны';
+    } else {
+      // РСЃРїРѕР»СЊР·СѓРµРј Р»РѕРєР°Р»СЊРЅРѕРµ РІСЂРµРјСЏ РґР»СЏ РїСЂРѕРІРµСЂРєРё (РЅРµ РІ РїСЂРѕС€Р»РѕРј)
+      const now = new Date();
+      if (false && scheduledDate < now) {
+        newErrors.scheduled_at = 'Дата и время не могут быть в прошлом';
+      }
     }
+    
     if (formData.price <= 0) {
       newErrors.price = 'Стоимость должна быть больше 0';
     }
     if (isCreating && formData.format === 'online' && !formData.meeting_link) {
-      // meeting_link опционально, но можно сделать обязательным при онлайн-формате
-      // newErrors.meeting_link = 'Ссылка на встречу обязательна для онлайн-формата';
+      // meeting_link РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ, РЅРѕ РјРѕР¶РЅРѕ СЃРґРµР»Р°С‚СЊ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рј РїСЂРё РѕРЅР»Р°Р№РЅ-С„РѕСЂРјР°С‚Рµ
+      // newErrors.meeting_link = 'РЎСЃС‹Р»РєР° РЅР° РІСЃС‚СЂРµС‡Сѓ РѕР±СЏР·Р°С‚РµР»СЊРЅР° РґР»СЏ РѕРЅР»Р°Р№РЅ-С„РѕСЂРјР°С‚Р°';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    console.log('Form validation starting...');
+    if (!validate()) {
+      console.log('Form validation failed');
+      return;
+    }
 
-    // Подготовка данных для отправки
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    // РџРѕРґРіРѕС‚РѕРІРєР° РґР°РЅРЅС‹С… РґР»СЏ РѕС‚РїСЂР°РІРєРё
+    console.log('Preparing session data...');
+    console.log('UserId from props:', userId);
+    console.log('Form data:', formData);
+    console.log('Client ID from form:', formData.client_id);
+    console.log('Client ID type:', typeof formData.client_id);
+    
+    if (!userId) {
+      console.error('UserId is missing! Cannot create session.');
+      setSubmitError('Ошибка: Пользователь не авторизован. Пожалуйста, войдите снова.');
+      setIsSubmitting(false);
+      return;
+    }
+    
     const sessionData: any = {
+      user_id: userId, // РСЃРїРѕР»СЊР·СѓРµРј userId РёР· РїСЂРѕРїСЃРѕРІ РґР»СЏ РЅРѕРІРѕР№ СЃРµСЃСЃРёРё
       client_id: formData.client_id,
       scheduled_at: formData.scheduled_at.toISOString(),
       duration: formData.duration,
       format: formData.format,
       price: formData.price,
       meeting_link: formData.meeting_link || null,
-      note_encrypted: formData.note ? encrypt(formData.note) : null, // Шифруем заметку перед отправкой
+      note_encrypted: formData.note ? encrypt(formData.note) : null, // РЁРёС„СЂСѓРµРј Р·Р°РјРµС‚РєСѓ РїРµСЂРµРґ РѕС‚РїСЂР°РІРєРѕР№
+      status: 'scheduled',
     };
+    
+    console.log('Session data prepared:', sessionData);
 
-    if (isCreating) {
-      // При создании передаём только данные новой сессии
-      onSave(sessionData);
-    } else if (isEditing && session) {
-      // При редактировании передаём ID и обновления
-      onSave({ id: session.id, ...sessionData });
+    try {
+      if (isCreating) {
+        console.log('Creating new session...');
+        await onSave(sessionData);
+      } else if (isEditing && session) {
+        console.log('Updating existing session...');
+        const { status, ...rest } = sessionData;
+        await onSave({ id: session.id, ...rest });
+      }
+      console.log('Session saved successfully, closing modal...');
+      onClose();
+    } catch (err: any) {
+      // РћС€РёР±РєСѓ РѕР±СЂР°Р±РѕС‚РєРё РѕСЃС‚Р°РІРёРј СЂРѕРґРёС‚РµР»СЋ (CalendarScreen), Р·РґРµСЃСЊ РЅРµ Р·Р°РєСЂС‹РІР°РµРј РјРѕРґР°Р»РєСѓ РїСЂРё РѕС€РёР±РєРµ
+      console.error('Error during session save:', err);
+      
+      // РЈР»СѓС‡С€РµРЅРЅР°СЏ РѕР±СЂР°Р±РѕС‚РєР° РѕС€РёР±РѕРє РґР»СЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
+      let errorMessage = 'Ошибка при сохранении сессии. Попробуйте еще раз.';
+      
+      errorMessage = 'Ошибка при сохранении сессии. Попробуйте еще раз.';
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      } else if (err.response?.status === 409) {
+        errorMessage = 'На выбранное время уже запланирована другая сессия. Выберите другое время.';
+      } else if (err.response?.status === 400) {
+        errorMessage = 'Некорректные данные. Проверьте заполнение всех полей.';
+      }
+      
+      setSubmitError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -207,8 +268,8 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
     return null;
   }
 
-  // Вспомогательные функции для форматирования
-  const formatDateTime = (date: Date) => format(date, 'd MMMM yyyy в HH:mm', { locale: ru });
+  // Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Рµ С„СѓРЅРєС†РёРё РґР»СЏ С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРёСЏ
+// const formatDateTime = (date: Date) => format(date, 'd MMMM yyyy РІ HH:mm', { locale: ru });
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -229,7 +290,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
 
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Секция 1: Выбор клиента */}
+              {/* РЎРµРєС†РёСЏ 1: Р’С‹Р±РѕСЂ РєР»РёРµРЅС‚Р° */}
               <div className="md:col-span-2">
                 <label htmlFor="client_id" className="block text-sm font-medium text-gray-700 mb-1">
                   Клиент *
@@ -239,12 +300,12 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                   name="client_id"
                   value={formData.client_id}
                   onChange={handleClientChange}
-                  className={`w-full px-3 py-2 border ${errors.client_id ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
-                  disabled={isViewing || isEditing} // Запрещаем менять клиента при редактировании/просмотре
+                  className={`w-full px-3 py-2 border ${errors.client_id ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black bg-white`}
+                  disabled={isViewing || isEditing} // Р—Р°РїСЂРµС‰Р°РµРј РјРµРЅСЏС‚СЊ РєР»РёРµРЅС‚Р° РїСЂРё СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРё/РїСЂРѕСЃРјРѕС‚СЂРµ
                 >
                   <option value="">Выберите клиента</option>
                   {clients
-                    .filter(c => c.status === 'active') // Показываем только активных
+                    .filter(c => c.status === 'active') // РџРѕРєР°Р·С‹РІР°РµРј С‚РѕР»СЊРєРѕ Р°РєС‚РёРІРЅС‹С…
                     .map(client => (
                       <option key={client.id} value={client.id}>
                         {client.name} • {client.id} • Последняя: {client.last_session_at ? format(parseISO(client.last_session_at), 'd MMM', { locale: ru }) : 'Нет'}
@@ -254,13 +315,14 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                 {errors.client_id && <p className="mt-1 text-sm text-red-600">{errors.client_id}</p>}
               </div>
 
-              {/* Секция 2: Дата и время */}
+              {/* РЎРµРєС†РёСЏ 2: Р”Р°С‚Р° Рё РІСЂРµРјСЏ */}
               <div>
                 <label htmlFor="scheduled_at" className="block text-sm font-medium text-gray-700 mb-1">
                   Дата и время *
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+
                     <Calendar className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
@@ -313,7 +375,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                       disabled={isViewing}
                     />
-                    <span className="ml-2">Онлайн</span>
+              <span className="ml-2 text-gray-900">Онлайн</span>
                   </label>
                   <label className="inline-flex items-center">
                     <input
@@ -325,12 +387,12 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                       disabled={isViewing}
                     />
-                    <span className="ml-2">Офлайн</span>
+              <span className="ml-2 text-gray-900">Офлайн</span>
                   </label>
                 </div>
               </div>
 
-              {/* Секция 5: Ссылка на встречу (только для онлайн) */}
+              {/* РЎРµРєС†РёСЏ 5: РЎСЃС‹Р»РєР° РЅР° РІСЃС‚СЂРµС‡Сѓ (С‚РѕР»СЊРєРѕ РґР»СЏ РѕРЅР»Р°Р№РЅ) */}
               {formData.format === 'online' && (
                 <div className="md:col-span-2">
                   <label htmlFor="meeting_link" className="block text-sm font-medium text-gray-700 mb-1">
@@ -343,35 +405,49 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                     value={formData.meeting_link}
                     onChange={handleChange}
                     placeholder="https://zoom.us/j/..."
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     disabled={isViewing}
                   />
                 </div>
               )}
 
-              {/* Секция 6: Стоимость */}
+              {/* РЎРµРєС†РёСЏ 6: РЎС‚РѕРёРјРѕСЃС‚СЊ */}
               <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
                   Стоимость *
                 </label>
                 <div className="relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Wallet className="h-5 w-5 text-gray-400" />
+                  </div>
                   <input
-                    type="number"
+                    type="text"
                     id="price"
                     name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    className={`focus:ring-indigo-500 focus:border-indigo-500 block w-full pr-3 py-2 border ${errors.price ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm leading-5 bg-white placeholder-gray-500 text-gray-900 sm:text-sm`}
+                    value={priceInput}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setPriceInput(raw);
+                      const num = parseInt(raw.replace(/[^\d]/g, ''), 10) || 0;
+                      setFormData(prev => ({ ...prev, price: num }));
+                      if (errors.price) {
+                        setErrors(prev => ({ ...prev, price: undefined }));
+                      }
+                    }}
+                    onBlur={() => {
+                      setPriceInput(formData.price > 0 ? new Intl.NumberFormat('ru-RU').format(formData.price) : '');
+                    }}
+                    className={`focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-8 py-2 border ${errors.price ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm leading-5 bg-white placeholder-gray-500 text-gray-900 sm:text-sm`}
                     disabled={isViewing}
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">₽</span>
+              <span className="text-gray-500 sm:text-sm">₽</span>
                   </div>
                 </div>
                 {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price}</p>}
               </div>
 
-              {/* Секция 7: Заметка */}
+              {/* РЎРµРєС†РёСЏ 7: Р—Р°РјРµС‚РєР° */}
               <div className="md:col-span-2">
                 <label htmlFor="note" className="block text-sm font-medium text-gray-700 mb-1">
                   {isCreating ? 'Заметка о планируемой сессии' : 'Заметка о сессии'}
@@ -382,27 +458,55 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                   rows={3}
                   value={formData.note}
                   onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
                   placeholder={isCreating ? "Цель сессии, особенности..." : ""}
                   disabled={isViewing}
                 />
               </div>
             </div>
 
-            {/* Кнопки действий */}
+            {/* РЎРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ */}
+            {submitError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700">{submitError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* РљРЅРѕРїРєРё РґРµР№СЃС‚РІРёР№ */}
             <div className="mt-6 flex justify-end space-x-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
+                disabled={isSubmitting}
               >
                 Отменить
               </Button>
               {!isViewing && (
                 <Button
                   type="submit"
+                  disabled={isSubmitting}
                 >
-                  {isCreating ? 'Создать сессию' : 'Сохранить изменения'}
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Сохранение...
+                    </>
+                  ) : (
+                    isCreating ? 'Создать сессию' : 'Сохранить изменения'
+                  )}
                 </Button>
               )}
             </div>

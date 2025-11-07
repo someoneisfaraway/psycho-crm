@@ -1,6 +1,16 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Tailwind v4 base is imported above. Add global button style to ensure black bg and white text for native <button> elements */
+
+/* Унифицируем стили обычных <button> вне нашего UI-компонента */
+button {
+  @apply bg-black text-white;
+}
+button:hover {
+  @apply bg-black/80;
+}
+
+/* Custom base styles can go below if needed */
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;

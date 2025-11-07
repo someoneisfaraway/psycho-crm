@@ -30,6 +30,7 @@ export interface Client {
   phone?: string | null; // Может быть null в БД
   email?: string | null; // Может быть null в БД
   telegram?: string | null; // Может быть null в БД
+  meeting_link?: string | null; // Ссылка для онлайн-встреч
   session_price: number;
   payment_type: string; // 'self-employed' | 'ip' | 'cash' | 'platform'
   need_receipt?: boolean; // DEFAULT TRUE

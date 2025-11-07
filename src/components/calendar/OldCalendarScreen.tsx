@@ -5,10 +5,9 @@ import type { Session, Client } from '../../types/database';
 import CalendarGrid from './CalendarGrid';
 import SessionsList from './SessionsList';
 import SessionModal from './SessionModal';
-import { Button } from '../ui/Button';
 import LoadingSpinner from '../common/LoadingSpinner';
 import EmptyState from '../common/EmptyState';
-import { getSessions, createSession, updateSession } from '../../api/sessions';
+import { sessionsApi } from '../../api/sessions';
 import { getClients } from '../../api/clients';
 
 const CalendarScreen: React.FC = () => {
@@ -28,12 +27,12 @@ const CalendarScreen: React.FC = () => {
         const userId = 'current-user-id'; // This would come from auth context in real app
         
         const [sessionsData, clientsData] = await Promise.all([
-          getSessions(userId),
-          getClients(userId)
+          sessionsApi.getForDate(userId, selectedDate.toISOString()),
+          getClients({ userId })
         ]);
         
-        setSessions(sessionsData);
-        setClients(clientsData);
+        setSessions(sessionsData as Session[]);
+        setClients(clientsData as Client[]);
       } catch (err) {
         setError('Ошибка загрузки данных');
         console.error(err);
@@ -59,38 +58,33 @@ const CalendarScreen: React.FC = () => {
     setShowSessionModal(true);
   };
 
-  const handleSaveSession = async (sessionData: Partial<Session>) => {
+  const handleSaveSession = async (sessionData: any) => {
     try {
       if (currentSession) {
         // Update existing session
-        const updatedSession = await updateSession(currentSession.id, sessionData);
+        const updatedSession = await sessionsApi.update(currentSession.id, sessionData);
         setSessions(prev => prev.map(s =>
-          s.id === currentSession.id ? updatedSession : s
+          s.id === currentSession.id ? (updatedSession as Session) : s
         ));
       } else {
         // Create new session
-        // Ensure required fields are present
         if (!sessionData.client_id) {
           setError('Выберите клиента');
           return;
         }
-        
         const newSessionData = {
+          user_id: 'current-user-id',
           client_id: sessionData.client_id,
-          user_id: 'current-user-id', // This would come from auth context
-          session_number: sessions.length + 1,
-          date: sessionData.date || new Date().toISOString(),
-          start_time: sessionData.start_time,
-          end_time: sessionData.end_time,
-          status: sessionData.status || 'scheduled',
-          payment_status: sessionData.payment_status || 'pending',
-          payment_amount: sessionData.payment_amount || 0,
-          notes: sessionData.notes,
-          receipt_sent: false
+          scheduled_at: sessionData.scheduled_at,
+          duration: sessionData.duration || 50,
+          status: 'scheduled',
+          price: sessionData.price,
+          format: sessionData.format,
+          meeting_link: sessionData.meeting_link || undefined,
+          note_encrypted: sessionData.note_encrypted || undefined,
         };
-        
-        const newSession = await createSession(newSessionData);
-        setSessions(prev => [...prev, newSession]);
+        const newSession = await sessionsApi.create(newSessionData as any);
+        setSessions(prev => [...prev, newSession as Session]);
       }
       setShowSessionModal(false);
     } catch (error) {
@@ -122,6 +116,7 @@ const CalendarScreen: React.FC = () => {
             sessions={sessions} 
             onDateSelect={handleDateSelect}
             selectedDate={selectedDate}
+            onNewSessionClick={handleCreateSession}
           />
         </div>
 

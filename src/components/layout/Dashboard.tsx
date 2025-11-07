@@ -23,11 +23,11 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50 pb-16">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Psychological Practice Dashboard</h1>
+          <h1 className="text-base font-bold text-gray-900">Панель управления психологической практикой</h1>
           <div className="flex items-center space-x-4">
-            <span className="text-gray-700">Welcome, {user?.email?.split('@')[0]}</span>
-            <Button onClick={handleSignOut} variant="outline" size="sm">
-              Sign Out
+            <span className="text-gray-700">{user?.email?.split('@')[0]}</span>
+            <Button onClick={handleSignOut} variant="outline" size="sm" className="text-sm">
+              Выйти
             </Button>
           </div>
         </div>

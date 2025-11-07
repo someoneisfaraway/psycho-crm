@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { Client } from '../../types/database';
 import type { Session } from '../../types/database';
-import { Button } from '../ui/Button';
-import { Calendar, Mail, Phone, User, Edit3, FileText, CreditCard, TrendingUp, X, MapPin, Wallet, Clock } from 'lucide-react';
+
+import { Mail, Phone, User, CreditCard, TrendingUp, X, MapPin, Wallet, Clock } from 'lucide-react';
 import { decrypt } from '../../utils/encryption';
 import { formatDate, pluralize } from '../../utils/formatting';
 import { getSessionsByClient } from '../../api/sessions';
@@ -11,14 +11,12 @@ import { useAuth } from '../../contexts/AuthContext';
 interface ClientDetailsModalProps {
   client: Client;
   isOpen: boolean;
-  onEdit: (client: Client) => void;
- onClose: () => void;
+  onClose: () => void;
 }
 
 const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ 
   client, 
   isOpen, 
-  onEdit, 
   onClose 
 }) => {
   const { user } = useAuth();
@@ -108,9 +106,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
     return labels[type] || type;
   };
 
-  // Calculate statistics based on loaded sessions
   const totalSessions = sessions.length;
-  const completedSessions = sessions.filter(s => s.status === 'completed').length;
   const totalPaid = sessions.filter(s => s.paid).reduce((sum, s) => sum + (s.price || 0), 0);
   const debt = sessions.filter(s => s.status === 'completed' && !s.paid).reduce((sum, s) => sum + (s.price || 0), 0);
   const lastSession = sessions.length > 0 ? sessions.reduce((latest, session) => 
@@ -400,14 +396,6 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
             )}
           </div>
           
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
-              Закрыть
-            </Button>
-            <Button onClick={() => onEdit(client)}>
-              <Edit3 className="mr-2 h-4 w-4" />
-              Редактировать
-            </Button>
           </div>
         </div>
       </div>

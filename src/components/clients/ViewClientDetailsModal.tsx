@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Client } from '../../types/database';
 import { Button } from '../ui/Button';
-import { Mail, Phone, User, Edit3, FileText, CreditCard, TrendingUp, X, MapPin } from 'lucide-react';
+import { Mail, Phone, User, Edit3, FileText, CreditCard, X, MapPin } from 'lucide-react';
 import { decrypt } from '../../utils/encryption';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
