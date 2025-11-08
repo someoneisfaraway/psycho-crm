@@ -591,12 +591,14 @@ const SettingsScreen: React.FC = () => {
 
         const exists = Array.isArray(existingUser) ? existingUser.length > 0 : !!existingUser;
         if (!exists) {
-          await supabase.rpc('ensure_user_exists', {
+          const { error: rpcError } = await supabase.rpc('ensure_user_exists', {
             uid: authUser.id,
             uemail: authUser.email || null,
-          } as any).catch(() => {
+          } as any);
+          if (rpcError) {
             // Игнорируем ошибку RPC, если функции нет; попробуем upsert ниже
-          });
+            console.warn('RPC ensure_user_exists не выполнен:', rpcError.message || rpcError);
+          }
         }
       } catch (ensureErr) {
         console.warn('Не удалось убедиться в наличии записи пользователя перед сохранением рабочих настроек:', ensureErr);
@@ -664,12 +666,13 @@ const SettingsScreen: React.FC = () => {
         const exists = Array.isArray(existingUser) ? existingUser.length > 0 : !!existingUser;
         if (!exists) {
           // Попробуем создать через RPC, если доступно
-          await supabase.rpc('ensure_user_exists', {
+          const { error: rpcError } = await supabase.rpc('ensure_user_exists', {
             uid: authUser.id,
             uemail: authUser.email || null,
-          } as any).catch(() => {
-            // Игнорируем ошибку RPC в случае отсутствия функции; попробуем upsert ниже
-          });
+          } as any);
+          if (rpcError) {
+            console.warn('RPC ensure_user_exists не выполнен:', rpcError.message || rpcError);
+          }
         }
       } catch (ensureErr) {
         console.warn('Не удалось убедиться в наличии записи пользователя:', ensureErr);

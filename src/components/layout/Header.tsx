@@ -11,7 +11,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ title, showMenu = false, onMenuClick }) => {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const displayName = useUserDisplayName();
 
   const handleSignOut = async () => {

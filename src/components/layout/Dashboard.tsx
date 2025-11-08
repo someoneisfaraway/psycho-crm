@@ -7,7 +7,7 @@ import { Outlet } from 'react-router-dom';
 import { useUserDisplayName } from '../../utils/useUserDisplayName';
 
 const Dashboard: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const displayName = useUserDisplayName();
 
   const handleSignOut = async () => {

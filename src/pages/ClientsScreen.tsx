@@ -10,7 +10,7 @@ import DeleteClientModal from '../components/clients/DeleteClientModal';
 import ViewClientDetailsModal from '../components/clients/ViewClientDetailsModal';
 import { Button } from '../components/ui/Button'; // Путь может отличаться
 import { Plus } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 // Интерфейс для состояния фильтров
 interface FilterState {
@@ -38,7 +38,6 @@ const ClientsScreen: React.FC = () => {
     type: 'all',
     debt: 'all'
   });
-  const navigate = useNavigate();
   const location = useLocation();
   const routeState = location.state as { clientId?: string; openDetails?: boolean } | null;
 

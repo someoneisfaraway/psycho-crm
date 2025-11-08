@@ -349,37 +349,7 @@ const CalendarScreen: React.FC = () => {
     }
   };
 
-  const handleRescheduleSession = async (sessionId: string, newDate: Date, newTime: string) => {
-    setIsProcessing(true);
-    setOperationError('');
-    
-    try {
-      // Combine new date and time into a single datetime
-      const [hours, minutes] = newTime.split(':');
-      const scheduledAt = new Date(newDate);
-      scheduledAt.setHours(parseInt(hours), parseInt(minutes));
-      
-      const updatedSession = await sessionsApi.update(sessionId, { scheduled_at: scheduledAt.toISOString() });
-      updateLocalSessions(updatedSession);
-      setIsSessionDetailModalOpen(false);
-    } catch (err: any) {
-      console.error('Error rescheduling session:', err);
-      
-      let errorMessage = 'Не удалось перенести сессию. Попробуйте ещё раз.';
-      
-      if (err.response?.status === 404) {
-        errorMessage = 'Сессия не найдена. Возможно, она была удалена.';
-      } else if (err.response?.status === 400) {
-        errorMessage = 'Невозможно перенести сессию на выбранное время. Возможно, оно уже занято.';
-      } else if (err.response?.status === 500) {
-        errorMessage = 'Ошибка сервера при переносе сессии. Попробуйте позже.';
-      }
-      
-      setOperationError(errorMessage);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  // Функция переноса сессии не используется и удалена для устранения ошибки TS6133
 
 
 
