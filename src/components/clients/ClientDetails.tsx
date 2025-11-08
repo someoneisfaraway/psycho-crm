@@ -14,10 +14,9 @@ interface ClientDetailsProps {
   onEdit: (client: Client) => void; // Передаётся клиент для редактирования
   onClose: () => void; // Закрывает детальный вид
   onScheduleSession?: (clientId: string) => void; // Опционально, если вызывается из ClientsScreen
-  onClientUpdated?: (updatedClient: Client) => void; // Опционально, для обновления состояния в родителе
 }
 
-const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, onScheduleSession, onClientUpdated }) => {
+const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, onScheduleSession }) => {
   // Удалены локальные состояния и функции, связанные с завершением работы клиента
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState<boolean>(false);

@@ -48,10 +48,7 @@ const CalendarScreen: React.FC = () => {
     setSelectedDate(date);
   };
 
-  const handleCreateSession = () => {
-    setCurrentSession(undefined);
-    setShowSessionModal(true);
-  };
+
 
   const handleEditSession = (session: Session) => {
     setCurrentSession(session);
@@ -116,7 +113,7 @@ const CalendarScreen: React.FC = () => {
             sessions={sessions} 
             onDateSelect={handleDateSelect}
             selectedDate={selectedDate}
-            onNewSessionClick={handleCreateSession}
+
           />
         </div>
 
@@ -124,7 +121,6 @@ const CalendarScreen: React.FC = () => {
           <SessionsList 
             date={selectedDate}
             sessions={sessions}
-            onCreateSession={handleCreateSession}
             onSessionClick={handleEditSession}
           />
         </div>

@@ -354,7 +354,12 @@ const CalendarScreen: React.FC = () => {
     setOperationError('');
     
     try {
-      const updatedSession = await sessionsApi.reschedule(sessionId, newDate, newTime);
+      // Combine new date and time into a single datetime
+      const [hours, minutes] = newTime.split(':');
+      const scheduledAt = new Date(newDate);
+      scheduledAt.setHours(parseInt(hours), parseInt(minutes));
+      
+      const updatedSession = await sessionsApi.update(sessionId, { scheduled_at: scheduledAt.toISOString() });
       updateLocalSessions(updatedSession);
       setIsSessionDetailModalOpen(false);
     } catch (err: any) {
@@ -376,49 +381,7 @@ const CalendarScreen: React.FC = () => {
     }
   };
 
-  const handleForgiveDebt = async (sessionId: string) => {
-    // Подтверждение действия
-    if (window.confirm("Вы уверены, что хотите списать долг по этой сессии? Это пометит сессию как оплаченную без фактической оплаты.")) {
-      setIsProcessing(true);
-      setOperationError('');
-      
-      try {
-        // Обычно списание долга требует обновления поля paid и, возможно, payment_method
-        // Создадим функцию в api, если её нет, или используем update
-        // Пример: const updatedSession = await sessionsApi.update(id, { paid: true, payment_method: 'forgiven' });
-        // Для MVP, используем markPaid с фиктивным методом, если БД позволяет
-        // Или, как вариант, обновить напрямую через supabase-js, если нужен особый статус
-        // Пока используем markPaid, предполагая, что 'forgiven' - это валидный payment_method или он необязателен
-        const updatedSession = await sessionsApi.markPaid(sessionId, 'forgiven');
-        if (updatedSession && !('error' in updatedSession)) {
-          updateLocalSessions(updatedSession);
-          setIsSessionDetailModalOpen(false);
-        } else if (updatedSession && 'error' in updatedSession) {
-          throw new Error(updatedSession.error);
-        }
-      } catch (err: any) {
-        console.error('Failed to forgive debt:', err);
-        
-        let errorMessage = 'Не удалось списать долг. Попробуйте ещё раз.';
-        
-        if (err.response?.data?.message) {
-          errorMessage = err.response.data.message;
-        } else if (err.message) {
-          errorMessage = err.message;
-        } else if (err.response?.status === 404) {
-          errorMessage = 'Сессия не найдена. Возможно, она была удалена.';
-        } else if (err.response?.status === 400) {
-          errorMessage = 'Невозможно списать долг. Возможно, сессия не оплачена или долг уже списан.';
-        } else if (err.response?.status === 500) {
-          errorMessage = 'Ошибка сервера при списании долга. Попробуйте позже.';
-        }
-        
-        setOperationError(errorMessage);
-      } finally {
-        setIsProcessing(false);
-      }
-    }
-  };
+
 
   const handleModalClose = () => {
     setIsSessionModalOpen(false);
@@ -565,7 +528,6 @@ const CalendarScreen: React.FC = () => {
               sessions={sessions}
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
-              onNewSessionClick={handleNewSessionClick}
             />
           </div>
 
@@ -673,7 +635,7 @@ const CalendarScreen: React.FC = () => {
             onMarkPaid={(id, method) => handleMarkPaid(id, method)}
             onUnmarkPaid={(id) => handleUnmarkPaid(id)}
             onMarkCancelled={(id) => handleMarkCancelled(id)}
-            onForgiveDebt={(id) => handleForgiveDebt(id)}
+
             onMarkReceiptSent={(id) => handleMarkReceiptSent(id)}
             onUnmarkReceiptSent={(id) => handleUnmarkReceiptSent(id)}
             error={operationError}

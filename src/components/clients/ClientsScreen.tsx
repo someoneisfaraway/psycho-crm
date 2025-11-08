@@ -6,8 +6,7 @@ import AddClientModal from './AddClientModal';
 import EditClientModal from './EditClientModal';
 import DeleteClientModal from './DeleteClientModal';
 import ClientDetails from './ClientDetails';
-import { Button } from '../ui/Button';
-import { Plus } from 'lucide-react';
+
 
 const ClientsScreen: React.FC = () => {
   const { user } = useAuth();
@@ -143,7 +142,6 @@ const ClientsScreen: React.FC = () => {
           clients={clients}
           loading={loading}
           error={null}
-          onAddClient={() => setIsAddModalOpen(true)}
           onEditClient={(client: Client) => {
             setSelectedClient(client);
             setIsEditModalOpen(true);

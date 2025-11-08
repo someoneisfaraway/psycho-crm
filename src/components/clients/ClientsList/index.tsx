@@ -6,7 +6,7 @@ interface ClientsListProps {
   clients: Client[];
   loading: boolean;
   error: string | null;
-  onAddClient: () => void;
+  // onAddClient: () => void; // Unused parameter
   onEditClient: (client: Client) => void;
   onDeleteClient: (client: Client) => void;
   onViewClientDetails: (client: Client) => void;
@@ -17,7 +17,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
   clients,
   loading,
   error,
-  onAddClient,
+  // onAddClient, // Unused parameter
   onEditClient,
   onDeleteClient,
   onViewClientDetails,
@@ -79,6 +79,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
             <ClientCard
               key={client.id}
               client={client}
+              displayId={client.id}
               onEdit={onEditClient}
               onDelete={onDeleteClient}
               onViewDetails={onViewClientDetails}

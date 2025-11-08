@@ -3,16 +3,16 @@ import { format, parseISO, addMinutes } from 'date-fns';
 import { decrypt } from '../../utils/encryption';
 import { ru } from 'date-fns/locale';
 import type { Session } from '../../types/database';
-import { Button } from '../ui/Button';
+// import { Button } from '../ui/Button'; // Unused import
 
  interface SessionsListProps {
    date: Date;
    sessions: Session[];
-   onCreateSession: () => void;
+   // onCreateSession: () => void; // Unused parameter
    onSessionClick: (session: Session) => void;
  }
 
- const SessionsList: React.FC<SessionsListProps> = ({ date, sessions, onCreateSession, onSessionClick }) => {
+ const SessionsList: React.FC<SessionsListProps> = ({ date, sessions, /* onCreateSession, */ onSessionClick }) => {
    // Filter sessions for the selected date
    const dateSessions = sessions.filter(session => {
     const sessionDate = parseISO(session.scheduled_at);

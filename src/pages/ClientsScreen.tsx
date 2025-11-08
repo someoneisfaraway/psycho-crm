@@ -31,7 +31,7 @@ const ClientsScreen: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   // Состояния для поиска и фильтров
-  const [searchTerm, setSearchTerm] = useState('');
+
   const [filters, setFilters] = useState<FilterState>({
     status: 'all',
     source: 'all',
@@ -51,7 +51,6 @@ const ClientsScreen: React.FC = () => {
     try {
       const options = {
         userId: user.id,
-        searchTerm: searchTerm || undefined, // Передаём undefined, если пустая строка
         statusFilter: filters.status !== 'all' ? filters.status : undefined,
         sourceFilters: filters.source !== 'all' ? [filters.source] : undefined,
         typeFilters: filters.type !== 'all' ? [filters.type] : undefined,
@@ -69,10 +68,10 @@ const ClientsScreen: React.FC = () => {
     }
   };
 
-  // Загружаем клиентов при монтировании, при изменении user.id, searchTerm или filters
+  // Загружаем клиентов при монтировании, при изменении user.id или filters
   useEffect(() => {
     fetchClients();
-  }, [user?.id, searchTerm, filters]);
+  }, [user?.id, filters]);
 
   // Открываем детали клиента автоматически, если пришли со страницы сессии
   useEffect(() => {
@@ -183,12 +182,7 @@ const ClientsScreen: React.FC = () => {
           }}
           onClose={handleCloseDetails}
           // Передаём функцию для обновления selectedClient и списка
-          onClientUpdated={(updatedClient) => {
-            // Обновляем selectedClient
-            setSelectedClient(updatedClient);
-            // Обновляем список клиентов в состоянии
-            setClients(prevClients => prevClients.map(c => c.id === updatedClient.id ? updatedClient : c));
-          }}
+
           onScheduleSession={(clientId: string) => {
             navigate('/calendar', { state: { clientId, mode: 'create' } });
           }}
@@ -197,7 +191,7 @@ const ClientsScreen: React.FC = () => {
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           client={selectedClient}
-          onSave={(updates) => handleEditClient({ id: selectedClient.id, ...updates })}
+          onSave={(updates) => handleEditClient(updates)}
         />
       </>
     );
@@ -287,7 +281,6 @@ const ClientsScreen: React.FC = () => {
           clients={clients}
           loading={loading}
           error={error}
-          onAddClient={() => setIsAddModalOpen(true)}
           onViewClientDetails={handleViewClientDetails}
           onEditClient={(client) => { setSelectedClient(client); setIsEditModalOpen(true); }}
           onDeleteClient={(client) => { setSelectedClient(client); setIsDeleteModalOpen(true); }}
@@ -305,7 +298,7 @@ const ClientsScreen: React.FC = () => {
             isOpen={isEditModalOpen}
             onClose={() => setIsEditModalOpen(false)}
             client={selectedClient}
-            onSave={(updates) => handleEditClient({ id: selectedClient.id, ...updates })}
+            onSave={(updates) => handleEditClient(updates)}
           />
         )}
         {selectedClient && (

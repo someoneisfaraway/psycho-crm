@@ -15,12 +15,12 @@ const FinancialSummaryScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Период по умолчанию: текущий месяц
-  const [startDate, setStartDate] = useState<string>(() => {
+  const [startDate] = useState<string>(() => {
     const d = new Date();
     d.setDate(1);
     return d.toISOString().split('T')[0];
   });
-  const [endDate, setEndDate] = useState<string>(() => {
+  const [endDate] = useState<string>(() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1, 0);
     return d.toISOString().split('T')[0];
@@ -33,8 +33,9 @@ const FinancialSummaryScreen: React.FC = () => {
 
   const { user: authUser, loading: authLoading } = useAuth();
 
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value);
-  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value);
+  // handleStartDateChange and handleEndDateChange are declared but not used
+  // const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value);
+  // const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value);
 
   useEffect(() => {
     const fetchSummary = async () => {

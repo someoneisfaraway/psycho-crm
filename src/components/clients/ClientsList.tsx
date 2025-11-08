@@ -11,7 +11,7 @@ interface ClientsListProps {
   loading?: boolean;
   error?: string | null;
   // refetch?: () => Promise<void>; // Commented out as it's not used
-  onAddClient: () => void;
+  // onAddClient: () => void; // Unused parameter
   onEditClient: (client: Client) => void;
   onDeleteClient: (client: Client) => void;
   onViewClientDetails: (client: Client) => void;
@@ -21,7 +21,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
   clients,
   loading,
   error,
-  onAddClient,
+  // onAddClient, // Unused parameter
   onEditClient,
   onDeleteClient,
   onViewClientDetails,

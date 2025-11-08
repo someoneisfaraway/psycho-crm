@@ -8,10 +8,9 @@ interface CalendarGridProps {
   sessions: Session[]; // Список сессий для отображения индикаторов
   selectedDate: Date | null; // Выбранная дата
   onDateSelect: (date: Date) => void; // Функция для выбора даты
-  onNewSessionClick: (date: Date) => void; // Функция для создания новой сессии
 }
 
-const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onDateSelect, onNewSessionClick }) => {
+const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onDateSelect }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [daysInMonth, setDaysInMonth] = useState<Date[]>([]);
 

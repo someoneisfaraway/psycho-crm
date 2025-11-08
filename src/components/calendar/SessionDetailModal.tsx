@@ -20,7 +20,6 @@ interface SessionDetailModalProps {
   onUnmarkPaid: (id: string) => void; // Снять отметку оплаты
   onUnmarkReceiptSent: (id: string) => void; // Снять отметку отправки чека
   onReschedule: (session: Session) => void; // Функция переноса
-  onForgiveDebt: (id: string) => void; // Функция списания долга
   onMarkCancelled: (id: string) => void; // Новая функция для отмены сессии
   error?: string; // Ошибка операции для отображения
   isProcessing?: boolean; // Состояние обработки
@@ -38,7 +37,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onUnmarkPaid,
   onUnmarkReceiptSent,
   onReschedule,
-  onForgiveDebt,
   onMarkCancelled,
   error,
   isProcessing,

@@ -5,6 +5,7 @@ import { Mail, Phone, User, MessageCircle } from 'lucide-react'
 
 interface ClientCardProps {
   client: Client;
+  displayId?: string;
   onEdit: (client: Client) => void;
   onDelete: (client: Client) => void;
   onViewDetails: (client: Client) => void;
@@ -12,6 +13,7 @@ interface ClientCardProps {
 
 const ClientCard: React.FC<ClientCardProps> = ({ 
   client, 
+  displayId,
   onEdit, 
   onDelete, 
   onViewDetails 
@@ -45,7 +47,7 @@ const ClientCard: React.FC<ClientCardProps> = ({
               <h3 className="text-lg leading-6 font-medium text-gray-900">
                 {client.name}
               </h3>
-              <p className="text-sm text-gray-500">{client.id}</p>
+              <p className="text-sm text-gray-500">{displayId || client.id}</p>
             </div>
           </div>
           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(client.status)}`}>
