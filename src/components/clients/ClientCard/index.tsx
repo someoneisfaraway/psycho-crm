@@ -155,17 +155,14 @@ const ClientCard: React.FC<ClientCardProps> = ({
         )}
 
         {/* Кнопки действий */}
--        <div className="mt-4 flex space-x-2">
--          <Button variant="outline" size="sm" onClick={() => onViewDetails(client)}>
-+        <div className="mt-4 flex space-x-2 justify-start">
-+          <Button variant="outline" size="sm" className="px-2" onClick={() => onViewDetails(client)}>
-             Подробнее
-           </Button>
--          <Button variant="outline" size="sm" onClick={() => onEdit(client)}>
-+          <Button variant="outline" size="sm" className="px-2" onClick={() => onEdit(client)}>
-             Редактировать
-           </Button>
-         </div>
+        <div className="mt-4 flex space-x-2 justify-start">
+          <Button variant="outline" size="sm" className="px-2" onClick={() => onViewDetails(client)}>
+            Подробнее
+          </Button>
+          <Button variant="outline" size="sm" className="px-2" onClick={() => onEdit(client)}>
+            Редактировать
+          </Button>
+        </div>
       </div>
     </div>
   );
