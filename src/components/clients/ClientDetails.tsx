@@ -1,11 +1,13 @@
 // src/components/clients/ClientDetails.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Edit, User, Phone, Mail, MessageCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/Button';
 // import { updateClient } from '../../api/clients'; // удалено: больше не используем завершение работы
 import { formatDate } from '../../utils/formatting';
 import { decrypt } from '../../utils/encryption';
 import type { Client } from '../../types/database';
+import type { Session } from '../../types/database';
+import { getSessionsByClient } from '../../api/sessions';
 
 interface ClientDetailsProps {
   client: Client;
@@ -17,6 +19,33 @@ interface ClientDetailsProps {
 
 const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, onScheduleSession, onClientUpdated }) => {
   // Удалены локальные состояния и функции, связанные с завершением работы клиента
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState<boolean>(false);
+  const [page, setPage] = useState<number>(1);
+  const PAGE_SIZE = 10;
+
+  useEffect(() => {
+    const loadSessions = async () => {
+      setSessionsLoading(true);
+      try {
+        const data = await getSessionsByClient(client.id);
+        // Оставляем только завершённые сессии и сортируем от новых к старым (по scheduled_at)
+        const completed = (data || []).filter((s) => s.status === 'completed');
+        const sorted = completed.sort((a: Session, b: Session) =>
+          new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()
+        );
+        setSessions(sorted);
+        setPage(1); // сбрасываем страницу при смене клиента
+      } catch (err) {
+        console.error('Error fetching client sessions:', err);
+        setSessions([]);
+      } finally {
+        setSessionsLoading(false);
+      }
+    };
+
+    loadSessions();
+  }, [client.id]);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
@@ -141,7 +170,50 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
           </div>
         </div>
 
-        {/* Блок 5: Примечания (если есть) */}
+        {/* Блок 5: Сессии клиента (список с пагинацией) */}
+        <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Сессии</h2>
+          {sessionsLoading ? (
+            <p className="text-gray-600">Загрузка списка сессий…</p>
+          ) : sessions.length === 0 ? (
+            <p className="text-gray-600">Сессий пока нет.</p>
+          ) : (
+            <>
+              <ul className="divide-y divide-gray-200">
+                {sessions
+                  .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+                  .map((session) => (
+                    <li key={session.id} className="py-2 text-sm text-gray-900 flex justify-between">
+                      <span>Сессия #{session.session_number}</span>
+                      <span className="text-gray-700">{formatDate(session.scheduled_at, 'd MMMM yyyy, HH:mm')}</span>
+                    </li>
+                  ))}
+              </ul>
+              {/* Пагинация */}
+              <div className="flex items-center justify-between mt-4">
+                <Button
+                  variant="outline"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Назад
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Страница {page} из {Math.max(1, Math.ceil(sessions.length / PAGE_SIZE))}
+                </span>
+                <Button
+                  variant="outline"
+                  disabled={page >= Math.ceil(sessions.length / PAGE_SIZE)}
+                  onClick={() => setPage((p) => Math.min(Math.ceil(sessions.length / PAGE_SIZE), p + 1))}
+                >
+                  Далее
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Блок 6: Примечания (если есть) */}
         {client.notes_encrypted && (
           <div className="bg-white shadow rounded-lg p-6 mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Примечания</h2>
@@ -152,7 +224,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
           </div>
         )}
 
-        {/* Блок 6: Действия */}
+        {/* Блок 7: Действия */}
         <div className="flex justify-end space-x-3 mt-6">
           <Button variant="outline" onClick={onClose}>
             Закрыть

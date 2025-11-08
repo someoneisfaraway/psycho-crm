@@ -7,6 +7,12 @@ export interface FinancialSummary {
   revenueBreakdown: Record<string, number>; // e.g., { 'card': 5000, 'cash': 3000 }
   debtors: Array<{ client_id: string; client_name: string; debt_amount: number }>;
   receiptReminders: Array<{ client_id: string; client_name: string; session_date: string; session_id: string }>;
+  // Дополнительные поля для карточек и раздела транзакций
+  expectedRevenue?: number;
+  outstandingTotal?: number;
+  outstandingCount?: number;
+  receiptsToSendCount?: number;
+  recentTransactions?: Array<{ id: string; client_id: string; client_name: string; amount: number; date: string; payment_method?: string | null }>;
 }
 
 // Локальный тип для минимального набора полей сессии, необходимых для финансовой сводки
@@ -82,6 +88,9 @@ export const getFinancialSummary = async (
 
     // --- Логика вычисления сводки ---
     let totalRevenue = 0;
+    let expectedRevenue = 0;
+    let outstandingTotal = 0;
+    let outstandingCount = 0;
     const revenueBreakdown: Record<string, number> = {};
     const debtorsMap: Record<string, number> = {}; // client_id -> сумма долга
 
@@ -99,6 +108,13 @@ export const getFinancialSummary = async (
       if (session.status === 'completed' && !session.paid) {
          const amount = session.price || 0;
          debtorsMap[session.client_id] = (debtorsMap[session.client_id] || 0) + amount;
+         outstandingTotal += amount;
+         outstandingCount += 1;
+      }
+
+      // 3. Ожидаемая выручка: запланированные, ещё не оплаченные сессии
+      if (session.status === 'scheduled') {
+        expectedRevenue += session.price || 0;
       }
     });
 
@@ -119,12 +135,33 @@ export const getFinancialSummary = async (
         session_id: session.id,
       }));
 
+    const receiptsToSendCount = receiptReminders.length;
+
+    // 5. Недавние транзакции: последние оплаченные сессии
+    const recentTransactions = sessions
+      .filter((s) => !!s.paid)
+      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())
+      .slice(0, 5)
+      .map((s) => ({
+        id: s.id,
+        client_id: s.client_id,
+        client_name: clientNames[s.client_id] || 'Unknown Client',
+        amount: s.price || 0,
+        date: s.scheduled_at,
+        payment_method: s.payment_method || null,
+      }));
+
     // --- Возврат результата ---
     const summary: FinancialSummary = {
       totalRevenue,
       revenueBreakdown,
       debtors,
       receiptReminders,
+      expectedRevenue,
+      outstandingTotal,
+      outstandingCount,
+      receiptsToSendCount,
+      recentTransactions,
     };
 
     console.log('Получена финансовая сводка:', summary);

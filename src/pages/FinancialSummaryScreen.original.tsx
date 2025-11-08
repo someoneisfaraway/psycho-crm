@@ -4,10 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { getFinancialSummary } from '../api/finances';
 import type { FinancialSummary } from '../api/finances';
 import { DollarSign, TrendingUp, AlertCircle, FileText } from 'lucide-react';
-import EarnedRevenueModal from '../components/finances/EarnedRevenueModal';
-import ExpectedRevenueModal from '../components/finances/ExpectedRevenueModal';
-import DebtsModal from '../components/finances/DebtsModal';
-import ReceiptsModal from '../components/finances/ReceiptsModal';
 
 const FinancialSummaryScreen: React.FC = () => {
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
@@ -25,11 +21,6 @@ const FinancialSummaryScreen: React.FC = () => {
     d.setMonth(d.getMonth() + 1, 0);
     return d.toISOString().split('T')[0];
   });
-
-  const [earnedModalOpen, setEarnedModalOpen] = useState<boolean>(false);
-  const [expectedModalOpen, setExpectedModalOpen] = useState<boolean>(false);
-  const [debtsModalOpen, setDebtsModalOpen] = useState<boolean>(false);
-  const [receiptsModalOpen, setReceiptsModalOpen] = useState<boolean>(false);
 
   const { user: authUser, loading: authLoading } = useAuth();
 
@@ -74,7 +65,7 @@ const FinancialSummaryScreen: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 pb-16">
-        <div className="max-w-7xl mx-auto px-4 py-6 см:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Финансы</h1>
           </div>
@@ -107,57 +98,26 @@ const FinancialSummaryScreen: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Финансы</h1>
         </div>
 
-        {/* Модалка Заработано */}
-        <EarnedRevenueModal
-          isOpen={earnedModalOpen}
-          onClose={() => setEarnedModalOpen(false)}
-          userId={authUser?.id || ''}
-          initialStartDate={new Date(startDate).toISOString()}
-          initialEndDate={(() => { const d = new Date(endDate); d.setHours(23,59,59,999); return d.toISOString(); })()}
-        />
-
-        <DebtsModal
-          isOpen={debtsModalOpen}
-          onClose={() => setDebtsModalOpen(false)}
-          userId={authUser?.id || ''}
-        />
-
-        {/* Модалка Чеки */}
-        <ReceiptsModal
-          isOpen={receiptsModalOpen}
-          onClose={() => setReceiptsModalOpen(false)}
-          userId={authUser?.id || ''}
-        />
-
-        {/* Модалка Ожидается */}
-        <ExpectedRevenueModal
-          isOpen={expectedModalOpen}
-          onClose={() => setExpectedModalOpen(false)}
-          userId={authUser?.id || ''}
-          initialStartDate={new Date(startDate).toISOString()}
-          initialEndDate={(() => { const d = new Date(endDate); d.setHours(23,59,59,999); return d.toISOString(); })()}
-        />
-
       {/* Карточки сводки */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Заработано */}
-        <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setEarnedModalOpen(true)}>
+        <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xl font-semibold text-gray-900">Заработано</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900">{(summary.totalRevenue || 0).toLocaleString('ru-RU')} </p>
-              <p className="mt-2 text-sm text-gray-500">За выбранный период</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900">{(summary.totalRevenue || 0).toLocaleString('ru-RU')} ₽</p>
+              <p className="mt-2 text-sm text-gray-500">За текущий месяц</p>
             </div>
             <DollarSign className="h-6 w-6 text-gray-400" aria-hidden="true" />
           </div>
         </div>
 
         {/* Ожидается */}
-        <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setExpectedModalOpen(true)}>
+        <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xl font-semibold text-gray-900">Ожидается</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900">{(summary.expectedRevenue || 0).toLocaleString('ru-RU')} </p>
+              <p className="mt-2 text-3xl font-bold text-gray-900">{(summary.expectedRevenue || 0).toLocaleString('ru-RU')} ₽</p>
               <p className="mt-2 text-sm text-gray-500">Запланированные сессии</p>
             </div>
             <TrendingUp className="h-6 w-6 text-gray-400" aria-hidden="true" />
@@ -165,11 +125,11 @@ const FinancialSummaryScreen: React.FC = () => {
         </div>
 
         {/* Задолженности */}
-        <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setDebtsModalOpen(true)}>
+        <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xl font-semibold text-gray-900">Задолженности</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900">{(summary.outstandingTotal || 0).toLocaleString('ru-RU')} </p>
+              <p className="mt-2 text-3xl font-bold text-gray-900">{(summary.outstandingTotal || 0).toLocaleString('ru-RU')} ₽</p>
               <p className="mt-2 text-sm text-gray-500">Неоплаченных сессий: {summary.outstandingCount || 0}</p>
             </div>
             <AlertCircle className="h-6 w-6 text-gray-400" aria-hidden="true" />
@@ -177,7 +137,7 @@ const FinancialSummaryScreen: React.FC = () => {
         </div>
 
         {/* Чеки */}
-        <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setReceiptsModalOpen(true)}>
+        <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xl font-semibold text-gray-900">Чеки</p>
@@ -210,9 +170,9 @@ const FinancialSummaryScreen: React.FC = () => {
                   {summary.recentTransactions.map((t) => (
                     <tr key={t.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{t.client_name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{t.amount.toLocaleString('ru-RU')} </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{t.amount.toLocaleString('ru-RU')} ₽</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(t.date).toLocaleDateString('ru-RU')}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{t.payment_method || ''}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{t.payment_method || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

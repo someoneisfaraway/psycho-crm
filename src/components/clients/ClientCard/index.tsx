@@ -6,6 +6,7 @@ import { Phone, Mail, MessageCircle, CreditCard, AlertTriangle, MapPin } from 'l
 
 interface ClientCardProps {
   client: Client;
+  displayId?: string; // Короткий удобный номер для отображения
   onEdit: (client: Client) => void;
   onDelete: (client: Client) => void;
   onViewDetails: (client: Client) => void;
@@ -13,6 +14,7 @@ interface ClientCardProps {
 
 const ClientCard: React.FC<ClientCardProps> = ({
   client,
+  displayId,
   onEdit,
   // onDelete, // unused
   onViewDetails
@@ -60,10 +62,10 @@ const ClientCard: React.FC<ClientCardProps> = ({
   return (
     <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200">
       <div className="px-4 py-5 sm:p-6">
-        {/* Строка ID и статуса */}
+        {/* Строка кода и статуса */}
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-xs text-gray-500">ID: {client.id}</p>
+            <p className="text-xs text-gray-500">Код: {displayId || client.id}</p>
             <h3 className="text-lg leading-6 font-medium text-gray-900 mt-1">
               {client.name}
             </h3>

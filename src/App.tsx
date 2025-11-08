@@ -5,7 +5,7 @@ import AuthScreen from './components/auth/AuthScreen';
 import Dashboard from './components/layout/Dashboard'; // Ваш текущий Dashboard
 import CalendarScreen from './pages/CalendarScreen';
 import ClientsScreen from './pages/ClientsScreen';
-import FinancesScreen from './pages/FinancesScreen';
+import FinancialSummaryScreen from './pages/FinancialSummaryScreen';
 import SettingsScreen from './pages/SettingsScreen';
 import './App.css';
 
@@ -47,7 +47,7 @@ function App() {
                 {/* Важно: path начинаются без '/' внутри Dashboard, они добавляются к родительскому пути '/' */}
                 <Route path="calendar" element={<CalendarScreen />} />
                 <Route path="clients" element={<ClientsScreen />} />
-                <Route path="finances" element={<FinancesScreen />} />
+                <Route path="finances" element={<FinancialSummaryScreen />} />
                 <Route path="settings" element={<SettingsScreen />} />
                 {/* Редирект с / (внутри защищённой зоны) на /calendar */}
                 <Route index element={<Navigate to="calendar" replace />} />

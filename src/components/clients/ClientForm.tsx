@@ -126,10 +126,20 @@ const ClientForm: React.FC<ClientFormProps> = ({
       processedValue = value === '' ? undefined : Number(value);
     }
 
-    setFormData(prev => ({
-      ...prev,
-      [name]: processedValue
-    }));
+    // Специальная логика для привязки признака чеков к форме оплаты
+    if (name === 'payment_type') {
+      const needReceipt = processedValue === 'cash' ? false : true;
+      setFormData(prev => ({
+        ...prev,
+        payment_type: processedValue,
+        need_receipt: needReceipt,
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: processedValue
+      }));
+    }
 
     // Очищаем ошибку для этого поля при изменении
     if (errors[name as keyof FormErrors]) {
@@ -337,7 +347,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
               value={formData.source}
               onChange={handleChange}
               className={`mt-1 block w-full px-3 py-2 border ${errors.source ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
-              disabled={isEditing} // Предположим, source нельзя менять при редактировании
             >
               <option value="">Выберите источник</option>
               <option value="private">Личный</option>
@@ -365,6 +374,23 @@ const ClientForm: React.FC<ClientFormProps> = ({
               <option value="one-time">Разовый</option>
             </select>
             {errors.type && <p className="mt-1 text-sm text-red-600">{errors.type}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+              Статус клиента
+            </label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+            >
+              <option value="active">Активный</option>
+              <option value="paused">На паузе</option>
+              <option value="completed">Завершён</option>
+            </select>
           </div>
         </div>
 
