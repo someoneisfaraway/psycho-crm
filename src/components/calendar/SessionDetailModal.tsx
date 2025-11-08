@@ -19,7 +19,6 @@ interface SessionDetailModalProps {
   onMarkReceiptSent: (id: string) => void; // Функция отметки отправки чека
   onUnmarkPaid: (id: string) => void; // Снять отметку оплаты
   onUnmarkReceiptSent: (id: string) => void; // Снять отметку отправки чека
-  onReschedule: (session: Session) => void; // Функция переноса
   onMarkCancelled: (id: string) => void; // Новая функция для отмены сессии
   error?: string; // Ошибка операции для отображения
   isProcessing?: boolean; // Состояние обработки
@@ -36,7 +35,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onMarkReceiptSent,
   onUnmarkPaid,
   onUnmarkReceiptSent,
-  onReschedule,
   onMarkCancelled,
   error,
   isProcessing,
@@ -75,28 +73,28 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   // Определение цвета бейджа статуса
   const statusBadgeColor = () => {
     switch (session.status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'scheduled': return 'bg-status-info-bg text-status-info-text';
+      case 'completed': return 'bg-status-success-bg text-status-success-text';
+      case 'cancelled': return 'bg-status-neutral-bg text-status-neutral-text';
+      default: return 'bg-status-neutral-bg text-status-neutral-text';
     }
   };
 
   // Определение цвета индикатора оплаты
-  const paymentIndicatorColor = session.paid ? 'text-green-600' : 'text-yellow-600';
-  const receiptIndicatorColor = session.receipt_sent ? 'text-green-600' : 'text-yellow-600';
+  const paymentIndicatorColor = session.paid ? 'text-status-success-text' : 'text-status-warning-text';
+  const receiptIndicatorColor = session.receipt_sent ? 'text-status-success-text' : 'text-status-warning-text';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 text-gray-900">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50">
+      <div className="bg-bg-primary rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 text-text-primary">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="modal-title">
               Сессия #{session.session_number} с {client.name}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 focus:outline-none"
+              className="modal-close-btn"
               aria-label="Закрыть модальное окно"
             >
               <X className="h-6 w-6" />
@@ -105,16 +103,16 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
           {/* Ошибка операции */}
           {error && (
-            <div className="mb-4 rounded-md bg-red-50 p-4">
+            <div className="mb-4 card bg-status-error-bg border-status-error-border">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <svg className="h-5 w-5 text-status-error-text" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Ошибка</h3>
-                  <div className="mt-2 text-sm text-red-700">
+                  <h3 className="text-sm font-medium text-status-error-text">Ошибка</h3>
+                  <div className="mt-2 text-sm text-status-error-text">
                     <p>{error}</p>
                   </div>
                 </div>
@@ -125,29 +123,29 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           {/* Индикатор загрузки */}
           {isProcessing && (
             <div className="mb-4 flex items-center justify-center py-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mr-2"></div>
-              <span className="text-sm text-gray-600">Обработка...</span>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mr-2"></div>
+              <span className="text-sm text-text-secondary">Обработка...</span>
             </div>
           )}
 
           {/* Блок 1: Основная информация */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Основная информация</h3>
+          <div className="card mb-4">
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Основная информация</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Дата и время:</span>
-                <span className="font-medium">{formatDateTime(session.scheduled_at)}</span>
+                <span className="text-text-secondary">Дата и время:</span>
+                <span className="font-medium text-text-primary">{formatDateTime(session.scheduled_at)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Длительность:</span>
-                <span className="font-medium">{session.duration} минут</span>
+                <span className="text-text-secondary">Длительность:</span>
+                <span className="font-medium text-text-primary">{session.duration} минут</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Формат:</span>
-                <span className="font-medium">{session.format === 'online' ? '💻 Онлайн' : '📍 Офлайн'}</span>
+                <span className="text-text-secondary">Формат:</span>
+                <span className="font-medium text-text-primary">{session.format === 'online' ? '💻 Онлайн' : '📍 Офлайн'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Статус:</span>
+                <span className="text-text-secondary">Статус:</span>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadgeColor()}`}>
                   {session.status === 'scheduled' ? 'Запланирована' :
                    session.status === 'completed' ? 'Завершена' :
@@ -158,28 +156,28 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           </div>
 
           {/* Блок 2: Финансы */}
-          <div className="bg-blue-50 p-4 rounded-lg mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Финансы</h3>
+          <div className="card mb-4">
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Финансы</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Стоимость:</span>
-                <span className="font-medium">{session.price} ₽</span>
+                <span className="text-text-secondary">Стоимость:</span>
+                <span className="font-medium text-text-primary">{session.price} ₽</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Оплачено:</span>
+                <span className="text-text-secondary">Оплачено:</span>
                 <span className={paymentIndicatorColor}>
                   {session.paid ? '✓ Да' : '⚠ Нет'}
                 </span>
               </div>
               {session.paid && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Дата оплаты:</span>
-                  <span className="font-medium">{session.paid_at ? formatDate(session.paid_at) : 'Не указана'}</span>
+                  <span className="text-text-secondary">Дата оплаты:</span>
+                  <span className="font-medium text-text-primary">{session.paid_at ? formatDate(session.paid_at) : 'Не указана'}</span>
                 </div>
               )}
               {session.paid && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Чек отправлен:</span>
+                  <span className="text-text-secondary">Чек отправлен:</span>
                   <span className={receiptIndicatorColor}>
                     {session.receipt_sent ? '✓ Да' : '⏰ Нет'}
                   </span>
@@ -187,32 +185,32 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               )}
               {session.paid && session.receipt_sent && session.receipt_sent_at && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Дата отправки чека:</span>
-                  <span className="font-medium">{formatDate(session.receipt_sent_at)}</span>
+                  <span className="text-text-secondary">Дата отправки чека:</span>
+                  <span className="font-medium text-text-primary">{formatDate(session.receipt_sent_at)}</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Блок 3: Информация о клиенте */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Информация о клиенте</h3>
+          <div className="card mb-4">
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Информация о клиенте</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Имя:</span>
-                <span className="font-medium">{client.name}</span>
+                <span className="text-text-secondary">Имя:</span>
+                <span className="font-medium text-text-primary">{client.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">ID клиента:</span>
-                <span className="font-medium">{client.id}</span>
+                <span className="text-text-secondary">ID клиента:</span>
+                <span className="font-medium text-text-primary">{client.id}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Всего сессий:</span>
-                <span className="font-medium">{client.total_sessions}</span>
+                <span className="text-text-secondary">Всего сессий:</span>
+                <span className="font-medium text-text-primary">{client.total_sessions}</span>
               </div>
               <div>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   className="mt-2"
                   onClick={() => {
@@ -228,9 +226,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
           {/* Блок 4: Заметка о сессии */}
           {decryptedNote && (
-            <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Заметка о сессии</h3>
-              <p className="text-gray-600">
+            <div className="card bg-bg-secondary border-border-primary mb-4">
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Заметка о сессии</h3>
+              <p className="text-text-primary">
                 {decryptedNote}
               </p>
             </div>
@@ -240,13 +238,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           <div className="flex flex-wrap gap-2 mt-6">
             {session.status === 'scheduled' && (
               <>
-                <Button variant="outline" onClick={() => onMarkCompleted(session.id)}>
+                <Button variant="primary" onClick={() => onMarkCompleted(session.id)}>
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Отметить завершённой
-                </Button>
-                <Button variant="outline" onClick={() => onReschedule(session)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Перенести
                 </Button>
                 <Button variant="destructive" onClick={() => onMarkCancelled(session.id)}>
                   <Ban className="mr-2 h-4 w-4" />
@@ -256,7 +250,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             )}
             {session.status !== 'cancelled' && (
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => { onClose(); setTimeout(() => onEdit(session), 0); }}
               >
                 <Edit className="mr-2 h-4 w-4" />
@@ -269,32 +263,32 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               <>
                 {!session.paid ? (
                   <>
-                    <Button variant="default" onClick={handleShowPaymentMenu}>
+                    <Button variant="primary" onClick={handleShowPaymentMenu}>
                       Отметить оплату
                     </Button>
                     {showPaymentMenu && (
                       <div className="flex gap-2 items-center">
-                        <span className="text-sm text-gray-600">Способ:</span>
-                        <Button size="sm" variant="outline" onClick={() => handleSelectPaymentMethod('cash')}>Наличные</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleSelectPaymentMethod('card')}>Карта</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleSelectPaymentMethod('platform')}>Платформа</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleSelectPaymentMethod('transfer')}>Перевод</Button>
+                        <span className="text-sm text-text-secondary">Способ:</span>
+                        <Button size="sm" variant="secondary" onClick={() => handleSelectPaymentMethod('cash')}>Наличные</Button>
+                        <Button size="sm" variant="secondary" onClick={() => handleSelectPaymentMethod('card')}>Карта</Button>
+                        <Button size="sm" variant="secondary" onClick={() => handleSelectPaymentMethod('platform')}>Платформа</Button>
+                        <Button size="sm" variant="secondary" onClick={() => handleSelectPaymentMethod('transfer')}>Перевод</Button>
                       </div>
                     )}
                   </>
                 ) : (
-                  <Button variant="outline" onClick={() => onUnmarkPaid(session.id)}>
+                  <Button variant="secondary" onClick={() => onUnmarkPaid(session.id)}>
                     Снять оплату
                   </Button>
                 )}
 
                 {session.paid && (
                   !session.receipt_sent ? (
-                    <Button variant="default" onClick={() => onMarkReceiptSent(session.id)}>
+                    <Button variant="primary" onClick={() => onMarkReceiptSent(session.id)}>
                       Отправить чек
                     </Button>
                   ) : (
-                    <Button variant="outline" onClick={() => onUnmarkReceiptSent(session.id)}>
+                    <Button variant="secondary" onClick={() => onUnmarkReceiptSent(session.id)}>
                       Снять чек
                     </Button>
                   )

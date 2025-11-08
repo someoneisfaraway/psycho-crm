@@ -10,6 +10,8 @@ const buttonVariants = cva(
       variant: {
         // Чёрная кнопка с белым текстом по умолчанию
         default: 'bg-black text-white hover:bg-black/80',
+        // Синяя кнопка по дизайн-системе (как «Запланировать сессию»)
+        primary: 'bg-indigo-600 text-white hover:bg-indigo-700',
         destructive: 'bg-red-600 text-white hover:bg-red-700',
         outline: 'border border-gray-300 bg-white text-gray-900 hover:bg-gray-50',
         secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200',

@@ -471,12 +471,10 @@ const CalendarScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-16">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Загрузка календаря...</p>
-          </div>
+      <div className="screen-container">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
+          <p className="mt-4 text-text-secondary">Загрузка календаря...</p>
         </div>
       </div>
     );
@@ -484,20 +482,18 @@ const CalendarScreen: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-16">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Ошибка</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
+      <div className="screen-container">
+        <div className="card bg-status-error-bg border-status-error-border">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-status-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-status-error">Ошибка</h3>
+              <div className="mt-2 text-sm text-status-error-text">
+                <p>{error}</p>
               </div>
             </div>
           </div>
@@ -509,17 +505,16 @@ const CalendarScreen: React.FC = () => {
   // Удалены обработчики отладочных действий
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
-      <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {/* Удалены отладочные кнопки */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Календарь</h1>
-          {/* Убираем кнопку «Новая сессия», оставляем только вариант внутри правой панели */}
-          {/* <Button variant="default" onClick={() => handleNewSessionClick(new Date())}>
-            <Plus className="mr-2 h-4 w-4" />
-            Новая сессия
-          </Button> */}
-        </div>
+    <div className="screen-container">
+      {/* Удалены отладочные кнопки */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-text-primary">Календарь</h1>
+        {/* Убираем кнопку «Новая сессия», оставляем только вариант внутри правой панели */}
+        {/* <Button variant="default" onClick={() => handleNewSessionClick(new Date())}>
+          <Plus className="mr-2 h-4 w-4" />
+          Новая сессия
+        </Button> */}
+      </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Календарь */}
@@ -532,16 +527,16 @@ const CalendarScreen: React.FC = () => {
           </div>
 
           {/* Список сессий для выбранной даты */}
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="card">
             {selectedDate ? (
               <>
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">
+                  <h2 className="text-lg font-semibold text-text-primary">
                     {format(selectedDate, 'EEEE, d MMMM yyyy', { locale: ru })}
                   </h2>
                   <button
                     onClick={() => handleNewSessionClick(selectedDate!)}
-                    className="px-3 py-1 text-sm font-medium text-white rounded-md hover:bg-black/80 flex items-center gap-1"
+                    className="btn-primary text-sm px-3 py-1 flex items-center gap-1"
                   >
                     <Plus className="h-4 w-4" />
                     Запланировать сессию
@@ -554,34 +549,34 @@ const CalendarScreen: React.FC = () => {
                       return (
                         <div
                           key={session.id}
-                          className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                          className="p-3 border border-border-light rounded-lg hover:bg-background-hover cursor-pointer transition-colors"
                           onClick={() => handleViewSession(session)}
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-text-primary">
                                 {format(new Date(session.scheduled_at), 'HH:mm')} • {client?.name || 'Клиент'} • Сессия #{session.session_number}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-text-secondary">
                                 {session.format === 'online' ? '💻 Онлайн' : '📍 Офлайн'} • {session.price} ₽
                               </div>
                               <div className="text-xs mt-1">
                                 {session.paid ? (
-                                  <span className="text-green-600">✅ Оплачено</span>
+                                  <span className="text-status-success">✅ Оплачено</span>
                                 ) : (
-                                  <span className="text-yellow-600">⚠ Не оплачено</span>
+                                  <span className="text-status-warning">⚠ Не оплачено</span>
                                 )}
                                 {session.paid && session.receipt_sent ? (
-                                  <span className="ml-2 text-green-600">✉ Чек отправлен</span>
+                                  <span className="ml-2 text-status-success">✉ Чек отправлен</span>
                                 ) : session.paid ? (
-                                  <span className="ml-2 text-yellow-600">⏰ Чек не отправлен</span>
+                                  <span className="ml-2 text-status-warning">⏰ Чек не отправлен</span>
                                 ) : null}
                               </div>
                             </div>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              session.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                              session.status === 'completed' ? 'bg-green-100 text-green-800' :
-                              session.status === 'cancelled' ? 'bg-gray-100 text-gray-800' : 'bg-gray-100 text-gray-800'
+                            <span className={`status-badge ${
+                              session.status === 'scheduled' ? 'status-info' :
+                              session.status === 'completed' ? 'status-success' :
+                              session.status === 'cancelled' ? 'status-neutral' : 'status-neutral'
                             }`}>
                               {session.status === 'scheduled' ? 'Запланирована' : session.status === 'completed' ? 'Завершена' : 'Отменена'}
                             </span>
@@ -592,16 +587,16 @@ const CalendarScreen: React.FC = () => {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <svg className="mx-auto h-12 w-12 text-text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3M3 11h18M3 15h18M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <p className="mt-4 text-gray-600">Нет сессий</p>
-                    <p className="text-sm text-gray-500">На этот день запланировано 0 сессий.</p>
+                    <p className="mt-4 text-text-primary">Нет сессий</p>
+                    <p className="text-sm text-text-secondary">На этот день запланировано 0 сессий.</p>
                   </div>
                 )}
               </>
             ) : (
-              <p className="text-gray-500">Выберите дату в календаре</p>
+              <p className="text-text-secondary">Выберите дату в календаре</p>
             )}
           </div>
         </div>
@@ -630,7 +625,6 @@ const CalendarScreen: React.FC = () => {
               setOperationError(''); // Очищаем ошибку при закрытии
             }}
             onEdit={(session) => handleEditSession(session)}
-            onReschedule={() => handleRescheduleSession(selectedSession.id, new Date(selectedSession.scheduled_at), format(new Date(selectedSession.scheduled_at), 'HH:mm'))}
             onMarkCompleted={(id) => handleMarkCompleted(id)}
             onMarkPaid={(id, method) => handleMarkPaid(id, method)}
             onUnmarkPaid={(id) => handleUnmarkPaid(id)}
@@ -643,7 +637,6 @@ const CalendarScreen: React.FC = () => {
           />
         )}
       </div>
-    </div>
   );
 }
 

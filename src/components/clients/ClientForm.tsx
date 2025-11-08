@@ -409,7 +409,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 id="phone"
                 name="phone"
                 type="tel"
-                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm leading-5 bg-white placeholder-gray-500 text-gray-900 sm:text-sm"
+                className="form-input pl-10"
                 placeholder="+7 (999) 123-45-67"
                 value={formData.phone}
                 onChange={handleChange}
@@ -429,7 +429,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                 id="email"
                 name="email"
                 type="email"
-                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm leading-5 bg-white placeholder-gray-500 text-gray-900 sm:text-sm"
+                className="form-input pl-10"
                 placeholder="client@example.com"
                 value={formData.email}
                 onChange={handleChange}
@@ -481,7 +481,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
                     setErrors(prev => ({ ...prev, session_price: undefined }));
                   }
                 }}
-                className={`focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-8 py-2 border ${errors.session_price ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm leading-5 bg-white placeholder-gray-500 text-gray-900 sm:text-sm`}
+                className={`form-input pl-10 pr-8 ${errors.session_price ? 'border-status-error' : ''}`}
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <span className="text-gray-500 sm:text-sm">₽</span>
@@ -586,6 +586,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         </Button>
         <Button
           type="submit"
+          variant="outline"
           loading={isLoading}
         >
           {isEditing ? 'Сохранить изменения' : 'Создать клиента'}

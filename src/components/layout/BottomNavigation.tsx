@@ -29,7 +29,7 @@ const BottomNavigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 shadow-lg">
       <div className="flex justify-around">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
@@ -39,10 +39,14 @@ const BottomNavigation: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center py-2 px-4 ${isActive ? 'text-indigo-600' : 'text-gray-500'}`}
+              className={`flex flex-col items-center py-3 px-4 transition-colors duration-200 ${
+                isActive 
+                  ? 'text-primary-600 bg-primary-50 border-t-2 border-primary-600' 
+                  : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50'
+              }`}
             >
-              <IconComponent size={24} />
-              <span className="text-xs mt-1">{item.name}</span>
+              <IconComponent size={24} className="mb-1" />
+              <span className="text-xs font-medium">{item.name}</span>
             </Link>
           );
         })}

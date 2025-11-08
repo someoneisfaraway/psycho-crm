@@ -273,15 +273,15 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="modal-container w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="modal-title">
               {isCreating ? 'Новая сессия' : isEditing ? 'Редактирование сессии' : 'Сессия'}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 focus:outline-none"
+              className="modal-close-btn"
               aria-label="Закрыть модальное окно"
             >
               <X className="h-6 w-6" />
@@ -292,7 +292,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* РЎРµРєС†РёСЏ 1: Р’С‹Р±РѕСЂ РєР»РёРµРЅС‚Р° */}
               <div className="md:col-span-2">
-                <label htmlFor="client_id" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="client_id" className="form-label">
                   Клиент *
                 </label>
                 <select
@@ -300,7 +300,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                   name="client_id"
                   value={formData.client_id}
                   onChange={handleClientChange}
-                  className={`w-full px-3 py-2 border ${errors.client_id ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black bg-white`}
+                  className={`form-input ${errors.client_id ? 'border-status-error' : ''}`}
                   disabled={isViewing || isEditing} // Р—Р°РїСЂРµС‰Р°РµРј РјРµРЅСЏС‚СЊ РєР»РёРµРЅС‚Р° РїСЂРё СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРё/РїСЂРѕСЃРјРѕС‚СЂРµ
                 >
                   <option value="">Выберите клиента</option>
@@ -312,18 +312,18 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                       </option>
                     ))}
                 </select>
-                {errors.client_id && <p className="mt-1 text-sm text-red-600">{errors.client_id}</p>}
+                {errors.client_id && <p className="form-error">{errors.client_id}</p>}
               </div>
 
               {/* РЎРµРєС†РёСЏ 2: Р”Р°С‚Р° Рё РІСЂРµРјСЏ */}
               <div>
-                <label htmlFor="scheduled_at" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="scheduled_at" className="form-label">
                   Дата и время *
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
 
-                    <Calendar className="h-5 w-5 text-gray-400" />
+                    <Calendar className="h-5 w-5 text-icon-secondary" />
                   </div>
                   <input
                     type="datetime-local"
@@ -331,21 +331,21 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                     name="scheduled_at"
                     value={formData.scheduled_at ? format(formData.scheduled_at, "yyyy-MM-dd'T'HH:mm") : ''}
                     onChange={handleChange}
-                    className={`focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 border ${errors.scheduled_at ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm leading-5 bg-white placeholder-gray-500 text-gray-900 sm:text-sm`}
+                    className={`form-input pl-10 ${errors.scheduled_at ? 'border-status-error' : ''}`}
                     disabled={isViewing}
                   />
                 </div>
-                {errors.scheduled_at && <p className="mt-1 text-sm text-red-600">{errors.scheduled_at}</p>}
+                {errors.scheduled_at && <p className="form-error">{errors.scheduled_at}</p>}
               </div>
 
               {/* Секция 3: Длительность */}
               <div>
-                <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="duration" className="form-label">
                   Длительность (мин)
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Clock className="h-5 w-5 text-gray-400" />
+                    <Clock className="h-5 w-5 text-icon-secondary" />
                   </div>
                   <input
                     type="number"
@@ -353,7 +353,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                     name="duration"
                     value={formData.duration}
                     onChange={handleChange}
-                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm leading-5 bg-white placeholder-gray-500 text-gray-900 sm:text-sm"
+                    className="form-input pl-10"
                     disabled={isViewing}
                   />
                 </div>
@@ -361,7 +361,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
 
               {/* Секция 4: Формат */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="form-label">
                   Формат *
                 </label>
                 <div className="flex space-x-4">
@@ -372,10 +372,10 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                       value="online"
                       checked={formData.format === 'online'}
                       onChange={(e) => setFormData({...formData, format: e.target.value as 'online' | 'offline'})}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      className="form-radio"
                       disabled={isViewing}
                     />
-              <span className="ml-2 text-gray-900">Онлайн</span>
+              <span className="ml-2 text-text-primary">Онлайн</span>
                   </label>
                   <label className="inline-flex items-center">
                     <input
@@ -384,10 +384,10 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                       value="offline"
                       checked={formData.format === 'offline'}
                       onChange={(e) => setFormData({...formData, format: e.target.value as 'online' | 'offline'})}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      className="form-radio"
                       disabled={isViewing}
                     />
-              <span className="ml-2 text-gray-900">Офлайн</span>
+              <span className="ml-2 text-text-primary">Офлайн</span>
                   </label>
                 </div>
               </div>
@@ -395,7 +395,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
               {/* РЎРµРєС†РёСЏ 5: РЎСЃС‹Р»РєР° РЅР° РІСЃС‚СЂРµС‡Сѓ (С‚РѕР»СЊРєРѕ РґР»СЏ РѕРЅР»Р°Р№РЅ) */}
               {formData.format === 'online' && (
                 <div className="md:col-span-2">
-                  <label htmlFor="meeting_link" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="meeting_link" className="form-label">
                     Ссылка на встречу
                   </label>
                   <input
@@ -405,7 +405,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                     value={formData.meeting_link}
                     onChange={handleChange}
                     placeholder="https://zoom.us/j/..."
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="form-input"
                     disabled={isViewing}
                   />
                 </div>
@@ -413,12 +413,12 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
 
               {/* РЎРµРєС†РёСЏ 6: РЎС‚РѕРёРјРѕСЃС‚СЊ */}
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="price" className="form-label">
                   Стоимость *
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Wallet className="h-5 w-5 text-gray-400" />
+                    <Wallet className="h-5 w-5 text-icon-secondary" />
                   </div>
                   <input
                     type="text"
@@ -437,19 +437,19 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                     onBlur={() => {
                       setPriceInput(formData.price > 0 ? new Intl.NumberFormat('ru-RU').format(formData.price) : '');
                     }}
-                    className={`focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-8 py-2 border ${errors.price ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm leading-5 bg-white placeholder-gray-500 text-gray-900 sm:text-sm`}
+                    className={`form-input pl-10 pr-8 ${errors.price ? 'border-status-error' : ''}`}
                     disabled={isViewing}
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 sm:text-sm">₽</span>
+              <span className="text-text-secondary text-sm">₽</span>
                   </div>
                 </div>
-                {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price}</p>}
+                {errors.price && <p className="form-error">{errors.price}</p>}
               </div>
 
               {/* РЎРµРєС†РёСЏ 7: Р—Р°РјРµС‚РєР° */}
               <div className="md:col-span-2">
-                <label htmlFor="note" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="note" className="form-label">
                   {isCreating ? 'Заметка о планируемой сессии' : 'Заметка о сессии'}
                 </label>
                 <textarea
@@ -458,7 +458,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                   rows={3}
                   value={formData.note}
                   onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
+                  className="form-input"
                   placeholder={isCreating ? "Цель сессии, особенности..." : ""}
                   disabled={isViewing}
                 />
@@ -467,15 +467,15 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
 
             {/* РЎРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ */}
             {submitError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <div className="mt-4 p-3 bg-status-error-bg border border-status-error-border rounded-md">
                 <div className="flex">
                   <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="h-5 w-5 text-status-error" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm text-red-700">{submitError}</p>
+                    <p className="text-sm text-status-error-text">{submitError}</p>
                   </div>
                 </div>
               </div>
@@ -485,7 +485,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
             <div className="mt-6 flex justify-end space-x-3">
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 onClick={onClose}
                 disabled={isSubmitting}
               >
@@ -494,6 +494,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
               {!isViewing && (
                 <Button
                   type="submit"
+                  variant="primary"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (

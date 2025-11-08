@@ -61,36 +61,36 @@ const ReceiptsModal: React.FC<ReceiptsModalProps> = ({ isOpen, onClose, userId }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">Чеки</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50">
+      <div className="bg-bg-primary rounded-lg shadow-xl w-full max-w-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border-primary">
+          <h2 className="modal-title">Чеки</h2>
+          <button onClick={onClose} className="modal-close-btn">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         <div className="px-6 py-4">
           {loading ? (
-            <div className="text-center py-6">Загрузка...</div>
+            <div className="text-center py-6 text-text-secondary">Загрузка...</div>
           ) : error ? (
-            <div className="text-red-600 py-2">{error}</div>
+            <div className="text-status-error-text py-2">{error}</div>
           ) : receipts.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-border-primary">
+                <thead className="bg-bg-secondary">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата и время</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Клиент</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сумма</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Дата и время</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Клиент</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Сумма</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-bg-primary divide-y divide-border-primary">
                   {receipts.map((receipt, index) => (
                     <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{receipt.session_date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{receipt.client_name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{receipt.amount.toLocaleString('ru-RU')} ₽</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">{receipt.session_date}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">{receipt.client_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">{receipt.amount.toLocaleString('ru-RU')} ₽</td>
                     </tr>
                   ))}
                 </tbody>
@@ -98,15 +98,15 @@ const ReceiptsModal: React.FC<ReceiptsModalProps> = ({ isOpen, onClose, userId }
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-lg text-gray-500">Нет чеков для отправки</p>
+              <p className="text-lg text-text-secondary">Нет чеков для отправки</p>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end px-6 py-4 border-t">
+        <div className="flex justify-end px-6 py-4 border-t border-border-primary">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+            className="btn-secondary"
           >
             Закрыть
           </button>

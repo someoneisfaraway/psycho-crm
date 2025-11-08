@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
 import { Menu } from 'lucide-react';
+import { useUserDisplayName } from '../../utils/useUserDisplayName';
 
 interface HeaderProps {
   title: string;
@@ -11,6 +12,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title, showMenu = false, onMenuClick }) => {
   const { user, signOut } = useAuth();
+  const displayName = useUserDisplayName();
 
   const handleSignOut = async () => {
     try {
@@ -39,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ title, showMenu = false, onMenuClick })
           </div>
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-700 hidden md:block">
-              {user?.email?.split('@')[0]}
+              {displayName}
             </span>
             <Button onClick={handleSignOut} variant="outline" size="sm" className="text-sm">
               Выйти

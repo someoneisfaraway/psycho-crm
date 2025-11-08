@@ -67,13 +67,13 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return 'bg-status-success-bg text-status-success-text';
       case 'paused':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-status-warning-bg text-status-warning-text';
       case 'completed':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-status-neutral-bg text-status-neutral-text';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-status-neutral-bg text-status-neutral-text';
     }
  };
 
@@ -121,22 +121,22 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   const displaySessions = showAllSessions ? sessions : sessions.slice(0, 10);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50">
+      <div className="bg-bg-primary rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-center">
-              <div className="bg-indigo-100 p-2 rounded-full">
-                <User className="h-6 w-6 text-indigo-600" />
+              <div className="bg-primary-100 p-2 rounded-full">
+                <User className="h-6 w-6 text-primary-600" />
               </div>
               <div className="ml-4">
-                <h2 className="text-2xl font-bold text-gray-900">{clientName}</h2>
-                <p className="text-sm text-gray-500">ID: {client.id}</p>
+                <h2 className="modal-title">{clientName}</h2>
+                <p className="text-sm text-text-secondary">ID: {client.id}</p>
                 <div className="flex gap-2 mt-2">
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(client.status)}`}>
                     {client.status.charAt(0).toUpperCase() + client.status.slice(1)}
                   </span>
-                  <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                  <span className="text-xs text-text-secondary bg-bg-secondary px-2 py-1 rounded">
                     {getSourceLabel(client.source)}
                   </span>
                 </div>
@@ -144,7 +144,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-50 focus:outline-none"
+              className="modal-close-btn"
             >
               <X className="h-6 w-6" />
             </button>
@@ -152,56 +152,56 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
 
           {/* Contact Information */}
           {(client.age || client.location || client.phone || client.email || client.telegram) && (
-            <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Контакты</h3>
+            <div className="card mb-6">
+              <h3 className="text-lg font-medium text-text-primary mb-4">Контакты</h3>
               
               <div className="space-y-3">
                 {client.age && (
                   <div className="flex items-center">
-                    <User className="h-5 w-5 text-gray-400 mr-3" />
+                    <User className="h-5 w-5 text-icon-secondary mr-3" />
                     <div>
-                      <p className="text-sm text-gray-500">Возраст</p>
-                      <p className="font-medium">{client.age} {pluralize(client.age, 'год', 'года', 'лет')}</p>
+                      <p className="text-sm text-text-secondary">Возраст</p>
+                      <p className="font-medium text-text-primary">{client.age} {pluralize(client.age, 'год', 'года', 'лет')}</p>
                     </div>
                   </div>
                 )}
                 
                 {client.location && (
                   <div className="flex items-center">
-                    <MapPin className="h-5 w-5 text-gray-400 mr-3" />
+                    <MapPin className="h-5 w-5 text-icon-secondary mr-3" />
                     <div>
-                      <p className="text-sm text-gray-500">Место жительства</p>
-                      <p className="font-medium">{client.location}</p>
+                      <p className="text-sm text-text-secondary">Место жительства</p>
+                      <p className="font-medium text-text-primary">{client.location}</p>
                     </div>
                   </div>
                 )}
                 
                 {client.phone && (
                   <div className="flex items-center">
-                    <Phone className="h-5 w-5 text-gray-400 mr-3" />
+                    <Phone className="h-5 w-5 text-icon-secondary mr-3" />
                     <div>
-                      <p className="text-sm text-gray-500">Телефон</p>
-                      <p className="font-medium">{client.phone}</p>
+                      <p className="text-sm text-text-secondary">Телефон</p>
+                      <p className="font-medium text-text-primary">{client.phone}</p>
                     </div>
                   </div>
                 )}
                 
                 {client.email && (
                   <div className="flex items-center">
-                    <Mail className="h-5 w-5 text-gray-400 mr-3" />
+                    <Mail className="h-5 w-5 text-icon-secondary mr-3" />
                     <div>
-                      <p className="text-sm text-gray-500">Email</p>
-                      <p className="font-medium">{client.email}</p>
+                      <p className="text-sm text-text-secondary">Email</p>
+                      <p className="font-medium text-text-primary">{client.email}</p>
                     </div>
                   </div>
                 )}
                 
                 {client.telegram && (
                   <div className="flex items-center">
-                    <User className="h-5 w-5 text-gray-400 mr-3" />
+                    <User className="h-5 w-5 text-icon-secondary mr-3" />
                     <div>
-                      <p className="text-sm text-gray-500">Telegram</p>
-                      <p className="font-medium">{client.telegram}</p>
+                      <p className="text-sm text-text-secondary">Telegram</p>
+                      <p className="font-medium text-text-primary">{client.telegram}</p>
                     </div>
                   </div>
                 )}
@@ -210,23 +210,23 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
           )}
           
           {/* Finance and Format */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Финансы и формат</h3>
+          <div className="card mb-6">
+            <h3 className="text-lg font-medium text-text-primary mb-4">Финансы и формат</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center">
-                <Wallet className="h-5 w-5 text-gray-400 mr-3" />
+                <Wallet className="h-5 w-5 text-icon-secondary mr-3" />
                 <div>
-                  <p className="text-sm text-gray-50">Стоимость сессии</p>
-                  <p className="font-medium">{client.session_price?.toLocaleString('ru-RU')} ₽</p>
+                  <p className="text-sm text-text-secondary">Стоимость сессии</p>
+                  <p className="font-medium text-text-primary">{client.session_price?.toLocaleString('ru-RU')} ₽</p>
                 </div>
               </div>
               
               <div className="flex items-center">
-                <CreditCard className="h-5 w-5 text-gray-400 mr-3" />
+                <CreditCard className="h-5 w-5 text-icon-secondary mr-3" />
                 <div>
-                  <p className="text-sm text-gray-500">Форма оплаты</p>
-                  <p className="font-medium">{getPaymentTypeLabel(client.payment_type)}</p>
+                  <p className="text-sm text-text-secondary">Форма оплаты</p>
+                  <p className="font-medium text-text-primary">{getPaymentTypeLabel(client.payment_type)}</p>
                 </div>
               </div>
               
@@ -235,8 +235,8 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                   {client.format === 'online' ? '💻' : '🏢'}
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Формат</p>
-                  <p className="font-medium">{client.format === 'online' ? 'Онлайн' : 'Офлайн'}</p>
+                  <p className="text-sm text-text-secondary">Формат</p>
+                  <p className="font-medium text-text-primary">{client.format === 'online' ? 'Онлайн' : 'Офлайн'}</p>
                 </div>
               </div>
               
@@ -245,72 +245,72 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                   {client.need_receipt ? '✅' : '❌'}
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Нужны чеки</p>
-                  <p className="font-medium">{client.need_receipt ? 'Да' : 'Нет'}</p>
+                  <p className="text-sm text-text-secondary">Нужны чеки</p>
+                  <p className="font-medium text-text-primary">{client.need_receipt ? 'Да' : 'Нет'}</p>
                 </div>
               </div>
             </div>
           </div>
           
           {/* Statistics */}
-          <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">📊 Статистика</h3>
+          <div className="card bg-status-info-bg border-status-info-border mb-6">
+            <h3 className="text-lg font-medium text-text-primary mb-4">📊 Статистика</h3>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="bg-white p-3 rounded shadow-sm">
+              <div className="card">
                 <div className="flex items-center mb-1">
-                  <TrendingUp className="h-5 w-5 text-indigo-60 mr-2" />
-                  <p className="text-gray-500">Всего сессий</p>
+                  <TrendingUp className="h-5 w-5 text-primary-600 mr-2" />
+                  <p className="text-text-secondary">Всего сессий</p>
                 </div>
-                <p className="text-xl font-bold">{totalSessions}</p>
+                <p className="text-xl font-bold text-text-primary">{totalSessions}</p>
               </div>
               
-              <div className="bg-white p-3 rounded shadow-sm">
+              <div className="card">
                 <div className="flex items-center mb-1">
-                  <CreditCard className="h-5 w-5 text-green-600 mr-2" />
-                  <p className="text-gray-500">Оплачено</p>
+                  <CreditCard className="h-5 w-5 text-status-success-text mr-2" />
+                  <p className="text-text-secondary">Оплачено</p>
                 </div>
-                <p className="text-xl font-bold">{totalPaid.toLocaleString('ru-RU')} ₽</p>
+                <p className="text-xl font-bold text-text-primary">{totalPaid.toLocaleString('ru-RU')} ₽</p>
               </div>
               
               {debt > 0 && (
-                <div className="bg-white p-3 rounded shadow-sm">
+                <div className="card bg-status-warning-bg border-status-warning-border">
                   <div className="flex items-center mb-1">
-                    <CreditCard className="h-5 w-5 text-red-600 mr-2" />
-                    <p className="text-gray-500">Задолженность</p>
+                    <CreditCard className="h-5 w-5 text-status-warning-text mr-2" />
+                    <p className="text-text-secondary">Задолженность</p>
                   </div>
-                  <p className="text-xl font-bold text-red-600">{debt.toLocaleString('ru-RU')} ₽</p>
+                  <p className="text-xl font-bold text-status-warning-text">{debt.toLocaleString('ru-RU')} ₽</p>
                 </div>
               )}
               
-              <div className="bg-white p-3 rounded shadow-sm">
+              <div className="card">
                 <div className="flex items-center mb-1">
-                  <Clock className="h-5 w-5 text-blue-600 mr-2" />
-                  <p className="text-gray-500">Тип клиента</p>
+                  <Clock className="h-5 w-5 text-primary-600 mr-2" />
+                  <p className="text-text-secondary">Тип клиента</p>
                 </div>
-                <p className="text-base font-medium">{getClientTypeLabel(client.type)}</p>
+                <p className="text-base font-medium text-text-primary">{getClientTypeLabel(client.type)}</p>
               </div>
             
             {(client.created_at || lastSession || nextSession) && (
               <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 {client.created_at && (
-                  <div className="bg-white p-3 rounded shadow-sm">
-                    <p className="text-gray-500">Первая сессия</p>
-                    <p className="font-medium">{formatDate(client.created_at, 'd MMMM yyyy', { locale: 'ru' as any })}</p>
+                  <div className="card">
+                    <p className="text-text-secondary">Первая сессия</p>
+                    <p className="font-medium text-text-primary">{formatDate(client.created_at, 'd MMMM yyyy', { locale: 'ru' as any })}</p>
                   </div>
                 )}
                 
                 {lastSession && (
-                  <div className="bg-white p-3 rounded shadow-sm">
-                    <p className="text-gray-500">Последняя сессия</p>
-                    <p className="font-medium">{formatDate(lastSession.scheduled_at, 'd MMMM yyyy', { locale: 'ru' as any })}</p>
+                  <div className="card">
+                    <p className="text-text-secondary">Последняя сессия</p>
+                    <p className="font-medium text-text-primary">{formatDate(lastSession.scheduled_at, 'd MMMM yyyy', { locale: 'ru' as any })}</p>
                   </div>
                 )}
                 
                 {nextSession && (
-                  <div className="bg-white p-3 rounded shadow-sm">
-                    <p className="text-gray-500">Следующая сессия</p>
-                    <p className="font-medium">{formatDate(nextSession.scheduled_at, 'd MMMM yyyy', { locale: 'ru' as any })}</p>
+                  <div className="card">
+                    <p className="text-text-secondary">Следующая сессия</p>
+                    <p className="font-medium text-text-primary">{formatDate(nextSession.scheduled_at, 'd MMMM yyyy', { locale: 'ru' as any })}</p>
                   </div>
                 )}
               </div>
@@ -319,46 +319,46 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
           
           {/* Notes */}
           {client.notes_encrypted && (
-            <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">📝 Примечания</h3>
+            <div className="card mb-6">
+              <h3 className="text-lg font-medium text-text-primary mb-4">📝 Примечания</h3>
               
               {decryptedNotes ? (
-                <div className="bg-white p-3 rounded border whitespace-pre-wrap text-gray-800">
+                <div className="card bg-bg-secondary border-border-primary whitespace-pre-wrap text-text-primary">
                   {decryptedNotes}
                 </div>
               ) : (
-                <p className="text-gray-500 italic">Примечаний нет</p>
+                <p className="text-text-secondary italic">Примечаний нет</p>
               )}
             </div>
           )}
           
           {/* Session History */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <h3 className="text-lg font-medium text-text-primary mb-4">
               История сессий ({totalSessions})
             </h3>
             
             {loading ? (
               <div className="flex justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500"></div>
               </div>
             ) : sessions.length === 0 ? (
-              <p className="text-gray-500 italic">Сессий пока нет</p>
+              <p className="text-text-secondary italic">Сессий пока нет</p>
             ) : (
               <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                 {displaySessions.map(session => (
-                  <div key={session.id} className="bg-white p-3 rounded-lg shadow-sm border">
+                  <div key={session.id} className="card border-border-primary">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h4 className="font-semibold">Сессия #{session.session_number}</h4>
-                        <p className="text-sm text-gray-600">
+                        <h4 className="font-semibold text-text-primary">Сессия #{session.session_number}</h4>
+                        <p className="text-sm text-text-secondary">
                           {formatDate(session.scheduled_at, 'd MMMM, HH:mm', { locale: 'ru' as any })}
                         </p>
                       </div>
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        session.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        session.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
+                        session.status === 'completed' ? 'bg-status-success-bg text-status-success-text' :
+                        session.status === 'scheduled' ? 'bg-status-info-bg text-status-info-text' :
+                        'bg-status-neutral-bg text-status-neutral-text'
                       }`}>
                         {session.status === 'completed' ? 'Завершена' : 'Запланирована'}
                       </span>
@@ -367,19 +367,19 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                     {session.status === 'completed' && (
                       <div className="flex gap-2 text-sm mt-2">
                         {session.paid ? (
-                          <span className="text-green-600">✅ Оплачено ({session.payment_method || 'Не указано'})</span>
+                          <span className="text-status-success-text">✅ Оплачено ({session.payment_method || 'Не указано'})</span>
                         ) : (
-                          <span className="text-amber-600">⚠ Не оплачено</span>
+                          <span className="text-status-warning-text">⚠ Не оплачено</span>
                         )}
                         
                         {session.paid && session.receipt_sent && (
-                          <span className="text-gray-600">• ✉ Чек отправлен</span>
+                          <span className="text-text-secondary">• ✉ Чек отправлен</span>
                         )}
                       </div>
                     )}
                     
                     {session.price && (
-                      <p className="text-sm text-gray-700 mt-2">💰 {session.price} ₽</p>
+                      <p className="text-sm text-text-primary mt-2">💰 {session.price} ₽</p>
                     )}
                   </div>
                 ))}
@@ -387,7 +387,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                 {sessions.length > 10 && !showAllSessions && (
                   <button
                     onClick={() => setShowAllSessions(true)}
-                    className="w-full py-2 text-center text-blue-600 hover:text-blue-800 font-medium text-sm"
+                    className="w-full py-2 text-center text-primary-600 hover:text-primary-800 font-medium text-sm"
                   >
                     Показать все {sessions.length} сессий
                   </button>

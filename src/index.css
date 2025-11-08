@@ -1,82 +1,269 @@
 @import "tailwindcss";
 
-/* Tailwind v4 base is imported above. Add global button style to ensure black bg and white text for native <button> elements */
-
-/* Унифицируем стили обычных <button> вне нашего UI-компонента */
-button {
-  @apply bg-black text-white;
-}
-button:hover {
-  @apply bg-black/80;
-}
-
-/* Custom base styles can go below if needed */
-
+/* Color Design System Variables */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Primary Colors — Blue scale aligned with design system */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb; /* Основной цвет */
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+
+  /* Secondary Colors */
+  --secondary-50: #fdf4ff;
+  --secondary-100: #fae8ff;
+  --secondary-200: #f5d0fe;
+  --secondary-300: #f0abfc;
+  --secondary-400: #e879f9;
+  --secondary-500: #d946ef;
+  --secondary-600: #c026d3;
+  --secondary-700: #a21caf;
+  --secondary-800: #86198f;
+  --secondary-900: #701a75;
+
+  /* Neutral Colors */
+  --neutral-0: #ffffff;
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --neutral-900: #0f172a;
+
+  /* Status Colors */
+  --success-50: #f0fdf4;
+  --success-100: #dcfce7;
+  --success-200: #bbf7d0;
+  --success-300: #86efac;
+  --success-400: #4ade80;
+  --success-500: #22c55e;
+  --success-600: #16a34a;
+  --success-700: #15803d;
+  --success-800: #166534;
+  --success-900: #14532d;
+
+  --warning-50: #fffbeb;
+  --warning-100: #fef3c7;
+  --warning-200: #fde68a;
+  --warning-300: #fcd34d;
+  --warning-400: #fbbf24;
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+  --warning-700: #b45309;
+  --warning-800: #92400e;
+  --warning-900: #78350f;
+
+  --error-50: #fef2f2;
+  --error-100: #fee2e2;
+  --error-200: #fecaca;
+  --error-300: #fca5a5;
+  --error-400: #f87171;
+  --error-500: #ef4444;
+  --error-600: #dc2626;
+  --error-700: #b91c1c;
+  --error-800: #991b1b;
+  --error-900: #7f1d1d;
+
+  /* Info Colors */
+  --info-50: #eff6ff;
+  --info-100: #dbeafe;
+  --info-200: #bfdbfe;
+  --info-300: #93c5fd;
+  --info-400: #60a5fa;
+  --info-500: #3b82f6;
+  --info-600: #2563eb;
+  --info-700: #1d4ed8;
+  --info-800: #1e40af;
+  --info-900: #1e3a8a;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Droid Sans Mono', monospace;
+}
+
+/* Убираем глобальную перекраску кнопок, используем только классы .btn-* */
+
+/* Custom base styles with design system */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
- min-height: 100vh;
+  min-height: 100vh;
+  /* Светлая тема по дизайн-системе */
+  background-color: #f9fafb; /* Фон */
+  color: #1f2937; /* Текст */
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-h1 {
-  font-size: 3.2em;
- line-height: 1.1;
+/* Typography base styles */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.25;
+  color: #1f2937; /* Текст заголовков */
+  margin: 0 0 0.5em 0;
 }
 
+h1 { font-size: 2.25rem; }
+h2 { font-size: 1.875rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+h5 { font-size: 1.125rem; }
+h6 { font-size: 1rem; }
+
+p {
+  margin: 0 0 1em 0;
+  color: var(--neutral-700);
+}
+
+a {
+  color: var(--primary-600);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+a:hover {
+  color: var(--primary-700);
+}
+
+/* Button base styles */
 button {
-  border-radius: 8px;
+  border-radius: 0.5rem;
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Form elements base styles */
+input, select, textarea {
+  border-radius: 0.375rem;
+  border: 1px solid var(--neutral-300);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Убираем автоматическую тёмную тему — всегда светлая */
+/* Utility classes mapped to design system tokens */
+.text-text-primary { color: #1f2937; }
+.text-text-secondary { color: var(--neutral-600); }
+.bg-bg-primary { background-color: var(--neutral-0); }
+.bg-bg-secondary { background-color: var(--neutral-50); }
+.border-border-primary { border-color: var(--neutral-200); }
+
+/* Status colors */
+.bg-status-success-bg { background-color: var(--success-600); }
+.bg-status-warning-bg { background-color: var(--warning-500); }
+.bg-status-error-bg { background-color: var(--error-100); }
+.text-status-success-text { color: var(--success-800); }
+.text-status-warning-text { color: var(--warning-800); }
+.text-status-error-text { color: var(--error-800); }
+.border-status-error { border-color: var(--error-500); }
+.border-status-warning-border { border-color: var(--warning-300); }
+
+/* Icon secondary color */
+.text-icon-secondary { color: var(--neutral-500); }
+
+/* Modal container base to ensure non-transparent content */
+.modal-container {
+  background-color: var(--neutral-100);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--neutral-200);
+}
+
+/* Form styles (restore previous comfortable sizes) */
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--neutral-700);
+  margin-bottom: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid var(--neutral-300);
+  padding: 0.5rem 0.75rem; /* базовые вертикальные/горизонтальные отступы */
+  font-size: 0.875rem;
+  color: #1f2937;
+  background-color: var(--neutral-0);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.form-input.pl-10 { padding-left: 2.5rem; } /* для инпутов с левой иконкой */
+.form-input.pr-8 { padding-right: 2rem; } /* для инпутов с правой иконкой/валютой */
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+textarea.form-input {
+  min-height: 8rem; /* вернуть нормальную высоту заметки */
+  resize: vertical;
+}
+
+.form-error {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--error-600);
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.modal-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  color: var(--neutral-600);
+}
+.modal-close-btn:hover { color: var(--neutral-800); }
+
+.form-radio { width: 1rem; height: 1rem; }

@@ -229,11 +229,11 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
             Закрыть
           </Button>
           {onScheduleSession && (
-            <Button variant="default" onClick={() => onScheduleSession(client.id)}>
+            <Button variant="outline" onClick={() => onScheduleSession(client.id)}>
               Запланировать сессию
             </Button>
           )}
-          <Button variant="default" onClick={() => onEdit(client)}>
+          <Button variant="outline" onClick={() => onEdit(client)}>
             <Edit className="mr-2 h-4 w-4" />
             Редактировать
           </Button>

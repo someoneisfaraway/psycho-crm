@@ -7,7 +7,7 @@ import ClientsList from '../components/clients/ClientsList'; // Путь мож�
 import AddClientModal from '../components/clients/AddClientModal';
 import EditClientModal from '../components/clients/EditClientModal';
 import DeleteClientModal from '../components/clients/DeleteClientModal';
-import ClientDetails from '../components/clients/ClientDetails';
+import ViewClientDetailsModal from '../components/clients/ViewClientDetailsModal';
 import { Button } from '../components/ui/Button'; // Путь может отличаться
 import { Plus } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -170,40 +170,15 @@ const ClientsScreen: React.FC = () => {
     setSelectedClient(null);
   };
 
-  // Показываем детали, если isDetailsOpen и selectedClient установлены
-  if (isDetailsOpen && selectedClient) {
-    return (
-      <>
-        <ClientDetails
-          client={selectedClient}
-          onEdit={(client: Client) => {
-            setSelectedClient(client);
-            setIsEditModalOpen(true);
-          }}
-          onClose={handleCloseDetails}
-          // Передаём функцию для обновления selectedClient и списка
-
-          onScheduleSession={(clientId: string) => {
-            navigate('/calendar', { state: { clientId, mode: 'create' } });
-          }}
-        />
-        <EditClientModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          client={selectedClient}
-          onSave={(updates) => handleEditClient(updates)}
-        />
-      </>
-    );
-  }
+  // Раньше детали клиента заменяли весь экран. Теперь используем модал поверх экрана.
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
+    <div className="screen-container">
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">Клиенты</h1>
+          <h1 className="text-2xl font-bold text-text-primary">Клиенты</h1>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button variant="default" onClick={() => setIsAddModalOpen(true)}>
+            <Button variant="primary" onClick={() => setIsAddModalOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Добавить клиента
             </Button>
@@ -211,16 +186,16 @@ const ClientsScreen: React.FC = () => {
         </div>
 
         {/* Блок фильтров */}
-        <div className="mb-6 p-4 bg-white rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-3">Фильтры</h2>
+        <div className="card mb-6">
+          <h2 className="text-lg font-semibold mb-3 text-text-primary">Фильтры</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Фильтр по статусу */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+              <label className="block text-sm font-medium text-text-secondary mb-1">Статус</label>
               <select
                 value={filters.status}
                 onChange={(e) => updateFilter('status', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600 text-gray-900 bg-white"
+                className="form-input"
               >
                 <option value="all">Все</option>
                 <option value="active">Активные</option>
@@ -231,11 +206,11 @@ const ClientsScreen: React.FC = () => {
 
             {/* Фильтр по источнику */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Источник</label>
+              <label className="block text-sm font-medium text-text-secondary mb-1">Источник</label>
               <select
                 value={filters.source}
                 onChange={(e) => updateFilter('source', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600 text-gray-900 bg-white"
+                className="form-input"
               >
                 <option value="all">Все</option>
                 <option value="private">Личный</option>
@@ -248,11 +223,11 @@ const ClientsScreen: React.FC = () => {
 
             {/* Фильтр по типу */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Тип</label>
+              <label className="block text-sm font-medium text-text-secondary mb-1">Тип</label>
               <select
                 value={filters.type}
                 onChange={(e) => updateFilter('type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600 text-gray-900 bg-white"
+                className="form-input"
               >
                 <option value="all">Все</option>
                 <option value="regular">Регулярный</option>
@@ -262,11 +237,11 @@ const ClientsScreen: React.FC = () => {
 
             {/* Фильтр по долгам */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Долги</label>
+              <label className="block text-sm font-medium text-text-secondary mb-1">Долги</label>
               <select
                 value={filters.debt}
                 onChange={(e) => updateFilter('debt', e.target.value as FilterState['debt'])}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600 text-gray-900 bg-white"
+                className="form-input"
               >
                 <option value="all">Все</option>
                 <option value="with_debt">С долгом</option>
@@ -293,6 +268,17 @@ const ClientsScreen: React.FC = () => {
           onAdd={handleAddClient}
           userId={user?.id || ''}
         />
+        {selectedClient && (
+          <ViewClientDetailsModal
+            client={selectedClient}
+            isOpen={isDetailsOpen}
+            onClose={handleCloseDetails}
+            onEdit={(client: Client) => {
+              setSelectedClient(client);
+              setIsEditModalOpen(true);
+            }}
+          />
+        )}
         {selectedClient && (
           <EditClientModal
             isOpen={isEditModalOpen}

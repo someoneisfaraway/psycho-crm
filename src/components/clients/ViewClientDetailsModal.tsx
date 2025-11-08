@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import type { Client } from '../../types/database';
+import type { Client, Session } from '../../types/database';
 import { Button } from '../ui/Button';
 import { Mail, Phone, User, Edit3, FileText, CreditCard, X, MapPin } from 'lucide-react';
 import { decrypt } from '../../utils/encryption';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { getSessionsByClient } from '../../api/sessions';
 
 interface ViewClientDetailsModalProps {
   client: Client;
@@ -21,6 +22,10 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
 }) => {
   const [decryptedNotes, setDecryptedNotes] = useState<string | null>(null);
   const [decryptionError, setDecryptionError] = useState(false);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState<boolean>(false);
+  const [page, setPage] = useState<number>(1);
+  const PAGE_SIZE = 10;
 
   if (!isOpen) {
     return null;
@@ -40,6 +45,29 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
       }
     }
   }, [client.notes_encrypted]);
+
+  // Load client's sessions and apply pagination
+  useEffect(() => {
+    const loadSessions = async () => {
+      setSessionsLoading(true);
+      try {
+        const data = await getSessionsByClient(client.id);
+        const completed = (data || []).filter((s) => s.status === 'completed');
+        const sorted = completed.sort((a: Session, b: Session) =>
+          new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()
+        );
+        setSessions(sorted);
+        setPage(1);
+      } catch (err) {
+        console.error('Error fetching client sessions:', err);
+        setSessions([]);
+      } finally {
+        setSessionsLoading(false);
+      }
+    };
+
+    loadSessions();
+  }, [client.id]);
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '';
@@ -67,13 +95,13 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return 'bg-status-success-bg text-status-success-text';
       case 'paused':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-status-warning-bg text-status-warning-text';
       case 'completed':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-status-neutral-bg text-status-neutral-text';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-status-neutral-bg text-status-neutral-text';
     }
   };
 
@@ -99,39 +127,32 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="client-details-title">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" role="document">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="client-details-title">
+      <div className="bg-bg-primary rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" role="document">
         <div className="p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex items-center">
-              <div className="bg-indigo-100 p-2 rounded-full" aria-hidden="true">
-                <User className="h-6 w-6 text-indigo-600" />
-              </div>
-              <div className="ml-4">
-                <h2 id="client-details-title" className="text-xl font-bold text-gray-900">
-                  {client.name}
-                </h2>
-                <p className="text-sm text-gray-500">ID: {client.id}</p>
-              </div>
-            </div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 id="client-details-title" className="text-2xl font-bold text-gray-900">
+              Клиент: {client.name}
+            </h2>
             <button
+              type="button"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full p-1"
-              aria-label="Закрыть"
+              className="text-gray-400 hover:text-gray-500 focus:outline-none"
+              aria-label="Закрыть модальное окно"
             >
               <X className="h-6 w-6" />
             </button>
           </div>
           
           {/* Identification section */}
-          <div className="p-4 bg-gray-50 rounded-lg mb-6">
+          <div className="card mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Идентификация</h3>
+              <h3 className="text-lg font-medium text-text-primary">Идентификация</h3>
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(client.status)}`}>
                 {client.status === 'active' ? 'Активный' : client.status === 'paused' ? 'На паузе' : 'Завершён'}
               </span>
             </div>
-            <div className="flex gap-2 text-sm text-gray-700">
+            <div className="flex gap-2 text-sm text-text-secondary">
               <span>• {getSourceLabel(client.source)}</span>
               <span>• {client.type === 'regular' ? 'Системный' : 'Разовый'}</span>
             </div>
@@ -139,56 +160,56 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Contacts section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Контакты</h3>
+            <div className="card">
+              <h3 className="text-lg font-medium text-text-primary mb-4">Контакты</h3>
               
               <div className="space-y-3">
                 {client.age && (
                   <div className="flex items-center">
-                    <User className="h-5 w-5 text-gray-400 mr-3" aria-hidden="true" />
+                    <User className="h-5 w-5 text-icon-secondary mr-3" aria-hidden="true" />
                     <div>
-                      <p className="text-sm text-gray-500">Возраст</p>
-                      <p className="font-medium">{client.age} {getAgeLabel(client.age)}</p>
+                      <p className="text-sm text-text-secondary">Возраст</p>
+                      <p className="font-medium text-text-primary">{client.age} {getAgeLabel(client.age)}</p>
                     </div>
                   </div>
                 )}
                 
                 {client.location && (
                   <div className="flex items-center">
-                    <MapPin className="h-5 w-5 text-gray-400 mr-3" aria-hidden="true" />
+                    <MapPin className="h-5 w-5 text-icon-secondary mr-3" aria-hidden="true" />
                     <div>
-                      <p className="text-sm text-gray-500">Местоположение</p>
-                      <p className="font-medium">{client.location}</p>
+                      <p className="text-sm text-text-secondary">Местоположение</p>
+                      <p className="font-medium text-text-primary">{client.location}</p>
                     </div>
                   </div>
                 )}
                 
                 {client.phone && (
                   <div className="flex items-center">
-                    <Phone className="h-5 w-5 text-gray-400 mr-3" aria-hidden="true" />
+                    <Phone className="h-5 w-5 text-icon-secondary mr-3" aria-hidden="true" />
                     <div>
-                      <p className="text-sm text-gray-500">Телефон</p>
-                      <p className="font-medium">{client.phone}</p>
+                      <p className="text-sm text-text-secondary">Телефон</p>
+                      <p className="font-medium text-text-primary">{client.phone}</p>
                     </div>
                   </div>
                 )}
                 
                 {client.email && (
                   <div className="flex items-center">
-                    <Mail className="h-5 w-5 text-gray-400 mr-3" aria-hidden="true" />
+                    <Mail className="h-5 w-5 text-icon-secondary mr-3" aria-hidden="true" />
                     <div>
-                      <p className="text-sm text-gray-50">Email</p>
-                      <p className="font-medium">{client.email}</p>
+                      <p className="text-sm text-text-secondary">Email</p>
+                      <p className="font-medium text-text-primary">{client.email}</p>
                     </div>
                   </div>
                 )}
                 
                 {client.telegram && (
                   <div className="flex items-center">
-                    <div className="h-5 w-5 text-gray-400 mr-3 flex items-center justify-center" aria-hidden="true">💬</div>
+                    <div className="h-5 w-5 text-icon-secondary mr-3 flex items-center justify-center" aria-hidden="true">💬</div>
                     <div>
-                      <p className="text-sm text-gray-500">Telegram</p>
-                      <p className="font-medium">{client.telegram}</p>
+                      <p className="text-sm text-text-secondary">Telegram</p>
+                      <p className="font-medium text-text-primary">{client.telegram}</p>
                     </div>
                   </div>
                 )}
@@ -196,33 +217,33 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
             </div>
             
             {/* Finance and Format section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Финансы и формат</h3>
+            <div className="card">
+              <h3 className="text-lg font-medium text-text-primary mb-4">Финансы и формат</h3>
               
               <div className="space-y-3">
                 <div className="flex items-center">
-                  <CreditCard className="h-5 w-5 text-gray-400 mr-3" aria-hidden="true" />
+                  <CreditCard className="h-5 w-5 text-icon-secondary mr-3" aria-hidden="true" />
                   <div>
-                    <p className="text-sm text-gray-500">Стоимость сессии</p>
-                    <p className="font-medium">{client.session_price?.toLocaleString('ru-RU')} ₽</p>
+                    <p className="text-sm text-text-secondary">Стоимость сессии</p>
+                    <p className="font-medium text-text-primary">{client.session_price?.toLocaleString('ru-RU')} ₽</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center">
-                  <CreditCard className="h-5 w-5 text-gray-400 mr-3" aria-hidden="true" />
+                  <CreditCard className="h-5 w-5 text-icon-secondary mr-3" aria-hidden="true" />
                   <div>
-                    <p className="text-sm text-gray-500">Форма оплаты</p>
-                    <p className="font-medium">{getPaymentTypeLabel(client.payment_type)}</p>
+                    <p className="text-sm text-text-secondary">Форма оплаты</p>
+                    <p className="font-medium text-text-primary">{getPaymentTypeLabel(client.payment_type)}</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center">
-                  <div className="h-5 w-5 text-gray-400 mr-3 flex items-center justify-center" aria-hidden="true">
+                  <div className="h-5 w-5 text-icon-secondary mr-3 flex items-center justify-center" aria-hidden="true">
                     {client.format === 'online' ? '💻' : '🏢'}
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Формат</p>
-                    <p className="font-medium">{client.format === 'online' ? 'Онлайн' : 'Офлайн'}</p>
+                    <p className="text-sm text-text-secondary">Формат</p>
+                    <p className="font-medium text-text-primary">{client.format === 'online' ? 'Онлайн' : 'Офлайн'}</p>
                   </div>
                 </div>
               </div>
@@ -230,50 +251,94 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
           </div>
           
           {/* Statistics section */}
-          <div className="p-4 bg-blue-50 rounded-lg mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">📊 Статистика</h3>
+          <div className="card bg-status-info-bg border-status-info-border mb-6">
+            <h3 className="text-lg font-medium text-text-primary mb-4">📊 Статистика</h3>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="p-3 bg-white rounded shadow-sm">
-                <p className="text-gray-600">Всего сессий</p>
-                <p className="font-semibold text-lg">{client.total_sessions || 0}</p>
+              <div className="card">
+                <p className="text-text-secondary">Всего сессий</p>
+                <p className="font-semibold text-lg text-text-primary">{client.total_sessions || 0}</p>
               </div>
               
-              <div className="p-3 bg-white rounded shadow-sm">
-                <p className="text-gray-600">Оплачено</p>
-                <p className="font-semibold text-lg">{client.total_paid?.toLocaleString('ru-RU') || 0} ₽</p>
+              <div className="card">
+                <p className="text-text-secondary">Оплачено</p>
+                <p className="font-semibold text-lg text-text-primary">{client.total_paid?.toLocaleString('ru-RU') || 0} ₽</p>
               </div>
               
-              <div className="p-3 bg-white rounded shadow-sm">
-                <p className="text-gray-600">Первая сессия</p>
-                <p className="font-semibold">{client.created_at ? formatDate(client.created_at) : '—'}</p>
+              <div className="card">
+                <p className="text-text-secondary">Первая сессия</p>
+                <p className="font-semibold text-text-primary">{client.created_at ? formatDate(client.created_at) : '—'}</p>
               </div>
               
-              <div className="p-3 bg-white rounded shadow-sm">
-                <p className="text-gray-600">Последняя сессия</p>
-                <p className="font-semibold">{client.last_session_at ? formatDate(client.last_session_at) : '—'}</p>
+              <div className="card">
+                <p className="text-text-secondary">Последняя сессия</p>
+                <p className="font-semibold text-text-primary">{client.last_session_at ? formatDate(client.last_session_at) : '—'}</p>
               </div>
               
               {client.next_session_at && (
-                <div className="col-span-2 md:col-span-4 p-3 bg-white rounded shadow-sm">
-                  <p className="text-gray-600">Следующая сессия</p>
-                  <p className="font-semibold">{formatDate(client.next_session_at)}</p>
+                <div className="col-span-2 md:col-span-4 card">
+                  <p className="text-text-secondary">Следующая сессия</p>
+                  <p className="font-semibold text-text-primary">{formatDate(client.next_session_at)}</p>
                 </div>
               )}
               
               {client.debt && client.debt > 0 && (
-                <div className="col-span-2 md:col-span-4 p-3 bg-amber-100 rounded shadow-sm border border-amber-200">
-                  <p className="text-gray-600">Задолженность</p>
-                  <p className="font-bold text-lg text-amber-800">{client.debt.toLocaleString('ru-RU')} ₽</p>
+                <div className="col-span-2 md:col-span-4 card bg-status-warning-bg border-status-warning-border">
+                  <p className="text-text-secondary">Задолженность</p>
+                  <p className="font-bold text-lg text-status-warning-text">{client.debt.toLocaleString('ru-RU')} ₽</p>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Sessions section with pagination */}
+          <div className="card mb-6">
+            <h3 className="text-lg font-medium text-text-primary mb-4">Сессии</h3>
+            {sessionsLoading ? (
+              <p className="text-text-secondary">Загрузка списка сессий…</p>
+            ) : sessions.length === 0 ? (
+              <p className="text-text-secondary">Сессий пока нет.</p>
+            ) : (
+              <>
+                <ul className="divide-y divide-border-light">
+                  {sessions
+                    .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+                    .map((session) => (
+                      <li key={session.id} className="py-2 text-sm text-text-primary flex justify-between">
+                        <span>Сессия #{session.session_number}</span>
+                        <span className="text-text-secondary">
+                          {format(new Date(session.scheduled_at), 'd MMMM yyyy, HH:mm', { locale: ru })}
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+                <div className="flex items-center justify-between mt-4">
+                  <Button
+                    variant="outline"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    Назад
+                  </Button>
+                  <span className="text-sm text-text-secondary">
+                    Страница {page} из {Math.max(1, Math.ceil(sessions.length / PAGE_SIZE))}
+                  </span>
+                  <Button
+                    variant="outline"
+                    disabled={page >= Math.ceil(sessions.length / PAGE_SIZE)}
+                    onClick={() => setPage((p) => Math.min(Math.ceil(sessions.length / PAGE_SIZE), p + 1))}
+                  >
+                    Далее
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
           
           {/* Notes section */}
           {(client.notes_encrypted) && (
-            <div className="p-4 bg-gray-50 rounded-lg mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">📝 Примечания</h3>
+            <div className="card mb-6">
+              <h3 className="text-lg font-medium text-text-primary mb-4">📝 Примечания</h3>
               
               {client.notes_encrypted && (
                 <div>
@@ -283,15 +348,15 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
                   </div>
                   
                   {decryptedNotes ? (
-                    <div className="bg-white p-3 rounded border whitespace-pre-wrap text-gray-700">
+                    <div className="card bg-bg-secondary border-border-primary whitespace-pre-wrap text-text-primary">
                       {decryptedNotes}
                     </div>
                   ) : decryptionError ? (
-                    <div className="bg-red-50 p-3 rounded border border-red-200 text-red-700 text-sm">
+                    <div className="card bg-status-error-bg border-status-error-border text-status-error-text text-sm">
                       Ошибка расшифровки примечаний
                     </div>
                   ) : (
-                    <div className="bg-gray-100 p-3 rounded text-gray-600 text-sm italic">
+                    <div className="card bg-bg-secondary text-text-secondary text-sm italic">
                       Примечания зашифрованы и будут отображены автоматически
                     </div>
                   )}
@@ -300,11 +365,11 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
             </div>
           )}
           
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex justify-end space-x-3 pt-4 border-t border-border-primary">
+            <Button variant="secondary" onClick={onClose}>
               Закрыть
             </Button>
-            <Button onClick={() => onEdit(client)}>
+            <Button variant="secondary" onClick={() => onEdit(client)}>
               <Edit3 className="mr-2 h-4 w-4" aria-hidden="true" />
               Редактировать
             </Button>

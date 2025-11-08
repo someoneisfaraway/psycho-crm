@@ -27,7 +27,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
 
     // Определяем цвет индикатора (для простоты используем зелёный/жёлтый)
     // В реальности можно использовать разные цвета или иконки
-    const indicatorColor = unpaid > 0 ? 'bg-yellow-500' : 'bg-green-500';
+    const indicatorColor = unpaid > 0 ? 'bg-status-warning-bg' : 'bg-status-success-bg';
 
     // Ограничиваем количество отображаемых точек
     const maxDots = 3;
@@ -36,11 +36,11 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
 
     return (
       <div className="flex justify-center mt-1">
-        <div className="flex space-x-0.5">
+        <div className="flex space-x-1">
           {Array.from({ length: dotsToShow }).map((_, i) => (
-            <div key={i} className={`w-1.5 h-1.5 rounded-full ${indicatorColor}`}></div>
+            <div key={i} className={`w-2 h-2 rounded-full ${indicatorColor}`}></div>
           ))}
-          {hasMore && <span className="text-xs text-gray-500 ml-1">+{total - maxDots}</span>}
+          {hasMore && <span className="text-xs text-text-secondary ml-1">+{total - maxDots}</span>}
         </div>
       </div>
     );
@@ -70,29 +70,29 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
   const isToday = (date: Date) => isSameDay(date, new Date());
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="card">
       {/* Заголовок с навигацией */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">
+        <h2 className="modal-title">
           {format(currentDate, 'LLLL yyyy', { locale: ru })}
         </h2>
         <div className="flex space-x-2">
           <button
             onClick={goToToday}
-            className="px-3 py-1 text-sm font-medium text-white rounded-md hover:bg-black/80"
+            className="btn-primary"
           >
             Сегодня
           </button>
           <button
             onClick={prevMonth}
-            className="p-1 text-gray-600 hover:bg-gray-100 rounded-full"
+            className="btn-secondary"
             aria-label="Предыдущий месяц"
           >
             &lt;
           </button>
           <button
             onClick={nextMonth}
-            className="p-1 text-gray-600 hover:bg-gray-100 rounded-full"
+            className="btn-secondary"
             aria-label="Следующий месяц"
           >
             &gt;
@@ -103,7 +103,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
       {/* Заголовки дней недели */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day, index) => (
-          <div key={index} className="text-center text-xs font-medium text-gray-500 py-1">
+          <div key={index} className="text-center text-xs font-medium text-text-secondary py-1">
             {day}
           </div>
         ))}
@@ -120,14 +120,14 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
               key={index}
               className={`
                 min-h-16 p-1 border rounded-lg flex flex-col items-center justify-start
-                ${isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400'}
-                ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}
-                ${isToday(day) ? 'border-2 border-blue-600' : ''}
-                hover:bg-gray-50 cursor-pointer
+                ${isCurrentMonth ? 'bg-bg-primary' : 'bg-bg-secondary text-text-secondary'}
+                ${isSelected ? 'border-primary-500 bg-primary-50' : 'border-border-primary'}
+                ${isToday(day) ? 'border-2 border-primary-600' : ''}
+                hover:bg-bg-secondary cursor-pointer
               `}
               onClick={() => onDateSelect(day)}
             >
-              <div className={`text-sm ${isToday(day) ? 'font-bold' : ''} ${isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}`}>
+              <div className={`text-sm ${isToday(day) ? 'font-bold' : ''} ${isCurrentMonth ? 'text-text-primary' : 'text-text-secondary'}`}>
                 {format(day, 'd')}
               </div>
               {getSessionIndicators(day)}

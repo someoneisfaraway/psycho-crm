@@ -23,13 +23,13 @@ const ClientCard: React.FC<ClientCardProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return 'bg-status-success-bg text-status-success';
       case 'paused':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-status-warning-bg text-status-warning';
       case 'completed':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-status-neutral-bg text-status-neutral';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-status-neutral-bg text-status-neutral';
     }
   };
 
@@ -37,15 +37,15 @@ const ClientCard: React.FC<ClientCardProps> = ({
   const getSourceColor = (source: string) => {
     switch (source) {
       case 'private':
-        return 'text-gray-600';
+        return 'text-text-secondary';
       case 'yasno':
-        return 'text-purple-600';
+        return 'text-primary-600';
       case 'zigmund':
-        return 'text-blue-600';
+        return 'text-secondary-600';
       case 'alter':
-        return 'text-indigo-600';
+        return 'text-accent-600';
       default:
-        return 'text-gray-600';
+        return 'text-text-secondary';
     }
   };
 
@@ -60,13 +60,13 @@ const ClientCard: React.FC<ClientCardProps> = ({
   };
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200">
+    <div className="card hover:shadow-lg transition-shadow duration-200">
       <div className="px-4 py-5 sm:p-6">
         {/* Строка кода и статуса */}
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-xs text-gray-500">Код: {displayId || client.id}</p>
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mt-1">
+            <p className="text-xs text-text-muted">Код: {displayId || client.id}</p>
+            <h3 className="text-lg leading-6 font-medium text-text-primary mt-1">
               {client.name}
             </h3>
           </div>
@@ -80,29 +80,29 @@ const ClientCard: React.FC<ClientCardProps> = ({
         {/* Основная информация */}
         <div className="mt-4 space-y-1">
           {/* Статистика: сессии, последняя */}
-          <div className="flex justify-between text-sm text-gray-600">
+          <div className="flex justify-between text-sm text-text-secondary">
             <span>Сессий: {client.total_sessions}</span>
             <span>Последняя: {formatDate(client.last_session_at)}</span>
           </div>
 
           {/* Формат, стоимость, источник */}
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="inline-flex items-center">
+            <span className="inline-flex items-center text-text-secondary">
               <CreditCard className="mr-1 h-3 w-3" />
               {client.payment_type === 'self-employed' ? 'Самозанятый' :
                client.payment_type === 'ip' ? 'ИП' :
                client.payment_type === 'cash' ? 'Наличные' :
                'Платформа'}
             </span>
-            <span className="inline-flex items-center">
+            <span className="inline-flex items-center text-text-secondary">
               <span className="mr-1">•</span>
               {client.format === 'online' ? '💻 Онлайн' : '📍 Офлайн'}
             </span>
-            <span className="inline-flex items-center">
+            <span className="inline-flex items-center text-text-secondary">
               <span className="mr-1">•</span>
               <span className={getSourceColor(client.source)}>{client.source === 'private' ? 'Частный' : client.source}</span>
             </span>
-            <span className="inline-flex items-center">
+            <span className="inline-flex items-center text-text-secondary">
               <span className="mr-1">•</span>
               {client.session_price} ₽
             </span>
@@ -110,7 +110,7 @@ const ClientCard: React.FC<ClientCardProps> = ({
 
           {/* Задолженность */}
           {client.debt && client.debt > 0 && (
-            <div className="flex items-center text-sm text-red-600 mt-1">
+            <div className="flex items-center text-sm text-status-error mt-1">
               <AlertTriangle className="mr-1 h-4 w-4" />
               <span>Должник: {client.debt} ₽</span>
             </div>
@@ -119,8 +119,8 @@ const ClientCard: React.FC<ClientCardProps> = ({
 
         {/* Контакты (опционально, можно свернуть или убрать, если карточка перегружена) */}
         {(client.phone || client.email || client.telegram) && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+          <div className="mt-3 pt-3 border-t border-border-light">
+            <div className="flex flex-wrap gap-2 text-xs text-text-muted">
               {client.phone && (
                 <div className="flex items-center">
                   <Phone className="mr-1 h-3 w-3" />
@@ -140,12 +140,12 @@ const ClientCard: React.FC<ClientCardProps> = ({
                 </div>
               )}
               {client.age && (
-                <div className="flex items-center text-gray-600">
+                <div className="flex items-center text-text-secondary">
                   <span>{client.age} лет</span>
                 </div>
               )}
               {client.location && (
-                <div className="flex items-center text-gray-600">
+                <div className="flex items-center text-text-secondary">
                   <MapPin className="mr-2 h-4 w-4" />
                   <span>{client.location}</span>
                 </div>
@@ -156,10 +156,10 @@ const ClientCard: React.FC<ClientCardProps> = ({
 
         {/* Кнопки действий */}
         <div className="mt-4 flex space-x-2 justify-start">
-          <Button variant="outline" size="sm" className="px-2" onClick={() => onViewDetails(client)}>
+          <Button variant="outline" size="sm" onClick={() => onViewDetails(client)}>
             Подробнее
           </Button>
-          <Button variant="outline" size="sm" className="px-2" onClick={() => onEdit(client)}>
+          <Button variant="outline" size="sm" onClick={() => onEdit(client)}>
             Редактировать
           </Button>
         </div>

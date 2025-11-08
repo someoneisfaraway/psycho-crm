@@ -25,35 +25,35 @@ interface UserProfileProps {
     // Определяем минимально необходимые поля для профиля
     id: string;
     email?: string; // Email может быть undefined в Supabase User
-    // Предположим, что имя и телефон хранятся в профиле пользователя в Supabase
     user_metadata?: {
       full_name?: string;
-      phone?: string;
-      registration_type?: string; // 'individual', 'ip', etc.
     };
   };
-  // Функция для обновления профиля (реализуем позже)
-  onUpdateProfile: (data: { full_name?: string; phone?: string; registration_type?: string }) => void;
-  // Флаг загрузки (реализуем позже)
+  initialName?: string;
+  // Функция для обновления профиля (сохранение только имени)
+  onUpdateProfile: (data: { full_name?: string }) => Promise<void> | void;
+  // Флаг загрузки
   loading: boolean;
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdateProfile, loading }) => {
+const UserProfile: React.FC<UserProfileProps> = ({ user, initialName, onUpdateProfile, loading }) => {
   const [isEditing, setIsEditing] = React.useState(false);
+  const [displayName, setDisplayName] = React.useState<string>((initialName ?? user.user_metadata?.full_name) || '');
   const [formData, setFormData] = React.useState({
-    full_name: user.user_metadata?.full_name || '',
-    phone: user.user_metadata?.phone || '',
-    registration_type: user.user_metadata?.registration_type || 'individual', // Значение по умолчанию
+    full_name: (initialName ?? user.user_metadata?.full_name) || '',
   });
+  const [profileSuccess, setProfileSuccess] = React.useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateProfile(formData);
+    await onUpdateProfile({ full_name: formData.full_name });
+    setDisplayName(formData.full_name);
+    setProfileSuccess('Имя сохранено');
     setIsEditing(false);
   };
 
@@ -61,9 +61,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdateProfile, loadin
     setIsEditing(true);
     // Сбросим форму к текущим данным
     setFormData({
-      full_name: user.user_metadata?.full_name || '',
-      phone: user.user_metadata?.phone || '',
-      registration_type: user.user_metadata?.registration_type || 'individual',
+      full_name: (initialName ?? user.user_metadata?.full_name) || '',
     });
   };
 
@@ -71,11 +69,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdateProfile, loadin
     setIsEditing(false);
     // Сбросим форму к данным из пропсов
     setFormData({
-      full_name: user.user_metadata?.full_name || '',
-      phone: user.user_metadata?.phone || '',
-      registration_type: user.user_metadata?.registration_type || 'individual',
+      full_name: (initialName ?? user.user_metadata?.full_name) || '',
     });
   };
+  React.useEffect(() => {
+    // Обновлять отображаемое имя, если пришло новое начальное значение (например, из БД)
+    if (!isEditing) {
+      setDisplayName((initialName ?? user.user_metadata?.full_name) || '');
+    }
+  }, [initialName, user.user_metadata, isEditing]);
 
   // --- НОВОЕ: Состояния и функции для изменения пароля ---
   const [passwordData, setPasswordData] = useState({ newPassword: '', confirmNewPassword: '' });
@@ -116,21 +118,20 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdateProfile, loadin
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6 mb-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Профиль</h2>
+    <div className="card mb-6">
+      <h2 className="text-lg font-semibold text-text-primary mb-4">Профиль</h2>
       {!isEditing ? (
         <div className="space-y-4">
           <div className="flex items-center">
-            <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" /> {/* Заглушка для аватара */}
+            <div className="bg-background-secondary border-2 border-dashed rounded-xl w-16 h-16" /> {/* Заглушка для аватара */}
             <div className="ml-4">
-              <p className="text-gray-900 font-medium">{user.user_metadata?.full_name || 'Имя не указано'}</p>
-              <p className="text-gray-600">{user.email}</p>
-              <p className="text-gray-600">{user.user_metadata?.registration_type === 'individual' ? 'Самозанятая' : 'ИП'}</p>
+              <p className="text-text-primary font-medium">{displayName || 'Имя не указано'}</p>
+              <p className="text-text-secondary">{user.email}</p>
             </div>
           </div>
           <button
             onClick={handleEditClick}
-            className="mt-2 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="btn-secondary"
           >
             Редактировать профиль
           </button>
@@ -138,7 +139,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdateProfile, loadin
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="full_name" className="block text-sm font-medium text-text-secondary">
               Имя
             </label>
             <input
@@ -147,50 +148,24 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdateProfile, loadin
               name="full_name"
               value={formData.full_name}
               onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="form-input"
             />
           </div>
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-              Телефон
-            </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="registration_type" className="block text-sm font-medium text-gray-700">
-              Форма регистрации
-            </label>
-            <select
-              id="registration_type"
-              name="registration_type"
-              value={formData.registration_type}
-              onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="individual">Самозанятая</option>
-              <option value="ip">ИП</option>
-              {/* Добавьте другие варианты при необходимости */}
-            </select>
-          </div>
+          {profileSuccess && (
+            <p className="text-sm text-green-600">{profileSuccess}</p>
+          )}
           <div className="flex space-x-3">
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="btn-primary"
             >
               {loading ? 'Сохранение...' : 'Сохранить'}
             </button>
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="btn-secondary"
             >
               Отменить
             </button>
@@ -233,7 +208,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdateProfile, loadin
           <button
             type="button"
             onClick={handlePasswordChange}
-            className="px-4 py-2 bg-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="btn-secondary"
           >
             Изменить пароль
           </button>
@@ -257,8 +232,8 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, o
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6 mb-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Настройки уведомлений</h2>
+    <div className="card mb-6">
+      <h2 className="text-lg font-semibold text-text-primary mb-4">Настройки уведомлений</h2>
       <ul className="space-y-4">
         <li className="flex items-center justify-between">
           <div className="flex items-center">
@@ -268,9 +243,9 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, o
               type="checkbox"
               checked={settings.sessionReminders}
               onChange={handleChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="form-checkbox"
             />
-            <label htmlFor="sessionReminders" className="ml-2 block text-sm text-gray-900">
+            <label htmlFor="sessionReminders" className="ml-2 block text-sm text-text-primary">
               Напоминания о сессиях
             </label>
           </div>
@@ -283,9 +258,9 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, o
               type="checkbox"
               checked={settings.receiptReminders}
               onChange={handleChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="form-checkbox"
             />
-            <label htmlFor="receiptReminders" className="ml-2 block text-sm text-gray-900">
+            <label htmlFor="receiptReminders" className="ml-2 block text-sm text-text-primary">
               Напоминания о чеках
             </label>
           </div>
@@ -299,7 +274,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, o
 // --- Компонент рабочих настроек ---
 interface WorkSettingsProps {
   settings: WorkSettingsData;
-  onUpdateSettings: (newSettings: WorkSettingsData) => void;
+  onUpdateSettings: (newSettings: WorkSettingsData) => Promise<void> | void;
 }
 
 const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings }) => {
@@ -311,8 +286,9 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
     setFormData(prev => ({ ...prev, [name]: name === 'defaultSessionPrice' || name === 'defaultSessionDuration' ? parseInt(value, 10) || 0 : value }));
   };
 
-  const handleSave = () => {
-    onUpdateSettings(formData);
+  const handleSave = async () => {
+    // Поддерживаем как sync, так и async обработчик сохранения
+    await Promise.resolve(onUpdateSettings(formData));
     setIsEditing(false);
   };
 
@@ -329,27 +305,27 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Рабочие настройки</h2>
+    <div className="card">
+      <h2 className="text-lg font-semibold text-text-primary mb-4">Рабочие настройки</h2>
       {!isEditing ? (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Стандартная стоимость сессии</p>
-              <p className="text-gray-900 font-medium">{settings.defaultSessionPrice} ₽</p>
+              <p className="text-sm text-text-secondary">Стандартная стоимость сессии</p>
+              <p className="text-text-primary font-medium">{settings.defaultSessionPrice} ₽</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Стандартная длительность сессии</p>
-              <p className="text-gray-900 font-medium">{settings.defaultSessionDuration} мин</p>
+              <p className="text-sm text-text-secondary">Стандартная длительность сессии</p>
+              <p className="text-text-primary font-medium">{settings.defaultSessionDuration} мин</p>
             </div>
             <div className="md:col-span-2">
-              <p className="text-sm text-gray-600">Часовой пояс</p>
-              <p className="text-gray-900 font-medium">{settings.timezone}</p>
+              <p className="text-sm text-text-secondary">Часовой пояс</p>
+              <p className="text-text-primary font-medium">{settings.timezone}</p>
             </div>
           </div>
           <button
             onClick={handleEdit}
-            className="mt-2 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="btn-secondary"
           >
             Редактировать
           </button>
@@ -358,7 +334,7 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
         <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="defaultSessionPrice" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="defaultSessionPrice" className="block text-sm font-medium text-text-secondary">
                 Стандартная стоимость сессии (₽)
               </label>
               <input
@@ -368,11 +344,11 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
                 value={formData.defaultSessionPrice}
                 onChange={handleChange}
                 min="0"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="form-input"
               />
             </div>
             <div>
-              <label htmlFor="defaultSessionDuration" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="defaultSessionDuration" className="block text-sm font-medium text-text-secondary">
                 Стандартная длительность сессии (мин)
               </label>
               <input
@@ -382,11 +358,11 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
                 value={formData.defaultSessionDuration}
                 onChange={handleChange}
                 min="1"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="form-input"
               />
             </div>
             <div className="md:col-span-2">
-              <label htmlFor="timezone" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="timezone" className="block text-sm font-medium text-text-secondary">
                 Часовой пояс
               </label>
               <select
@@ -394,11 +370,11 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
                 name="timezone"
                 value={formData.timezone}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="form-input"
               >
                 {/* Примеры часовых поясов, можно расширить */}
                 <option value="Europe/Moscow">Москва (MSK)</option>
-                <option value="Europe/Kiev">Киев (EET)</option>
+                <option value="Europe/Helsinki">Хельсинки (EET)</option>
                 <option value="Asia/Yekaterinburg">Екатеринбург (YEKT)</option>
                 {/* Добавьте другие по необходимости */}
               </select>
@@ -407,14 +383,14 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
           <div className="flex space-x-3">
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="btn-primary"
             >
               Сохранить
             </button>
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="btn-secondary"
             >
               Отменить
             </button>
@@ -453,15 +429,15 @@ const DataExport: React.FC<DataExportProps> = ({ userId }) => {
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Экспорт и резервные копии</h2>
+    <div className="card">
+      <h2 className="text-lg font-semibold text-text-primary mb-4">Экспорт и резервные копии</h2>
       <div className="space-y-4">
         <div>
-          <p className="text-sm text-gray-600">Экспорт всех данных</p>
+          <p className="text-sm text-text-secondary">Экспорт всех данных</p>
           <button
             onClick={handleExport}
             disabled={isExporting}
-            className="mt-1 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="btn-secondary"
           >
             {isExporting ? 'Экспорт...' : 'Экспортировать данные (JSON)'}
           </button>
@@ -530,13 +506,13 @@ const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = () => {
   };
 
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-6 mt-6">
-      <h2 className="text-lg font-semibold text-red-900 mb-2">Удаление аккаунта</h2>
-      <p className="text-sm text-red-700 mb-4">
+    <div className="card border-status-error-border bg-status-error-bg mt-6">
+      <h2 className="text-lg font-semibold text-status-error mb-2">Удаление аккаунта</h2>
+      <p className="text-sm text-status-error-text mb-4">
         Это действие необратимо. Все ваши данные будут удалены.
       </p>
       <div className="mb-4">
-        <label htmlFor="confirm-delete" className="block text-sm font-medium text-red-900 mb-1">
+        <label htmlFor="confirm-delete" className="block text-sm font-medium text-status-error mb-1">
           Для подтверждения введите "УДАЛИТЬ МОЙ АККАУНТ" в поле ниже:
         </label>
         <input
@@ -544,7 +520,7 @@ const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = () => {
           id="confirm-delete"
           value={confirmationText}
           onChange={(e) => setConfirmationText(e.target.value)}
-          className="w-full px-3 py-2 border border-red-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+          className="form-input border-status-error-border focus:ring-status-error focus:border-status-error"
           placeholder="УДАЛИТЬ МОЙ АККАУНТ"
         />
       </div>
@@ -552,11 +528,7 @@ const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = () => {
         type="button"
         onClick={handleDeleteAccount}
         disabled={!isConfirmed || isDeleting}
-        className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white ${
-          isConfirmed && !isDeleting
-            ? "bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            : "bg-red-400 cursor-not-allowed"
-        }`}
+        className={`btn-danger ${!isConfirmed || isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
       </button>
@@ -570,8 +542,8 @@ const SettingsScreen: React.FC = () => {
 
   if (!authUser) {
     return (
-      <div className="p-4 max-w-7xl mx-auto">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+      <div className="screen-container">
+        <div className="card bg-status-error-bg border-status-error-border text-status-error px-4 py-3 relative" role="alert">
           <strong className="font-bold">Ошибка: </strong>
           <span className="block sm:inline">Пользователь не аутентифицирован.</span>
         </div>
@@ -591,6 +563,7 @@ const SettingsScreen: React.FC = () => {
     defaultSessionDuration: 50, // Значение по умолчанию
     timezone: 'Europe/Moscow', // Значение по умолчанию
   });
+  const [dbUserName, setDbUserName] = useState<string>('');
 
   // --- Функция для обновления настроек уведомлений ---
   const handleUpdateNotificationSettings = (newSettings: NotificationSettingsData) => {
@@ -601,29 +574,198 @@ const SettingsScreen: React.FC = () => {
   };
 
   // --- Функция для обновления рабочих настроек ---
-  const handleUpdateWorkSettings = (newSettings: WorkSettingsData) => {
+  const handleUpdateWorkSettings = async (newSettings: WorkSettingsData) => {
     console.log("Попытка обновить рабочие настройки:", newSettings);
+    const prevSettings = workSettings;
+    // Сразу обновим UI, но откатим при ошибке
     setWorkSettings(newSettings);
-    // Здесь будет вызов API для сохранения настроек в Supabase
-    // await updateWorkSettingsInSupabase(newSettings);
+
+    try {
+      // Убедимся, что запись пользователя существует (как в сохранении имени)
+      try {
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', authUser.id)
+          .limit(1);
+
+        const exists = Array.isArray(existingUser) ? existingUser.length > 0 : !!existingUser;
+        if (!exists) {
+          await supabase.rpc('ensure_user_exists', {
+            uid: authUser.id,
+            uemail: authUser.email || null,
+          } as any).catch(() => {
+            // Игнорируем ошибку RPC, если функции нет; попробуем upsert ниже
+          });
+        }
+      } catch (ensureErr) {
+        console.warn('Не удалось убедиться в наличии записи пользователя перед сохранением рабочих настроек:', ensureErr);
+      }
+
+      const payload = {
+        default_session_price: newSettings.defaultSessionPrice,
+        default_session_duration: newSettings.defaultSessionDuration,
+        timezone: newSettings.timezone,
+      };
+
+      const { error: updateDbError } = await supabase
+        .from('users')
+        .update(payload)
+        .eq('id', authUser.id);
+
+      if (updateDbError) {
+        // Если записи нет или ошибка обновления — пробуем upsert по id
+        const { error: upsertError } = await supabase
+          .from('users')
+          .upsert({ id: authUser.id, email: authUser.email || null, ...payload }, { onConflict: 'id' } as any);
+        if (upsertError) {
+          throw upsertError;
+        }
+      }
+
+      console.log('Рабочие настройки успешно сохранены.');
+    } catch (e) {
+      console.error('Ошибка сохранения рабочих настроек:', e);
+      alert((e as Error).message || 'Не удалось сохранить рабочие настройки.');
+      // Откатываем UI к предыдущему состоянию
+      setWorkSettings(prevSettings);
+      throw e;
+    }
   };
 
-  // Функция для обновления профиля (заглушка)
-  const handleUpdateProfile = async (data: { full_name?: string; phone?: string; registration_type?: string }) => {
-    console.log("Попытка обновить профиль:", data);
-    // Здесь будет вызов API для обновления профиля в Supabase
-    // await updateProfileInSupabase(data);
+  // Состояние загрузки для сохранения профиля
+  const [savingProfile, setSavingProfile] = useState<boolean>(false);
+
+  // Функция для обновления профиля: сохраняем только имя в user_metadata
+  const handleUpdateProfile = async (data: { full_name?: string }) => {
+    try {
+      setSavingProfile(true);
+      const payload: any = { data: {} };
+      if (typeof data.full_name !== 'undefined') {
+        payload.data.full_name = (data.full_name ?? '').toString();
+      }
+
+      const { error } = await supabase.auth.updateUser(payload);
+      if (error) {
+        throw error;
+      }
+
+      // Дополнительно сохраняем имя в таблице public.users (поле name)
+      const newName = (data.full_name ?? '').toString();
+
+      // Убедимся, что запись пользователя существует
+      try {
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', authUser.id)
+          .limit(1);
+
+        const exists = Array.isArray(existingUser) ? existingUser.length > 0 : !!existingUser;
+        if (!exists) {
+          // Попробуем создать через RPC, если доступно
+          await supabase.rpc('ensure_user_exists', {
+            uid: authUser.id,
+            uemail: authUser.email || null,
+          } as any).catch(() => {
+            // Игнорируем ошибку RPC в случае отсутствия функции; попробуем upsert ниже
+          });
+        }
+      } catch (ensureErr) {
+        console.warn('Не удалось убедиться в наличии записи пользователя:', ensureErr);
+      }
+
+      // Обновляем имя
+      const { error: updateDbError } = await supabase
+        .from('users')
+        .update({ name: newName })
+        .eq('id', authUser.id);
+
+      if (updateDbError) {
+        // Если записи нет, попробуем upsert
+        const { error: upsertError } = await supabase
+          .from('users')
+          .upsert({ id: authUser.id, email: authUser.email || null, name: newName }, { onConflict: 'id' } as any);
+        if (upsertError) {
+          throw upsertError;
+        }
+      }
+      // Успех: уведомляем остальные компоненты и обновляем local state
+      window.dispatchEvent(new CustomEvent('user-display-name-updated', { detail: { name: newName } }));
+      setDbUserName(newName);
+    } catch (e) {
+      console.error('Ошибка сохранения профиля:', e);
+      alert((e as Error).message || 'Не удалось сохранить профиль.');
+      throw e; // чтобы форма не закрывалась, если нужно отреагировать в вызывающем коде
+    } finally {
+      setSavingProfile(false);
+    }
   };
+
+  // Загрузка имени из public.users при открытии экрана
+  React.useEffect(() => {
+    const loadName = async () => {
+      if (!authUser) return;
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('name')
+          .eq('id', authUser.id)
+          .single();
+        if (error) {
+          const fallback = (authUser.user_metadata as any)?.full_name || authUser.email?.split('@')[0] || '';
+          setDbUserName(fallback);
+          return;
+        }
+        setDbUserName(((data as any)?.name) || (authUser.user_metadata as any)?.full_name || authUser.email?.split('@')[0] || '');
+      } catch {
+        const fallback = (authUser.user_metadata as any)?.full_name || authUser.email?.split('@')[0] || '';
+        setDbUserName(fallback);
+      }
+    };
+    loadName();
+  }, [authUser]);
+
+  // Загрузка рабочих настроек из public.users при открытии экрана
+  React.useEffect(() => {
+    const loadWorkSettings = async () => {
+      if (!authUser) return;
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('default_session_price, default_session_duration, timezone')
+          .eq('id', authUser.id)
+          .single();
+
+        if (error || !data) {
+          // Оставляем значения по умолчанию
+          console.warn('Не удалось загрузить рабочие настройки, используются значения по умолчанию:', error);
+          return;
+        }
+
+        const loaded: WorkSettingsData = {
+          defaultSessionPrice: (data as any)?.default_session_price ?? 5000,
+          defaultSessionDuration: (data as any)?.default_session_duration ?? 50,
+          timezone: (data as any)?.timezone ?? 'Europe/Moscow',
+        };
+        setWorkSettings(loaded);
+      } catch (e) {
+        console.warn('Ошибка загрузки рабочих настроек, используются значения по умолчанию:', e);
+      }
+    };
+    loadWorkSettings();
+  }, [authUser]);
 
   return (
-    <div className="p-4 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Настройки</h1>
+    <div className="screen-container">
+      <h1 className="text-2xl font-bold text-text-primary mb-6">Настройки</h1>
 
       {/* Компонент профиля */}
       <UserProfile
         user={authUser}
+        initialName={dbUserName}
         onUpdateProfile={handleUpdateProfile}
-        loading={false} // Заглушка
+        loading={savingProfile}
       />
 
       {/* Компонент настроек уведомлений */}

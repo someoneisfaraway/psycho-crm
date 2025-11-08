@@ -76,7 +76,7 @@ const ClientCard: React.FC<ClientCardProps> = ({
             Изменить
           </Button>
           <Button 
-            variant="destructive" 
+            variant="outline" 
             size="sm" 
             className="px-1 text-xs"
             onClick={() => onDelete(client)}
