@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext'; // Импортируем контекст аутентификации
 import { exportUserData } from '../utils/exportData'; // Импортируем функцию экспорта
 import { supabase } from '../config/supabase'; // Импортируем клиент
+import { unlockWithPassword, isUnlocked, lockEncryption, repackServerKey } from '../utils/encryption';
 
 // --- Тип для настроек уведомлений ---
 interface NotificationSettingsData {
@@ -401,6 +402,149 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
   );
 };
 
+// --- Новый компонент: Управление серверным ключом шифрования заметок ---
+const EncryptionSettings: React.FC = () => {
+  const { user } = useAuth();
+  const [password, setPassword] = useState<string>('');
+  const [busy, setBusy] = useState<boolean>(false);
+  const [status, setStatus] = useState<string>('');
+  const [unlocked, setUnlocked] = useState<boolean>(false);
+  const [oldPassword, setOldPassword] = useState<string>('');
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [repackBusy, setRepackBusy] = useState<boolean>(false);
+  const [repackStatus, setRepackStatus] = useState<string>('');
+
+  React.useEffect(() => {
+    setUnlocked(isUnlocked(user?.id));
+  }, [user]);
+
+  const handleUnlock = async () => {
+    if (!user?.id) {
+      setStatus('Ошибка: пользователь не найден.');
+      return;
+    }
+    if (!password.trim()) {
+      setStatus('Введите пароль для разблокировки.');
+      return;
+    }
+    setBusy(true);
+    setStatus('');
+    try {
+      const ok = await unlockWithPassword(user.id, password.trim());
+      if (ok) {
+        setUnlocked(true);
+        setStatus('Ключ разблокирован. Заметки доступны.');
+      } else {
+        setUnlocked(false);
+        setStatus('Не удалось разблокировать. Проверьте пароль.');
+      }
+    } catch (e) {
+      console.error('Unlock error:', e);
+      setStatus('Ошибка при попытке разблокировки.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleLock = () => {
+    lockEncryption();
+    setUnlocked(false);
+    setStatus('Ключ заблокирован на этом устройстве.');
+  };
+
+  const handleRepack = async () => {
+    if (!user?.id) {
+      setRepackStatus('Ошибка: пользователь не найден.');
+      return;
+    }
+    if (!oldPassword.trim() || !newPassword.trim()) {
+      setRepackStatus('Введите старый и новый пароль.');
+      return;
+    }
+    setRepackBusy(true);
+    setRepackStatus('');
+    try {
+      const ok = await repackServerKey(user.id, oldPassword.trim(), newPassword.trim());
+      if (ok) {
+        setRepackStatus('Пароль ключа обновлён.');
+        // При желании можно сразу попробовать разблокировать по новому паролю
+        const unlockedOk = await unlockWithPassword(user.id, newPassword.trim());
+        setUnlocked(unlockedOk);
+      } else {
+        setRepackStatus('Не удалось обновить пароль ключа. Проверьте старый пароль.');
+      }
+    } catch (e) {
+      console.error('Repack error:', e);
+      setRepackStatus('Ошибка при обновлении пароля ключа.');
+    } finally {
+      setRepackBusy(false);
+    }
+  };
+
+  return (
+    <div className="card mt-6">
+      <h2 className="text-lg font-semibold text-text-primary mb-2">Шифрование заметок</h2>
+      <p className="text-sm text-text-secondary mb-4">
+        Ключ шифрования хранится в базе и зашифрован вашим паролем. Только вы
+        можете разблокировать доступ к заметкам ваших клиентов и сессий.
+      </p>
+
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm text-text-secondary">Состояние: {unlocked ? 'разблокировано' : 'заблокировано'}</span>
+        <div className="flex gap-2">
+          <button onClick={handleLock} className="btn-secondary" disabled={!unlocked}>Заблокировать</button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Введите пароль для разблокировки"
+          className="input flex-1"
+        />
+        <button onClick={handleUnlock} className="btn-primary" disabled={busy}>
+          {busy ? 'Разблокировка...' : 'Разблокировать'}
+        </button>
+      </div>
+
+      {status && (
+        <div className="text-sm text-text-secondary mt-2">{status}</div>
+      )}
+
+      <hr className="my-4" />
+      <h3 className="text-md font-semibold text-text-primary mb-2">Сменить пароль ключа</h3>
+      <p className="text-sm text-text-secondary mb-3">
+        При смене пароля ключ данных будет перепакован: расшифруется старым
+        паролем и сохранится заново, зашифрованный новым паролем.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+        <input
+          type="password"
+          value={oldPassword}
+          onChange={(e) => setOldPassword(e.target.value)}
+          placeholder="Старый пароль"
+          className="input"
+        />
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          placeholder="Новый пароль"
+          className="input"
+        />
+      </div>
+      <button onClick={handleRepack} className="btn-secondary" disabled={repackBusy}>
+        {repackBusy ? 'Обновление...' : 'Обновить пароль ключа'}
+      </button>
+      {repackStatus && (
+        <div className="text-sm text-text-secondary mt-2">{repackStatus}</div>
+      )}
+    </div>
+  );
+};
+
 // --- Компонент экспорта данных ---
 interface DataExportProps {
   userId: string; // ID пользователя для экспорта
@@ -785,6 +929,9 @@ const SettingsScreen: React.FC = () => {
 
       {/* Компонент экспорта данных */}
       <DataExport userId={authUser.id} />
+
+      {/* Новый раздел: управление ключом шифрования заметок */}
+      <EncryptionSettings />
 
       {/* --- НОВОЕ: Компонент удаления аккаунта --- */}
       <AccountDeletionSection userId={authUser.id} />

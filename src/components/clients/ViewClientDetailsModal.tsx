@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import type { Client, Session } from '../../types/database';
 import { Button } from '../ui/Button';
 import { Mail, Phone, User, Edit3, FileText, CreditCard, X, MapPin } from 'lucide-react';
-import { decrypt } from '../../utils/encryption';
+import { decrypt, unlockWithPassword, isUnlocked } from '../../utils/encryption';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { getSessionsByClient } from '../../api/sessions';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ViewClientDetailsModalProps {
   client: Client;
@@ -20,8 +21,10 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
   onClose, 
   onEdit 
 }) => {
+  const { user } = useAuth();
   const [decryptedNotes, setDecryptedNotes] = useState<string | null>(null);
   const [decryptionError, setDecryptionError] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState('');
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
@@ -36,8 +39,13 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
     if (client.notes_encrypted) {
       try {
         const decrypted = decrypt(client.notes_encrypted);
-        setDecryptedNotes(decrypted);
-        setDecryptionError(false);
+        if (!decrypted) {
+          setDecryptionError(true);
+          setDecryptedNotes(null);
+        } else {
+          setDecryptedNotes(decrypted);
+          setDecryptionError(false);
+        }
       } catch (error) {
         console.error('Decryption error:', error);
         setDecryptionError(true);
@@ -45,6 +53,22 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
       }
     }
   }, [client.notes_encrypted]);
+
+  const handleUnlock = async () => {
+    if (!user) return;
+    if (!unlockPassword.trim()) return;
+    const ok = await unlockWithPassword(user.id, unlockPassword.trim());
+    if (ok) {
+      if (client.notes_encrypted) {
+        const decrypted = decrypt(client.notes_encrypted);
+        setDecryptedNotes(decrypted || null);
+        setDecryptionError(!decrypted);
+      }
+      setUnlockPassword('');
+    } else {
+      setDecryptionError(true);
+    }
+  };
 
   // Load client's sessions and apply pagination
   useEffect(() => {
@@ -351,9 +375,22 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
                     <div className="card bg-bg-secondary border-border-primary whitespace-pre-wrap text-text-primary">
                       {decryptedNotes}
                     </div>
-                  ) : decryptionError ? (
-                    <div className="card bg-status-error-bg border-status-error-border text-status-error-text text-sm">
-                      Ошибка расшифровки примечаний
+                  ) : decryptionError || !isUnlocked(user?.id) ? (
+                    <div className="space-y-3">
+                      <div className="card bg-status-error-bg border-status-error-border text-status-error-text text-sm">
+                        Не удалось расшифровать примечания. Введите пароль от аккаунта, чтобы разблокировать заметки на этом устройстве.
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="password"
+                          value={unlockPassword}
+                          onChange={(e) => setUnlockPassword(e.target.value)}
+                          placeholder="Введите пароль"
+                          className="input input-bordered w-full"
+                        />
+                        <Button variant="secondary" onClick={handleUnlock}>Разблокировать</Button>
+                      </div>
+                      <div className="text-sm text-text-secondary">Ваш пароль используется только локально для получения ключа расшифровки.</div>
                     </div>
                   ) : (
                     <div className="card bg-bg-secondary text-text-secondary text-sm italic">

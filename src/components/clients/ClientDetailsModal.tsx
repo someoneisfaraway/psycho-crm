@@ -3,7 +3,7 @@ import type { Client } from '../../types/database';
 import type { Session } from '../../types/database';
 
 import { Mail, Phone, User, CreditCard, TrendingUp, X, MapPin, Wallet, Clock } from 'lucide-react';
-import { decrypt } from '../../utils/encryption';
+import { decrypt, unlockWithPassword, isUnlocked } from '../../utils/encryption';
 import { formatDate, pluralize } from '../../utils/formatting';
 import { getSessionsByClient } from '../../api/sessions';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,6 +23,8 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [decryptedNotes, setDecryptedNotes] = useState('');
+  const [decryptionError, setDecryptionError] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState('');
   const [showAllSessions, setShowAllSessions] = useState(false);
 
   if (!isOpen) {
@@ -54,13 +56,35 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
     if (client.notes_encrypted) {
       try {
         const decrypted = decrypt(client.notes_encrypted);
-        setDecryptedNotes(decrypted);
+        if (!decrypted) {
+          // Пустая строка при наличии encrypted — признак неверного ключа
+          setDecryptionError(true);
+          setDecryptedNotes('');
+        } else {
+          setDecryptionError(false);
+          setDecryptedNotes(decrypted);
+        }
       } catch (error) {
         console.error('Error decrypting notes:', error);
-        setDecryptedNotes('[Ошибка расшифровки]');
+        setDecryptionError(true);
+        setDecryptedNotes('');
       }
     } else {
       setDecryptedNotes('');
+      setDecryptionError(false);
+    }
+  };
+
+  const handleUnlock = async () => {
+    if (!user) return;
+    if (!unlockPassword.trim()) return;
+    const ok = await unlockWithPassword(user.id, unlockPassword.trim());
+    if (ok) {
+      loadDecryptedNotes();
+      setDecryptionError(false);
+      setUnlockPassword('');
+    } else {
+      setDecryptionError(true);
     }
   };
 
@@ -325,6 +349,23 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
               {decryptedNotes ? (
                 <div className="card bg-bg-secondary border-border-primary whitespace-pre-wrap text-text-primary">
                   {decryptedNotes}
+                </div>
+              ) : decryptionError || !isUnlocked(user?.id) ? (
+                <div className="space-y-3">
+                  <div className="card bg-status-error-bg border-status-error-border text-status-error-text">
+                    Не удалось расшифровать примечания. Введите пароль от аккаунта, чтобы разблокировать заметки на этом устройстве.
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      value={unlockPassword}
+                      onChange={(e) => setUnlockPassword(e.target.value)}
+                      placeholder="Введите пароль"
+                      className="input input-bordered w-full"
+                    />
+                    <button className="btn btn-secondary" onClick={handleUnlock}>Разблокировать</button>
+                  </div>
+                  <div className="text-sm text-text-secondary">Ваш пароль используется только локально для получения ключа расшифровки.</div>
                 </div>
               ) : (
                 <p className="text-text-secondary italic">Примечаний нет</p>
