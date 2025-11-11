@@ -1,5 +1,5 @@
 // src/components/calendar/SessionDetailModal.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale'; // Убедитесь, что локаль установлена, если нужна русская локализация
@@ -43,8 +43,11 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   // Состояние для меню выбора способа оплаты
   const [showPaymentMenu, setShowPaymentMenu] = useState(false);
   const navigate = useNavigate();
-  const [unlockPassword, setUnlockPassword] = useState('');
   const { user } = useAuth();
+  
+  const [decryptedNote, setDecryptedNote] = useState<string>('');
+  const [decryptionError, setDecryptionError] = useState<boolean>(false);
+  const [unlockPassword, setUnlockPassword] = useState<string>('');
   // const [tempPaymentMethod, setTempPaymentMethod] = useState(session.payment_method || 'cash');
 
   // Обработчик кнопки "Отметить оплату" - показывает меню
@@ -69,17 +72,41 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   const formatDate = (dateString: string) => format(parseISO(dateString), 'd MMMM yyyy', { locale: ru });
 
   // Псевдо-расшифровка заметки (в реальности должна быть реальная расшифровка с ключом)
-  // const decryptedNote = session.note_encrypted ? decrypt(session.note_encrypted) : '';
+  // 
   // Пока что, просто покажем зашифрованный текст или сообщение
-  const decryptedNote = session.note_encrypted ? decrypt(session.note_encrypted) : '';
-  const noteDecryptionError = !!session.note_encrypted && !decryptedNote;
+  
+    // \u0412\u044b\u043f\u043e\u043b\u043d\u044f\u0435\u043c \u043f\u043e\u043f\u044b\u0442\u043a\u0443 \u0440\u0430\u0441\u0448\u0438\u0444\u0440\u043e\u0432\u043a\u0438 \u043f\u0440\u0438 \u043e\u0442\u043a\u0440\u044b\u0442\u0438\u0438 \u043c\u043e\u0434\u0430\u043b\u0430, \u0435\u0441\u043b\u0438 \u043a\u043b\u044e\u0447 \u0443\u0436\u0435 \u0440\u0430\u0437\u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d
+  useEffect(() => {
+    try {
+      if (!session) return;
+      if (isUnlocked(user?.id)) {
+        if (session.note_encrypted) {
+          const text = decrypt(session.note_encrypted);
+          setDecryptedNote(text || '');
+          setDecryptionError(!text);
+        } else {
+          setDecryptedNote('');
+          setDecryptionError(false);
+        }
+      }
+    } catch (_e) {
+      setDecryptionError(true);
+    }
+  }, [session?.note_encrypted, user]);
 
-  const handleUnlock = async () => {
+    const handleUnlock = async () => {
     if (!user) return;
     if (!unlockPassword.trim()) return;
     const ok = await unlockWithPassword(user.id, unlockPassword.trim());
-    if (!ok) {
-      // оставим сообщение в UI
+    if (ok) {
+      if (session.note_encrypted) {
+        const text = decrypt(session.note_encrypted);
+        setDecryptedNote(text || '');
+        setDecryptionError(!text);
+      }
+      setUnlockPassword('');
+    } else {
+      setDecryptionError(true);
     }
   };
 
@@ -133,7 +160,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             </div>
           )}
 
-          {(noteDecryptionError || !isUnlocked(user?.id)) && (
+          {(decryptionError || !isUnlocked(user?.id)) && (
             <div className="space-y-3 mb-4">
               <div className="card bg-status-error-bg border-status-error-border text-status-error-text">
                 Не удалось расшифровать заметку. Введите пароль от аккаунта, чтобы разблокировать заметки на этом устройстве.
@@ -335,3 +362,5 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 };
 
 export default SessionDetailModal;
+
+
