@@ -500,13 +500,13 @@ const CalendarScreen: React.FC = () => {
           <div className="card">
             {selectedDate ? (
               <>
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
                   <h2 className="text-lg font-semibold text-text-primary">
                     {format(selectedDate, 'EEEE, d MMMM yyyy', { locale: ru })}
                   </h2>
                   <button
                     onClick={() => handleNewSessionClick(selectedDate!)}
-                    className="btn-primary text-sm px-3 py-1 flex items-center gap-1"
+                    className="btn-primary text-sm px-3 py-1 flex items-center gap-1 w-full sm:w-auto flex-shrink-0"
                   >
                     <Plus className="h-4 w-4" />
                     Запланировать сессию
