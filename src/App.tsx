@@ -7,6 +7,7 @@ import CalendarScreen from './pages/CalendarScreen';
 import ClientsScreen from './pages/ClientsScreen';
 import FinancialSummaryScreen from './pages/FinancialSummaryScreen';
 import SettingsScreen from './pages/SettingsScreen';
+import ResetPasswordScreen from './pages/ResetPasswordScreen';
 import './App.css';
 
 // Компонент для защищённого маршрута
@@ -36,6 +37,7 @@ function App() {
           <Routes>
             {/* Открытые маршруты (для аутентификации) */}
             <Route path="/auth" element={<AuthScreen />} />
+            <Route path="/reset-password" element={<ResetPasswordScreen />} />
 
             {/* Защищённые маршруты (только для вошедших пользователей) */}
             {/* Все защищённые маршруты обёрнуты в ProtectedRoute */}
