@@ -41,7 +41,8 @@ function createSupabaseStub(): SupabaseClient {
       signUp: (_opts: any) => Promise.resolve({ data: { user: null, session: null }, error: null }),
       signInWithPassword: (_opts: any) => Promise.resolve({ data: { user: null, session: null }, error: null }),
       signOut: () => Promise.resolve({ error: null }),
-      resetPasswordForEmail: (_email: string) => Promise.resolve({ data: {}, error: null }),
+      resetPasswordForEmail: (_email: string) =>
+        Promise.resolve({ data: {}, error: new Error('Supabase is not configured: missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY') }),
       getUser: () => Promise.resolve({ data: { user: null }, error: null }),
     },
   };

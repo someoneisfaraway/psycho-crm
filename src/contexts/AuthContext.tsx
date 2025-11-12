@@ -104,7 +104,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const forgotPassword = async (email: string) => {
-    const redirectTo = `${import.meta.env.VITE_APP_URL}/reset-password`;
+    const appUrl = import.meta.env.VITE_APP_URL;
+    if (!appUrl || typeof appUrl !== 'string' || appUrl.trim().length === 0) {
+      const err = new Error('VITE_APP_URL is not configured. Set it to your site URL (e.g., https://psycho-crm.vercel.app).');
+      console.error('Forgot password error:', err.message);
+      throw err;
+    }
+    const redirectTo = `${appUrl}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo } as any);
     if (error) {
       console.error('Forgot password error:', error.message);
