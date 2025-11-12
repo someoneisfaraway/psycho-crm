@@ -43,9 +43,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       const { data: { subscription } } = await supabase.auth.onAuthStateChange(
-        (_event: any, session: any) => {
+        (event: any, session: any) => {
           setUser(session?.user || null);
           setLoading(false);
+
+          // If the user arrived via a password recovery link, ensure they land on the reset page
+          if (event === 'PASSWORD_RECOVERY') {
+            const path = window.location.pathname;
+            if (path !== '/reset-password') {
+              window.location.replace('/reset-password');
+            }
+          }
         }
       );
 
