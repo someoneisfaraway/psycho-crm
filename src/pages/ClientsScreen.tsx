@@ -174,8 +174,8 @@ const ClientsScreen: React.FC = () => {
   return (
     <div className="screen-container">
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <h1 className="text-2xl font-bold text-text-primary">Клиенты</h1>
+        <div className="flex flex-col sm:flex-row justify-end items-center mb-6 gap-4">
+          {/* Заголовок перенесён в общий хедер макета */}
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button variant="primary" onClick={() => setIsAddModalOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />

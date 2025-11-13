@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'; // Импортируем к�
 import { exportUserData } from '../utils/exportData'; // Импортируем функцию экспорта
 import { supabase } from '../config/supabase'; // Импортируем клиент
 import { unlockWithPassword, isUnlocked, lockEncryption, repackServerKey } from '../utils/encryption';
+import { Button } from '../components/ui/Button';
 
 // --- Тип для настроек уведомлений ---
 interface NotificationSettingsData {
@@ -682,7 +683,7 @@ const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = () => {
 
 // --- Основной компонент экрана настроек ---
 const SettingsScreen: React.FC = () => {
-  const { user: authUser } = useAuth(); // Получаем данные пользователя из контекста
+  const { user: authUser, signOut } = useAuth(); // Получаем данные пользователя и функцию выхода из контекста
 
   if (!authUser) {
     return (
@@ -905,7 +906,7 @@ const SettingsScreen: React.FC = () => {
 
   return (
     <div className="screen-container">
-      <h1 className="text-2xl font-bold text-text-primary mb-6">Настройки</h1>
+      {/* Заголовок перенесён в общий хедер макета */}
 
       {/* Компонент профиля */}
       <UserProfile
@@ -935,6 +936,24 @@ const SettingsScreen: React.FC = () => {
 
       {/* --- НОВОЕ: Компонент удаления аккаунта --- */}
       <AccountDeletionSection userId={authUser.id} />
+
+      {/* Кнопка выхода из аккаунта внизу экрана настроек */}
+      <div className="mt-8">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={async () => {
+            try {
+              await signOut();
+              window.location.href = '/auth';
+            } catch (e) {
+              console.error('Ошибка выхода из аккаунта:', e);
+            }
+          }}
+        >
+          Выйти из аккаунта
+        </Button>
+      </div>
     </div>
   );
 };

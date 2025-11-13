@@ -477,14 +477,7 @@ const CalendarScreen: React.FC = () => {
   return (
     <div className="screen-container">
       {/* Удалены отладочные кнопки */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-text-primary">Календарь</h1>
-        {/* Убираем кнопку «Новая сессия», оставляем только вариант внутри правой панели */}
-        {/* <Button variant="default" onClick={() => handleNewSessionClick(new Date())}>
-          <Plus className="mr-2 h-4 w-4" />
-          Новая сессия
-        </Button> */}
-      </div>
+      {/* Заголовок перенесён в общий хедер макета */}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Календарь */}

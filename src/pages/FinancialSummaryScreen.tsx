@@ -64,9 +64,7 @@ const FinancialSummaryScreen: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 pb-16">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Финансы</h1>
-          </div>
+          {/* Заголовок перенесён в общий хедер макета */}
           <div className="text-center py-8">Загрузка финансовой информации...</div>
         </div>
       </div>
@@ -77,9 +75,7 @@ const FinancialSummaryScreen: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 pb-16">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Финансы</h1>
-          </div>
+          {/* Заголовок перенесён в общий хедер макета */}
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded" role="alert">
             <strong className="font-bold">Ошибка: </strong>
             <span className="block sm:inline">{error}</span>
@@ -93,9 +89,7 @@ const FinancialSummaryScreen: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 pb-16">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Финансы</h1>
-          </div>
+          {/* Заголовок перенесён в общий хедер макета */}
           <div className="text-center py-8">Нет данных для отображения.</div>
         </div>
       </div>
@@ -113,9 +107,7 @@ const FinancialSummaryScreen: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Финансы</h1>
-        </div>
+        {/* Заголовок перенесён в общий хедер макета */}
 
         {/* Модальные окна */}
         <EarnedRevenueModal

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,6 +24,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [cooldown, setCooldown] = useState<number>(0);
 
   const {
     register,
@@ -33,16 +34,60 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
     resolver: zodResolver(forgotPasswordSchema),
   });
 
+  // Restore cooldown from localStorage on mount
+  useEffect(() => {
+    const raw = localStorage.getItem('forgotCooldownUntil');
+    if (raw) {
+      const until = parseInt(raw, 10);
+      const remaining = Math.ceil((until - Date.now()) / 1000);
+      if (remaining > 0) {
+        setCooldown(remaining);
+      } else {
+        localStorage.removeItem('forgotCooldownUntil');
+      }
+    }
+  }, []);
+
+  // Tick down the cooldown every second
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          localStorage.removeItem('forgotCooldownUntil');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   const onSubmit = async (data: ForgotPasswordFormData) => {
     try {
       setError(null);
+      if (cooldown > 0) {
+        setError(`Please wait ${cooldown} seconds before requesting another reset email.`);
+        return;
+      }
       setLoading(true);
       await forgotPassword(data.email);
       setEmailSent(true);
       onEmailSent();
     } catch (err: any) {
       console.error('ForgotPasswordForm submit error:', err);
-      setError(err?.message || 'Failed to send password reset email');
+      const message = err?.message || 'Failed to send password reset email';
+      // Handle Supabase throttling: "email rate limit exceeded"
+      if (typeof message === 'string' && /rate limit/i.test(message)) {
+        const seconds = 60; // typical Supabase throttle window
+        const until = Date.now() + seconds * 1000;
+        localStorage.setItem('forgotCooldownUntil', String(until));
+        setCooldown(seconds);
+        setError(`Too many requests. Try again in ${seconds} seconds.`);
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -98,9 +143,10 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
                 type="submit"
                 fullWidth
                 loading={loading}
+                disabled={loading || cooldown > 0}
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-60 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                Send Reset Link
+                {cooldown > 0 ? `Try again in ${cooldown}s` : 'Send Reset Link'}
               </Button>
             </div>
           </form>

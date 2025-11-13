@@ -1,6 +1,5 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../ui/Button';
 import { Menu } from 'lucide-react';
 import { useUserDisplayName } from '../../utils/useUserDisplayName';
 
@@ -39,14 +38,7 @@ const Header: React.FC<HeaderProps> = ({ title, showMenu = false, onMenuClick })
             )}
             <h1 className="text-base font-bold text-gray-900">{title}</h1>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-700 hidden md:block">
-              {displayName}
-            </span>
-            <Button onClick={handleSignOut} variant="outline" size="sm" className="text-sm">
-              Выйти
-            </Button>
-          </div>
+          {/* Удалены имя пользователя и кнопка выхода — выход теперь на экране настроек */}
         </div>
       </div>
     </header>
