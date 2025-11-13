@@ -1,25 +1,11 @@
 import React, { useMemo } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import BottomNavigation from './BottomNavigation';
 // Добавьте импорт Outlet
 import { Outlet, useLocation } from 'react-router-dom';
-import { useUserDisplayName } from '../../utils/useUserDisplayName';
+// Удалены импорты, связанные с отображением имени/выходом
 
 const Dashboard: React.FC = () => {
-  const { signOut } = useAuth();
-  const displayName = useUserDisplayName();
   const location = useLocation();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      // После выхода пользователь будет автоматически перенаправлен на экран авторизации
-      // благодаря ProtectedRoute в App.tsx, но на всякий случай оставим редирект
-      window.location.href = '/auth';
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
 
   const screenTitle = useMemo(() => {
     const path = location.pathname;

@@ -1,7 +1,5 @@
 import React from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { Menu } from 'lucide-react';
-import { useUserDisplayName } from '../../utils/useUserDisplayName';
 
 interface HeaderProps {
   title: string;
@@ -10,18 +8,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ title, showMenu = false, onMenuClick }) => {
-  const { signOut } = useAuth();
-  const displayName = useUserDisplayName();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      // After sign out, user will be redirected to auth screen automatically
-      window.location.href = '/auth';
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
+  // Удалены логика и импорты, связанные с выходом и именем пользователя
 
   return (
     <header className="bg-white shadow z-10">
