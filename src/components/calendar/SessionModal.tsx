@@ -7,6 +7,9 @@ import { Button } from '../ui/Button';
 import { X, Calendar, Clock, Wallet } from 'lucide-react';
 import { encrypt } from '../../utils/encryption'; // РРјРїРѕСЂС‚РёСЂСѓРµРј С„СѓРЅРєС†РёСЋ С€РёС„СЂРѕРІР°РЅРёСЏ
 import { decrypt } from '../../utils/encryption';
+import { isUnlocked } from '../../utils/encryption';
+import { ENCRYPTION_EVENT } from '../../utils/encryption';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface SessionModalProps {
   mode?: 'create' | 'edit' | 'view'; // Р РµР¶РёРј СЂР°Р±РѕС‚С‹ РјРѕРґР°Р»СЊРЅРѕРіРѕ РѕРєРЅР°
@@ -39,6 +42,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
   const isCreating = effectiveMode === 'create';
   const isEditing = effectiveMode === 'edit';
   const isViewing = effectiveMode === 'view';
+  const { user } = useAuth();
 
 
 
@@ -71,14 +75,14 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
         // price Р±СѓРґРµС‚ Р·Р°РїРѕР»РЅРµРЅРѕ РїСЂРё РІС‹Р±РѕСЂРµ РєР»РёРµРЅС‚Р°
       }));
     } else if ((isEditing || isViewing) && session) {
-      // Р”Р»СЏ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ/РїСЂРѕСЃРјРѕС‚СЂР° РёСЃРїРѕР»СЊР·СѓРµРј РґР°РЅРЅС‹Рµ СЃРµСЃСЃРёРё
+      // Для редактирования/просмотра используем данные сессии
       let decryptedNote = '';
-      if (isEditing && session.note_encrypted) {
+      if (session.note_encrypted) {
         try {
-          decryptedNote = decrypt(session.note_encrypted);
+          decryptedNote = isUnlocked(user?.id) ? (decrypt(session.note_encrypted) || '') : '';
         } catch (e) {
           console.error('Decryption failed in SessionModal:', e);
-          decryptedNote = 'РћС€РёР±РєР° СЂР°СЃС€РёС„СЂРѕРІРєРё Р·Р°РјРµС‚РєРё.';
+          decryptedNote = '';
         }
       }
       setFormData({
@@ -88,11 +92,26 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
         format: session.format as 'online' | 'offline',
         meeting_link: session.meeting_link || '',
         price: session.price,
-        note: isEditing ? decryptedNote : session.note_encrypted || '',
+        note: decryptedNote,
       });
       setPriceInput(session.price > 0 ? new Intl.NumberFormat('ru-RU').format(session.price) : '');
     }
-  }, [isCreating, isEditing, isViewing, session, selectedDate, initialClientId]);
+  }, [isCreating, isEditing, isViewing, session, selectedDate, initialClientId, user?.id]);
+
+  // Подписка на глобальное событие шифрования для обновления заметки при разблокировке/блокировке
+  useEffect(() => {
+    if (!(isEditing || isViewing) || !session?.note_encrypted) return;
+    const handler = () => {
+      try {
+        const nextNote = isUnlocked(user?.id) ? (decrypt(session.note_encrypted) || '') : '';
+        setFormData(prev => ({ ...prev, note: nextNote }));
+      } catch (e) {
+        console.error('Decryption event handling failed in SessionModal:', e);
+      }
+    };
+    window.addEventListener(ENCRYPTION_EVENT, handler as EventListener);
+    return () => window.removeEventListener(ENCRYPTION_EVENT, handler as EventListener);
+  }, [isEditing, isViewing, session?.note_encrypted, user?.id]);
 
   // РћР±РЅРѕРІР»СЏРµРј С†РµРЅСѓ РїСЂРё РІС‹Р±РѕСЂРµ РєР»РёРµРЅС‚Р° (С‚РѕР»СЊРєРѕ РїСЂРё СЃРѕР·РґР°РЅРёРё)
   useEffect(() => {

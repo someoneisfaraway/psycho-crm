@@ -3,7 +3,7 @@ import type { Client } from '../../types/database';
 import type { Session } from '../../types/database';
 
 import { Mail, Phone, User, CreditCard, TrendingUp, X, MapPin, Wallet, Clock } from 'lucide-react';
-import { decrypt, unlockWithPassword, isUnlocked } from '../../utils/encryption';
+import { decrypt, isUnlocked, ENCRYPTION_EVENT } from '../../utils/encryption';
 import { formatDate, pluralize } from '../../utils/formatting';
 import { getSessionsByClient } from '../../api/sessions';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,7 +24,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [decryptedNotes, setDecryptedNotes] = useState('');
   const [decryptionError, setDecryptionError] = useState(false);
-  const [unlockPassword, setUnlockPassword] = useState('');
+  // Локальных полей разблокировки больше нет — используем глобальную разлочку из настроек
   const [showAllSessions, setShowAllSessions] = useState(false);
 
   if (!isOpen) {
@@ -53,40 +53,46 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   };
 
   const loadDecryptedNotes = () => {
-    if (client.notes_encrypted) {
-      try {
-        const decrypted = decrypt(client.notes_encrypted);
-        if (!decrypted) {
-          // Пустая строка при наличии encrypted — признак неверного ключа
-          setDecryptionError(true);
-          setDecryptedNotes('');
-        } else {
-          setDecryptionError(false);
-          setDecryptedNotes(decrypted);
-        }
-      } catch (error) {
-        console.error('Error decrypting notes:', error);
-        setDecryptionError(true);
-        setDecryptedNotes('');
-      }
-    } else {
+    if (!client.notes_encrypted) {
       setDecryptedNotes('');
       setDecryptionError(false);
+      return;
+    }
+
+    if (!isUnlocked(user?.id)) {
+      setDecryptedNotes('');
+      setDecryptionError(true);
+      return;
+    }
+
+    try {
+      const decrypted = decrypt(client.notes_encrypted);
+      if (!decrypted) {
+        setDecryptionError(true);
+        setDecryptedNotes('');
+      } else {
+        setDecryptionError(false);
+        setDecryptedNotes(decrypted);
+      }
+    } catch (error) {
+      console.error('Error decrypting notes:', error);
+      setDecryptionError(true);
+      setDecryptedNotes('');
     }
   };
 
-  const handleUnlock = async () => {
-    if (!user) return;
-    if (!unlockPassword.trim()) return;
-    const ok = await unlockWithPassword(user.id, unlockPassword.trim());
-    if (ok) {
-      loadDecryptedNotes();
-      setDecryptionError(false);
-      setUnlockPassword('');
-    } else {
-      setDecryptionError(true);
+  // Подписка на глобальное событие разлочки: обновим заметки при изменении состояния
+  useEffect(() => {
+    const handler = () => loadDecryptedNotes();
+    if (typeof window !== 'undefined') {
+      window.addEventListener(ENCRYPTION_EVENT, handler as EventListener);
     }
-  };
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(ENCRYPTION_EVENT, handler as EventListener);
+      }
+    };
+  }, [client.notes_encrypted, user?.id]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -353,19 +359,8 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
               ) : decryptionError || !isUnlocked(user?.id) ? (
                 <div className="space-y-3">
                   <div className="card bg-status-error-bg border-status-error-border text-status-error-text">
-                    Не удалось расшифровать примечания. Введите пароль от аккаунта, чтобы разблокировать заметки на этом устройстве.
+                    Заметки зашифрованы. Разблокируйте в Настройки → Шифрование заметок.
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="password"
-                      value={unlockPassword}
-                      onChange={(e) => setUnlockPassword(e.target.value)}
-                      placeholder="Введите пароль"
-                      className="input input-bordered w-full"
-                    />
-                    <button className="btn btn-secondary" onClick={handleUnlock}>Разблокировать</button>
-                  </div>
-                  <div className="text-sm text-text-secondary">Ваш пароль используется только локально для получения ключа расшифровки.</div>
                 </div>
               ) : (
                 <p className="text-text-secondary italic">Примечаний нет</p>

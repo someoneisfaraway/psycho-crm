@@ -6,7 +6,7 @@ import { ru } from 'date-fns/locale'; // Убедитесь, что локаль
 import type { Session, Client } from '../../types/database';
 import { Button } from '../ui/Button';
 import { X, CheckCircle, Edit, Ban } from 'lucide-react';
-import { decrypt, unlockWithPassword, isUnlocked } from '../../utils/encryption'; // Импортируем функции шифрования/дешифровки
+import { decrypt, isUnlocked, ENCRYPTION_EVENT } from '../../utils/encryption'; // Импортируем функции шифрования/дешифровки
 import { useAuth } from '../../contexts/AuthContext';
 
 interface SessionDetailModalProps {
@@ -47,7 +47,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   
   const [decryptedNote, setDecryptedNote] = useState<string>('');
   const [decryptionError, setDecryptionError] = useState<boolean>(false);
-  const [unlockPassword, setUnlockPassword] = useState<string>('');
+  // Локальное поле пароля убрано — используем глобальную разлочку из Настроек
   // const [tempPaymentMethod, setTempPaymentMethod] = useState(session.payment_method || 'cash');
 
   // Обработчик кнопки "Отметить оплату" - показывает меню
@@ -79,36 +79,56 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   useEffect(() => {
     try {
       if (!session) return;
-      if (isUnlocked(user?.id)) {
-        if (session.note_encrypted) {
-          const text = decrypt(session.note_encrypted);
-          setDecryptedNote(text || '');
-          setDecryptionError(!text);
-        } else {
-          setDecryptedNote('');
-          setDecryptionError(false);
-        }
+      if (!session.note_encrypted) {
+        setDecryptedNote('');
+        setDecryptionError(false);
+        return;
       }
+      if (!isUnlocked(user?.id)) {
+        setDecryptedNote('');
+        setDecryptionError(true);
+        return;
+      }
+      const text = decrypt(session.note_encrypted);
+      setDecryptedNote(text || '');
+      setDecryptionError(!text);
     } catch (_e) {
       setDecryptionError(true);
+      setDecryptedNote('');
     }
-  }, [session?.note_encrypted, user]);
+  }, [session?.note_encrypted, user?.id]);
 
-    const handleUnlock = async () => {
-    if (!user) return;
-    if (!unlockPassword.trim()) return;
-    const ok = await unlockWithPassword(user.id, unlockPassword.trim());
-    if (ok) {
-      if (session.note_encrypted) {
+  // Следим за глобальным событием смены состояния шифрования, чтобы обновлять заметку
+  useEffect(() => {
+    const handler = () => {
+      if (!session?.note_encrypted) {
+        setDecryptedNote('');
+        setDecryptionError(false);
+        return;
+      }
+      if (!isUnlocked(user?.id)) {
+        setDecryptedNote('');
+        setDecryptionError(true);
+        return;
+      }
+      try {
         const text = decrypt(session.note_encrypted);
         setDecryptedNote(text || '');
         setDecryptionError(!text);
+      } catch (_e) {
+        setDecryptionError(true);
+        setDecryptedNote('');
       }
-      setUnlockPassword('');
-    } else {
-      setDecryptionError(true);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener(ENCRYPTION_EVENT, handler as EventListener);
     }
-  };
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(ENCRYPTION_EVENT, handler as EventListener);
+      }
+    };
+  }, [session?.note_encrypted, user?.id]);
 
   // Определение цвета бейджа статуса
   const statusBadgeColor = () => {
@@ -163,19 +183,8 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           {(decryptionError || !isUnlocked(user?.id)) && (
             <div className="space-y-3 mb-4">
               <div className="card bg-status-error-bg border-status-error-border text-status-error-text">
-                Не удалось расшифровать заметку. Введите пароль от аккаунта, чтобы разблокировать заметки на этом устройстве.
+                Заметка зашифрована. Разблокируйте в Настройки → Шифрование заметок.
               </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="password"
-                  value={unlockPassword}
-                  onChange={(e) => setUnlockPassword(e.target.value)}
-                  placeholder="Введите пароль"
-                  className="input input-bordered w-full"
-                />
-                <Button variant="secondary" onClick={handleUnlock}>Разблокировать</Button>
-              </div>
-              <div className="text-sm text-text-secondary">Ваш пароль используется только локально для получения ключа расшифровки.</div>
             </div>
           )}
 

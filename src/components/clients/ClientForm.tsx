@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import type { Client, NewClient, UpdateClient } from '../../types/database'; // Обновим тип, чтобы он не включал id при создании, если генерируется
 import { Button } from '../ui/Button';
 import { Mail, Phone, Wallet } from 'lucide-react';
-import { encrypt, decrypt } from '../../utils/encryption'; // Импортируем функции шифрования/расшифровки
+import { encrypt, decrypt, isUnlocked } from '../../utils/encryption'; // Импортируем функции шифрования/расшифровки
 
 // Определим тип пропсов для формы
 interface ClientFormProps {
@@ -61,8 +61,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
         // Если notes переданы как расшифрованные
         decryptedNotes = initialData.notes;
       } else if (initialEncryptedNotes) {
-        // Если передана зашифрованная строка, расшифровываем её
-        decryptedNotes = decrypt(initialEncryptedNotes);
+        // Если передана зашифрованная строка, расшифровываем её только если глобально разблокировано
+        decryptedNotes = isUnlocked(userId) ? (decrypt(initialEncryptedNotes) || '') : '';
       }
       // Если ни то, ни другое не передано, оставляем пустую строку
 

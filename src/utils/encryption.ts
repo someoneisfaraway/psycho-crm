@@ -12,6 +12,18 @@ const TABLE_NAME = 'encryption_keys'
 let DATA_KEY: string | null = null
 let UNLOCKED_USER_ID: string | null = null
 
+// --- Глобальное событие для уведомления компонентов об изменении состояния шифрования ---
+export const ENCRYPTION_EVENT = 'encryption:state'
+const notifyEncryptionState = (unlocked: boolean) => {
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent(ENCRYPTION_EVENT, { detail: { unlocked } }))
+    } catch (_) {
+      // Игнорируем если CustomEvent недоступен
+    }
+  }
+}
+
 // --- Вспомогательные функции ---
 const deriveKEK = (password: string, saltHex: string): string => {
   const salt = CryptoJS.enc.Hex.parse(saltHex)
@@ -74,6 +86,7 @@ export const unlockWithPassword = async (userId: string, password: string): Prom
 
     DATA_KEY = dataKey
     UNLOCKED_USER_ID = userId
+    notifyEncryptionState(true)
     return true
   } catch (e) {
     console.error('unlockWithPassword error:', e)
@@ -90,6 +103,7 @@ export const isUnlocked = (userId?: string): boolean => {
 export const lockEncryption = (): void => {
   DATA_KEY = null
   UNLOCKED_USER_ID = null
+  notifyEncryptionState(false)
 }
 
 // Перепаковка ключа данных при смене пароля:

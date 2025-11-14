@@ -4,10 +4,11 @@ import { Edit, User, Phone, Mail, MessageCircle, AlertTriangle } from 'lucide-re
 import { Button } from '../ui/Button';
 // import { updateClient } from '../../api/clients'; // удалено: больше не используем завершение работы
 import { formatDate } from '../../utils/formatting';
-import { decrypt } from '../../utils/encryption';
+import { decrypt, isUnlocked } from '../../utils/encryption';
 import type { Client } from '../../types/database';
 import type { Session } from '../../types/database';
 import { getSessionsByClient } from '../../api/sessions';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ClientDetailsProps {
   client: Client;
@@ -18,6 +19,7 @@ interface ClientDetailsProps {
 
 const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, onScheduleSession }) => {
   // Удалены локальные состояния и функции, связанные с завершением работы клиента
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
@@ -218,7 +220,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Примечания</h2>
             <p className="text-gray-600 text-left">
               {/* Расшифровка заметки перед отображением */}
-              {decrypt(client.notes_encrypted)}
+              {isUnlocked(user?.id) ? (decrypt(client.notes_encrypted) || '') : 'Заметки зашифрованы'}
             </p>
           </div>
         )}

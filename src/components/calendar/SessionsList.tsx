@@ -1,8 +1,9 @@
 import React from 'react';
 import { format, parseISO, addMinutes } from 'date-fns';
-import { decrypt } from '../../utils/encryption';
+import { decrypt, isUnlocked, ENCRYPTION_EVENT } from '../../utils/encryption';
 import { ru } from 'date-fns/locale';
 import type { Session } from '../../types/database';
+import { useAuth } from '../../contexts/AuthContext';
 // import { Button } from '../ui/Button'; // Unused import
 
  interface SessionsListProps {
@@ -13,6 +14,13 @@ import type { Session } from '../../types/database';
  }
 
  const SessionsList: React.FC<SessionsListProps> = ({ date, sessions, /* onCreateSession, */ onSessionClick }) => {
+   const { user } = useAuth();
+   const [cryptoTick, setCryptoTick] = React.useState(0);
+   React.useEffect(() => {
+     const handler = () => setCryptoTick(t => t + 1);
+     window.addEventListener(ENCRYPTION_EVENT, handler as EventListener);
+     return () => window.removeEventListener(ENCRYPTION_EVENT, handler as EventListener);
+   }, []);
    // Filter sessions for the selected date
    const dateSessions = sessions.filter(session => {
     const sessionDate = parseISO(session.scheduled_at);
@@ -104,10 +112,10 @@ import type { Session } from '../../types/database';
                </div>
                
               {session.note_encrypted && (
-                 <p className="mt-2 text-sm text-gray-700">
-                  {decrypt(session.note_encrypted)}
-                 </p>
-               )}
+                <p className="mt-2 text-sm text-gray-700">
+                  {isUnlocked(user?.id) ? (decrypt(session.note_encrypted) || '') : 'Заметка зашифрована'}
+                </p>
+              )}
              </div>
            ))}
          </div>
