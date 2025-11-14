@@ -79,7 +79,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
       let decryptedNote = '';
       if (session.note_encrypted) {
         try {
-          decryptedNote = isUnlocked(user?.id) ? (decrypt(session.note_encrypted) || '') : '';
+          decryptedNote = isUnlocked(user?.id ?? '') ? (decrypt(session.note_encrypted ?? '') || '') : '';
         } catch (e) {
           console.error('Decryption failed in SessionModal:', e);
           decryptedNote = '';
@@ -103,7 +103,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
     if (!(isEditing || isViewing) || !session?.note_encrypted) return;
     const handler = () => {
       try {
-        const nextNote = isUnlocked(user?.id) ? (decrypt(session.note_encrypted) || '') : '';
+        const nextNote = isUnlocked(user?.id ?? '') ? (decrypt(session.note_encrypted ?? '') || '') : '';
         setFormData(prev => ({ ...prev, note: nextNote }));
       } catch (e) {
         console.error('Decryption event handling failed in SessionModal:', e);

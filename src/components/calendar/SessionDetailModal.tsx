@@ -84,7 +84,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         setDecryptionError(false);
         return;
       }
-      if (!isUnlocked(user?.id)) {
+      if (!isUnlocked(user?.id ?? '')) {
         setDecryptedNote('');
         setDecryptionError(true);
         return;
@@ -106,7 +106,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         setDecryptionError(false);
         return;
       }
-      if (!isUnlocked(user?.id)) {
+      if (!isUnlocked(user?.id ?? '')) {
         setDecryptedNote('');
         setDecryptionError(true);
         return;

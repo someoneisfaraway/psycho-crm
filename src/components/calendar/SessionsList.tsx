@@ -15,7 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
  const SessionsList: React.FC<SessionsListProps> = ({ date, sessions, /* onCreateSession, */ onSessionClick }) => {
    const { user } = useAuth();
-   const [cryptoTick, setCryptoTick] = React.useState(0);
+   const [, setCryptoTick] = React.useState(0);
    React.useEffect(() => {
      const handler = () => setCryptoTick(t => t + 1);
      window.addEventListener(ENCRYPTION_EVENT, handler as EventListener);
@@ -113,7 +113,7 @@ import { useAuth } from '../../contexts/AuthContext';
                
               {session.note_encrypted && (
                 <p className="mt-2 text-sm text-gray-700">
-                  {isUnlocked(user?.id) ? (decrypt(session.note_encrypted) || '') : 'Заметка зашифрована'}
+                  {isUnlocked(user?.id ?? '') ? (decrypt(session.note_encrypted) || '') : 'Заметка зашифрована'}
                 </p>
               )}
              </div>
