@@ -83,54 +83,51 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
   const isToday = (date: Date) => isSameDay(date, new Date());
 
   return (
-    <div className="card">
-      {/* Заголовок с навигацией */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="modal-title">
-          {format(currentDate, 'LLLL yyyy', { locale: ru })}
-        </h2>
-        <div className="flex space-x-2">
+    <div className="card w-full">
+      {/* Заголовок и панель управления в две строки */}
+      <div className="mb-3">
+        <div className="flex items-center justify-between">
+          <h2 className="modal-title whitespace-nowrap">
+            {format(currentDate, 'LLLL yyyy', { locale: ru })}
+          </h2>
+        </div>
+        <div className="mt-2 flex items-center gap-2 flex-wrap w-full">
+          <button onClick={goToToday} className="btn-primary">Сегодня</button>
           <button
-            onClick={goToToday}
-            className="btn-primary"
+            onClick={() => setViewMode('week')}
+            className={`btn-secondary ${viewMode === 'week' ? 'bg-primary-50 text-primary-700' : ''}`}
+            aria-label="Показать неделю"
           >
-            Сегодня
+            Неделя
           </button>
-          <div className="flex items-center gap-1">
+          <button
+            onClick={() => setViewMode('month')}
+            className={`btn-secondary ${viewMode === 'month' ? 'bg-primary-50 text-primary-700' : ''}`}
+            aria-label="Показать месяц"
+          >
+            Месяц
+          </button>
+          <div className="ml-auto flex items-center gap-2">
             <button
-              onClick={() => setViewMode('week')}
-              className={`btn-secondary ${viewMode === 'week' ? 'bg-primary-50 text-primary-700' : ''}`}
-              aria-label="Показать неделю"
+              onClick={prev}
+              className="btn-secondary"
+              aria-label={viewMode === 'month' ? 'Предыдущий месяц' : 'Предыдущая неделя'}
             >
-              Неделя
+              &lt;
             </button>
             <button
-              onClick={() => setViewMode('month')}
-              className={`btn-secondary ${viewMode === 'month' ? 'bg-primary-50 text-primary-700' : ''}`}
-              aria-label="Показать месяц"
+              onClick={next}
+              className="btn-secondary"
+              aria-label={viewMode === 'month' ? 'Следующий месяц' : 'Следующая неделя'}
             >
-              Месяц
+              &gt;
             </button>
           </div>
-          <button
-            onClick={prev}
-            className="btn-secondary"
-            aria-label={viewMode === 'month' ? 'Предыдущий месяц' : 'Предыдущая неделя'}
-          >
-            &lt;
-          </button>
-          <button
-            onClick={next}
-            className="btn-secondary"
-            aria-label={viewMode === 'month' ? 'Следующий месяц' : 'Следующая неделя'}
-          >
-            &gt;
-          </button>
         </div>
       </div>
 
       {/* Заголовки дней недели */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="grid grid-cols-7 gap-1 mb-2 w-full">
         {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day, index) => (
           <div key={index} className="text-center text-xs font-medium text-text-secondary py-1">
             {day}
@@ -139,7 +136,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
       </div>
 
       {/* Сетка дней: неделя или месяц */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1 w-full">
         {daysInMonth.map((day, index) => {
           const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
           const isCurrentMonth = isSameMonth(day, currentDate);
