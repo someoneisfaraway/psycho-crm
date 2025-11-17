@@ -22,7 +22,7 @@ interface FormState {
   age: number | undefined;
   location: string;
   source: string;
-  type: string;
+  schedule: string;
   phone: string;
   email: string;
   telegram: string;
@@ -71,7 +71,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         age: initialData?.age || undefined,
         location: initialData?.location || '',
         source: initialData?.source || 'private',
-        type: initialData?.type || 'regular',
+        schedule: (initialData as any)?.schedule || '1x/week',
         phone: initialData?.phone || '',
         email: initialData?.email || '',
         telegram: initialData?.telegram || '',
@@ -92,7 +92,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         age: undefined,
         location: '',
         source: 'private',
-        type: 'regular',
+        schedule: '1x/week',
         phone: '',
         email: '',
         telegram: '',
@@ -169,12 +169,12 @@ const ClientForm: React.FC<ClientFormProps> = ({
     if (formData.session_price <= 0) {
       newErrors.session_price = 'Стоимость должна быть больше 0';
     }
-    // Проверка обязательных полей: source, type, payment_type
+    // Проверка обязательных полей: source, schedule, payment_type
     if (!formData.source) {
       newErrors.source = 'Источник обязателен';
     }
-    if (!formData.type) {
-      newErrors.type = 'Тип клиента обязателен';
+    if (!formData.schedule) {
+      newErrors.schedule = 'Расписание обязательно';
     }
     if (!formData.payment_type) {
       newErrors.payment_type = 'Форма оплаты обязательна';
@@ -216,7 +216,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         age: formData.age || null, // Отправляем null, если не заполнено
         location: formData.location || null,
         source: formData.source,
-        type: formData.type,
+        schedule: formData.schedule,
         phone: formData.phone || null,
         email: formData.email || null,
         telegram: formData.telegram || null,
@@ -359,21 +359,23 @@ const ClientForm: React.FC<ClientFormProps> = ({
           </div>
 
           <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-              Тип клиента *
+            <label htmlFor="schedule" className="block text-sm font-medium text-gray-700">
+              Расписание *
             </label>
             <select
-              id="type"
-              name="type"
-              value={formData.type}
+              id="schedule"
+              name="schedule"
+              value={formData.schedule}
               onChange={handleChange}
-              className={`mt-1 block w-full px-3 py-2 border ${errors.type ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
+              className={`mt-1 block w-full px-3 py-2 border ${errors.schedule ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
             >
-              <option value="">Выберите тип</option>
-              <option value="regular">Системный (регулярные сессии)</option>
-              <option value="one-time">Разовый</option>
+              <option value="">Выберите расписание</option>
+              <option value="2x/week">2х/нед</option>
+              <option value="1x/week">1х/нед</option>
+              <option value="1x/2weeks">1х/2нед</option>
+              <option value="flexible">Гибкое</option>
             </select>
-            {errors.type && <p className="mt-1 text-sm text-red-600">{errors.type}</p>}
+            {errors.schedule && <p className="mt-1 text-sm text-red-600">{errors.schedule}</p>}
           </div>
 
           <div>
@@ -604,6 +606,6 @@ interface FormErrors {
   manualId?: string;
   session_price?: string;
   source?: string;
-  type?: string;
+  schedule?: string;
   payment_type?: string;
 }

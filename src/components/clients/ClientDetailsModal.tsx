@@ -128,12 +128,14 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
     return labels[source] || source;
   };
 
-  const getClientTypeLabel = (type: string): string => {
+  const getClientScheduleLabel = (schedule: string): string => {
     const labels: Record<string, string> = {
-      'regular': 'Системный',
-      'one-time': 'Разовый'
+      '2x/week': '2х/нед',
+      '1x/week': '1х/нед',
+      '1x/2weeks': '1х/2нед',
+      'flexible': 'Гибкое'
     };
-    return labels[type] || type;
+    return labels[schedule] || schedule;
   };
 
   const totalSessions = sessions.length;
@@ -316,9 +318,9 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
               <div className="card">
                 <div className="flex items-center mb-1">
                   <Clock className="h-5 w-5 text-primary-600 mr-2" />
-                  <p className="text-text-secondary">Тип клиента</p>
+                  <p className="text-text-secondary">Расписание</p>
                 </div>
-                <p className="text-base font-medium text-text-primary">{getClientTypeLabel(client.type)}</p>
+                <p className="text-base font-medium text-text-primary">{getClientScheduleLabel((client as any).schedule)}</p>
               </div>
             
             {(client.created_at || lastSession || nextSession) && (

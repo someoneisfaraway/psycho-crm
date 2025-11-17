@@ -172,6 +172,16 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
     return labels[type] || type;
   };
 
+  const getClientScheduleLabel = (schedule: string): string => {
+    const labels: Record<string, string> = {
+      '2x/week': '2х/нед',
+      '1x/week': '1х/нед',
+      '1x/2weeks': '1х/2нед',
+      'flexible': 'Гибкое'
+    };
+    return labels[schedule] || schedule;
+  };
+
   return (
     <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="client-details-title">
       <div className="bg-bg-primary rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" role="document">
@@ -200,7 +210,7 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
             </div>
             <div className="flex gap-2 text-sm text-text-secondary">
               <span>• {getSourceLabel(client.source)}</span>
-              <span>• {client.type === 'regular' ? 'Системный' : 'Разовый'}</span>
+              <span>• {getClientScheduleLabel((client as any).schedule)}</span>
             </div>
           </div>
           

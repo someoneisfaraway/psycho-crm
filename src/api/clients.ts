@@ -8,7 +8,7 @@ interface GetClientsOptions {
   searchTerm?: string; // Для поиска
   statusFilter?: string; // Для фильтрации по статусу
   sourceFilters?: string[]; // Для фильтрации по источнику (массив)
-  typeFilters?: string[]; // Для фильтрации по типу (массив)
+  scheduleFilters?: string[]; // Для фильтрации по расписанию (массив)
   debtFilter?: 'with_debt' | 'no_debt' | 'all'; // Для фильтрации по задолженности
 }
 
@@ -41,9 +41,9 @@ export const getClients = async (options: GetClientsOptions) => {
     query = query.in('source', options.sourceFilters);
   }
 
-  // Применяем фильтр по типу, если он задан (множественный)
-  if (options.typeFilters && options.typeFilters.length > 0) {
-    query = query.in('type', options.typeFilters);
+  // Применяем фильтр по расписанию, если он задан (множественный)
+  if (options.scheduleFilters && options.scheduleFilters.length > 0) {
+    query = query.in('schedule', options.scheduleFilters);
   }
 
   // Применяем фильтр по задолженности

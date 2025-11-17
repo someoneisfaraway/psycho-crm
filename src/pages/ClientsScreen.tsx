@@ -16,7 +16,7 @@ import { useLocation } from 'react-router-dom';
 interface FilterState {
   status: string; // 'all', 'active', 'paused', 'completed'
   source: string; // 'all' | 'private' | 'yasno' | 'zigmund' | 'alter' | 'other'
-  type: string;   // 'all' | 'regular' | 'one-time'
+  schedule: string;   // 'all' | '2x/week' | '1x/week' | '1x/2weeks' | 'flexible'
   debt: 'with_debt' | 'no_debt' | 'all';
 }
 
@@ -35,7 +35,7 @@ const ClientsScreen: React.FC = () => {
   const [filters, setFilters] = useState<FilterState>({
     status: 'all',
     source: 'all',
-    type: 'all',
+    schedule: 'all',
     debt: 'all'
   });
   const location = useLocation();
@@ -52,7 +52,7 @@ const ClientsScreen: React.FC = () => {
         userId: user.id,
         statusFilter: filters.status !== 'all' ? filters.status : undefined,
         sourceFilters: filters.source !== 'all' ? [filters.source] : undefined,
-        typeFilters: filters.type !== 'all' ? [filters.type] : undefined,
+        scheduleFilters: filters.schedule !== 'all' ? [filters.schedule] : undefined,
         debtFilter: filters.debt
       };
 
@@ -220,17 +220,19 @@ const ClientsScreen: React.FC = () => {
               </select>
             </div>
 
-            {/* Фильтр по типу */}
+            {/* Фильтр по расписанию */}
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">Тип</label>
+              <label className="block text-sm font-medium text-text-secondary mb-1">Расписание</label>
               <select
-                value={filters.type}
-                onChange={(e) => updateFilter('type', e.target.value)}
+                value={filters.schedule}
+                onChange={(e) => updateFilter('schedule', e.target.value)}
                 className="form-input"
               >
                 <option value="all">Все</option>
-                <option value="regular">Регулярный</option>
-                <option value="one-time">Разовый</option>
+                <option value="2x/week">2х/нед</option>
+                <option value="1x/week">1х/нед</option>
+                <option value="1x/2weeks">1х/2нед</option>
+                <option value="flexible">Гибкое</option>
               </select>
             </div>
 

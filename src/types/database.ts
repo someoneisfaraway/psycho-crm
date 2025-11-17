@@ -25,7 +25,7 @@ export interface Client {
   age?: number | null; // Может быть null в БД
   location?: string | null; // Может быть null в БД
   source: string; // 'private' | 'yasno' | 'zigmund' | 'alter' | 'other'
-  type: string; // 'regular' | 'one-time'
+  schedule: string; // '2x/week' | '1x/week' | '1x/2weeks' | 'flexible'
   status: 'active' | 'paused' | 'completed';
   phone?: string | null; // Может быть null в БД
   email?: string | null; // Может быть null в БД
