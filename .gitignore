@@ -29,3 +29,7 @@ dist-ssr/
 *.sln
 *.sw?
 node_modules
+ 
+# Backup files
+*.orig
+*.bak
