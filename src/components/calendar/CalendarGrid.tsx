@@ -1,6 +1,6 @@
 // src/components/calendar/CalendarGrid.tsx
 import React, { useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth, isSameDay, addDays, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, addWeeks, subWeeks, isSameMonth, isSameDay, addDays, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale'; // Убедитесь, что локаль установлена, если нужна русская локализация
 import type { Session } from '../../types/database'; // Импортируем тип Session
 
@@ -46,25 +46,38 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
     );
   };
 
-  // Обновляем дни месяца при изменении currentDate
+  // Режим отображения: неделя или месяц
+  const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
+
+  // Обновляем дни при изменении currentDate или режима отображения
   useEffect(() => {
-    const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1, locale: ru });
-    const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1, locale: ru });
-    const days = [];
+    let start: Date;
+    let end: Date;
+    if (viewMode === 'month') {
+      start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1, locale: ru });
+      end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1, locale: ru });
+    } else {
+      start = startOfWeek(currentDate, { weekStartsOn: 1, locale: ru });
+      end = endOfWeek(currentDate, { weekStartsOn: 1, locale: ru });
+    }
+
+    const days: Date[] = [];
     let day = start;
-  
     while (day <= end) {
       days.push(new Date(day));
       day = addDays(day, 1);
     }
-  
     setDaysInMonth(days);
-  }, [currentDate]);
+  }, [currentDate, viewMode]);
 
   // Обработчики навигации
-  const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
-  const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
-  const goToToday = () => setCurrentDate(new Date());
+  const next = () => setCurrentDate(viewMode === 'month' ? addMonths(currentDate, 1) : addWeeks(currentDate, 1));
+  const prev = () => setCurrentDate(viewMode === 'month' ? subMonths(currentDate, 1) : subWeeks(currentDate, 1));
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentDate(today);
+    onDateSelect(today);
+  };
 
   // Определяем, является ли день сегодняшним
   const isToday = (date: Date) => isSameDay(date, new Date());
@@ -83,17 +96,33 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
           >
             Сегодня
           </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setViewMode('week')}
+              className={`btn-secondary ${viewMode === 'week' ? 'bg-primary-50 text-primary-700' : ''}`}
+              aria-label="Показать неделю"
+            >
+              Неделя
+            </button>
+            <button
+              onClick={() => setViewMode('month')}
+              className={`btn-secondary ${viewMode === 'month' ? 'bg-primary-50 text-primary-700' : ''}`}
+              aria-label="Показать месяц"
+            >
+              Месяц
+            </button>
+          </div>
           <button
-            onClick={prevMonth}
+            onClick={prev}
             className="btn-secondary"
-            aria-label="Предыдущий месяц"
+            aria-label={viewMode === 'month' ? 'Предыдущий месяц' : 'Предыдущая неделя'}
           >
             &lt;
           </button>
           <button
-            onClick={nextMonth}
+            onClick={next}
             className="btn-secondary"
-            aria-label="Следующий месяц"
+            aria-label={viewMode === 'month' ? 'Следующий месяц' : 'Следующая неделя'}
           >
             &gt;
           </button>
@@ -109,7 +138,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
         ))}
       </div>
 
-      {/* Сетка дней */}
+      {/* Сетка дней: неделя или месяц */}
       <div className="grid grid-cols-7 gap-1">
         {daysInMonth.map((day, index) => {
           const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
@@ -127,7 +156,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
               `}
               onClick={() => onDateSelect(day)}
             >
-              <div className={`text-sm ${isToday(day) ? 'font-bold' : ''} ${isCurrentMonth ? 'text-text-primary' : 'text-text-secondary'}`}>
+              <div className={`text-sm ${isToday(day) ? 'font-bold' : ''} ${viewMode === 'month' ? (isCurrentMonth ? 'text-text-primary' : 'text-text-secondary') : 'text-text-primary'}`}>
                 {format(day, 'd')}
               </div>
               {getSessionIndicators(day)}
