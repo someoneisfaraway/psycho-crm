@@ -26,6 +26,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
   const { signIn } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -89,7 +90,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
               </label>
               <input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
                   errors.password ? 'border-error-300' : 'border-neutral-300'
                 }`}
@@ -99,6 +100,18 @@ const LoginForm: React.FC<LoginFormProps> = ({
               {errors.password && (
                 <p className="mt-1 text-sm text-error-600">{errors.password.message}</p>
               )}
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  id="show-password"
+                  type="checkbox"
+                  checked={showPassword}
+                  onChange={(e) => setShowPassword(e.target.checked)}
+                  className="h-4 w-4 text-primary-600 border-neutral-300 rounded"
+                />
+                <label htmlFor="show-password" className="text-sm text-neutral-700">
+                  Показать пароль
+                </label>
+              </div>
             </div>
           </div>
 

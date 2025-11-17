@@ -32,6 +32,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onSwitchToLogi
   const { signUp } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -126,7 +127,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onSwitchToLogi
               </label>
               <input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
                   errors.password ? 'border-red-300' : 'border-gray-300'
                 } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
@@ -143,7 +144,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onSwitchToLogi
               </label>
               <input
                 id="confirm-password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
                   errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
                 } placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-50 focus:border-indigo-500 focus:z-10 sm:text-sm`}
@@ -153,6 +154,18 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onSwitchToLogi
               {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
               )}
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                id="signup-show-password"
+                type="checkbox"
+                checked={showPassword}
+                onChange={(e) => setShowPassword(e.target.checked)}
+                className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+              />
+              <label htmlFor="signup-show-password" className="text-sm text-gray-700">
+                Показать пароль
+              </label>
             </div>
           </div>
 
