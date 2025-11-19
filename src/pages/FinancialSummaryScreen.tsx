@@ -106,7 +106,7 @@ const FinancialSummaryScreen: React.FC = () => {
     return d.toISOString();
   })();
 
-  const getPaymentMethodLabel = (method: string | null): string => {
+  const getPaymentMethodLabel = (method: string | null | undefined): string => {
     if (!method) return '—';
     const labels: Record<string, string> = {
       card: 'Карта',
