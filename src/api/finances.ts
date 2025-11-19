@@ -164,12 +164,74 @@ export const getFinancialSummary = async (
       recentTransactions,
     };
 
-    console.log('Получена финансовая сводка:', summary);
-    return summary;
+  console.log('Получена финансовая сводка:', summary);
+  return summary;
 
   } catch (error) {
     console.error('Необработанная ошибка в getFinancialSummary:', error);
     // Более конкретная обработка ошибок может быть добавлена здесь
     return null;
+  }
+};
+
+/**
+ * Получить список транзакций (оплаченных сессий) за период для экспорта.
+ * Возвращает массив объектов с полями: дата, клиент, сумма, тип оплаты, чек отправлен.
+ */
+export const getTransactionsForPeriod = async (
+  startDate: string | Date,
+  endDate: string | Date,
+  userId: string
+): Promise<Array<{ date: string; client_name: string; amount: number; payment_method: string | null; receipt_sent: boolean }>> => {
+  const startISO = typeof startDate === 'string' ? new Date(startDate).toISOString() : startDate.toISOString();
+  const endDateObj = typeof endDate === 'string' ? new Date(endDate) : endDate;
+  endDateObj.setHours(23, 59, 59, 999);
+  const endISO = endDateObj.toISOString();
+
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('id, client_id, paid, payment_method, price, scheduled_at, receipt_sent')
+      .eq('user_id', userId)
+      .gte('scheduled_at', startISO)
+      .lte('scheduled_at', endISO)
+      .order('scheduled_at', { ascending: true });
+
+    if (error) {
+      console.error('Ошибка при получении транзакций для периода:', error);
+      return [];
+    }
+
+    const sessions: SessionSummaryRow[] = (data || []) as SessionSummaryRow[];
+
+    const clientIds = [...new Set(sessions.map((s) => s.client_id))];
+    let clientNames: Record<string, string> = {};
+    if (clientIds.length > 0) {
+      const { data: clients, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, name')
+        .in('id', clientIds);
+      if (!clientsError && clients) {
+        clientNames = clients.reduce((acc: Record<string, string>, client: { id: string; name: string }) => {
+          acc[client.id] = client.name;
+          return acc;
+        }, {});
+      }
+    }
+
+    const transactions = sessions
+      .filter((s) => !!s.paid)
+      .map((s) => ({
+        date: s.scheduled_at,
+        client_name: clientNames[s.client_id] || 'Unknown Client',
+        amount: s.price || 0,
+        payment_method: s.payment_method || null,
+        receipt_sent: !!s.receipt_sent,
+      }));
+
+    return transactions;
+  } catch (e) {
+    console.error('Необработанная ошибка при экспорте транзакций:', e);
+    return [];
   }
 };

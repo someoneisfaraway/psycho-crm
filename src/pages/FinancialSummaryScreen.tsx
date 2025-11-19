@@ -1,9 +1,10 @@
 // src/pages/FinancialSummaryScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getFinancialSummary } from '../api/finances';
+import { getFinancialSummary, getTransactionsForPeriod } from '../api/finances';
 import type { FinancialSummary } from '../api/finances';
 import { DollarSign, TrendingUp, AlertCircle, FileText } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import EarnedRevenueModal from '../components/finances/EarnedRevenueModal';
 import ExpectedRevenueModal from '../components/finances/ExpectedRevenueModal';
 import DebtsModal from '../components/finances/DebtsModal';
@@ -13,6 +14,7 @@ const FinancialSummaryScreen: React.FC = () => {
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<boolean>(false);
 
   // Период по умолчанию: текущий месяц
   const [startDate] = useState<string>(() => {
@@ -103,6 +105,46 @@ const FinancialSummaryScreen: React.FC = () => {
     d.setHours(23, 59, 59, 999);
     return d.toISOString();
   })();
+
+  const getPaymentMethodLabel = (method: string | null): string => {
+    if (!method) return '—';
+    const labels: Record<string, string> = {
+      card: 'Карта',
+      cash: 'Наличные',
+      transfer: 'Перевод',
+      platform: 'Платформа',
+      'self-employed': 'Самозанятый',
+      ip: 'ИП',
+    };
+    return labels[method] || method;
+  };
+
+  const handleExport = async () => {
+    if (!authUser?.id) return;
+    setExporting(true);
+    try {
+      const transactions = await getTransactionsForPeriod(startDate, endDate, authUser.id);
+      // Подготовка данных: столбцы — дата, клиент, сумма, тип оплаты, чек отправлен
+      const rows = transactions.map((t) => ({
+        'Дата': new Date(t.date).toLocaleDateString('ru-RU'),
+        'Клиент': t.client_name,
+        'Сумма': t.amount,
+        'Тип оплаты': getPaymentMethodLabel(t.payment_method),
+        'Чек отправлен': t.receipt_sent ? 'Да' : 'Нет',
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Отчет');
+      const periodLabel = `${new Date(startDate).toLocaleDateString('ru-RU')}-${new Date(endISO).toLocaleDateString('ru-RU')}`;
+      XLSX.writeFile(workbook, `Финансовый_отчет_${periodLabel}.xlsx`);
+    } catch (e) {
+      console.error('Ошибка экспорта отчета:', e);
+      setError('Не удалось экспортировать отчет');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
@@ -212,7 +254,7 @@ const FinancialSummaryScreen: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{t.client_name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{t.amount.toLocaleString('ru-RU')} ₽</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(t.date).toLocaleDateString('ru-RU')}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{t.payment_method || '—'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getPaymentMethodLabel(t.payment_method)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -223,6 +265,19 @@ const FinancialSummaryScreen: React.FC = () => {
               <p className="text-lg text-gray-500">Пока нет транзакций</p>
             </div>
           )}
+          {/* Кнопка экспорта отчета */}
+          <div className="mt-6">
+            <button
+              type="button"
+              className="btn-primary w-full flex items-center justify-center gap-2"
+              onClick={handleExport}
+              disabled={exporting}
+              aria-label="Экспортировать отчет"
+            >
+              <FileText className="h-5 w-5" />
+              {exporting ? 'Экспорт...' : 'Экспортировать отчет'}
+            </button>
+          </div>
         </div>
         </div>
       </div>
