@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { unlockWithPassword } from '../../utils/encryption';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -40,7 +41,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
     try {
       setError(null);
       setLoading(true);
-      await signIn(data.email, data.password);
+      const result = await signIn(data.email, data.password);
+      try {
+        const userId = result?.user?.id;
+        if (userId) {
+          await unlockWithPassword(userId, data.password);
+        }
+      } catch {}
       onLoginSuccess();
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');

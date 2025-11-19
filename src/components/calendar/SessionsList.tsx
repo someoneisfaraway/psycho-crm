@@ -1,9 +1,9 @@
 import React from 'react';
 import { format, parseISO, addMinutes } from 'date-fns';
-import { decrypt, isUnlocked, ENCRYPTION_EVENT } from '../../utils/encryption';
+import { decrypt, ENCRYPTION_EVENT } from '../../utils/encryption';
 import { ru } from 'date-fns/locale';
 import type { Session } from '../../types/database';
-import { useAuth } from '../../contexts/AuthContext';
+// import { useAuth } from '../../contexts/AuthContext';
 // import { Button } from '../ui/Button'; // Unused import
 
  interface SessionsListProps {
@@ -14,7 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
  }
 
  const SessionsList: React.FC<SessionsListProps> = ({ date, sessions, /* onCreateSession, */ onSessionClick }) => {
-   const { user } = useAuth();
+  // const { user } = useAuth();
    const [, setCryptoTick] = React.useState(0);
    React.useEffect(() => {
      const handler = () => setCryptoTick(t => t + 1);
@@ -112,9 +112,7 @@ import { useAuth } from '../../contexts/AuthContext';
                </div>
                
               {session.note_encrypted && (
-                <p className="mt-2 text-sm text-gray-700">
-                  {isUnlocked(user?.id ?? '') ? (decrypt(session.note_encrypted) || '') : 'Заметка зашифрована'}
-                </p>
+                <p className="mt-2 text-sm text-gray-700">{decrypt(session.note_encrypted) || ''}</p>
               )}
              </div>
            ))}

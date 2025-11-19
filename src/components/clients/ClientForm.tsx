@@ -184,6 +184,8 @@ const ClientForm: React.FC<ClientFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  const [submitError, setSubmitError] = useState<string>('');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
@@ -193,10 +195,19 @@ const ClientForm: React.FC<ClientFormProps> = ({
       // Подготовка данных для отправки (UpdateClient)
       // Исключаем id и user_id из обновления
       const { idType, manualId, notes, ...updates } = formData; // idType и manualId не обновляются, notes не существует в таблице БД
+      let notesEncrypted: string | null = null;
+      if (formData.notes) {
+        try {
+          notesEncrypted = encrypt(formData.notes);
+        } catch (e) {
+          setSubmitError('Не удалось зашифровать примечания клиента. Войдите заново и попробуйте снова.');
+          return;
+        }
+      }
       const updatePayload: UpdateClient & { id: string } = {
         ...updates,
-        notes_encrypted: formData.notes ? encrypt(formData.notes) : null, // Шифруем заметки перед отправкой
-        id: initialData?.id || '', // id обновляемого клиента
+        notes_encrypted: notesEncrypted,
+        id: initialData?.id || '',
       };
       onSubmit(updatePayload);
     } else {
@@ -208,6 +219,16 @@ const ClientForm: React.FC<ClientFormProps> = ({
       }
       // В остальных случаях (auto или пустой manual при создании) id будет undefined,
       // и API его сгенерирует.
+
+      let notesEncrypted: string | null = null;
+      if (formData.notes) {
+        try {
+          notesEncrypted = encrypt(formData.notes);
+        } catch (e) {
+          setSubmitError('Не удалось зашифровать примечания клиента. Войдите заново и попробуйте снова.');
+          return;
+        }
+      }
 
       const clientData: NewClient = {
         id: idForSubmission, // Может быть undefined для авто-генерации
@@ -225,7 +246,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         need_receipt: formData.need_receipt,
         format: formData.format,
         meeting_link: formData.meeting_link || null,
-        notes_encrypted: formData.notes ? encrypt(formData.notes) : null, // Шифруем заметки перед отправкой
+        notes_encrypted: notesEncrypted,
         status: formData.status, // Статус при создании по умолчанию 'active'
         // Остальные поля (total_sessions, total_paid, debt, created_at, updated_at) будут установлены БД/триггером
       };
@@ -572,10 +593,17 @@ const ClientForm: React.FC<ClientFormProps> = ({
               onChange={handleChange}
               rows={4}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              placeholder="Эта информация шифруется, доступ только для вас."
             />
           </div>
         </div>
       </div>
+
+      {submitError && (
+        <div className="rounded-lg bg-error-50 border border-error-200 p-4 mb-4">
+          <div className="text-sm text-error-700">{submitError}</div>
+        </div>
+      )}
 
       <div className="flex justify-end space-x-3">
         <Button

@@ -234,6 +234,17 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
       return;
     }
     
+    let noteEncrypted: string | null = null;
+    if (formData.note) {
+      try {
+        noteEncrypted = encrypt(formData.note);
+      } catch (e) {
+        setSubmitError('Не удалось зашифровать заметку. Войдите заново и попробуйте снова.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     const sessionData: any = {
       user_id: userId, // РСЃРїРѕР»СЊР·СѓРµРј userId РёР· РїСЂРѕРїСЃРѕРІ РґР»СЏ РЅРѕРІРѕР№ СЃРµСЃСЃРёРё
       client_id: formData.client_id,
@@ -242,7 +253,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
       format: formData.format,
       price: formData.price,
       meeting_link: formData.meeting_link || null,
-      note_encrypted: formData.note ? encrypt(formData.note) : null, // РЁРёС„СЂСѓРµРј Р·Р°РјРµС‚РєСѓ РїРµСЂРµРґ РѕС‚РїСЂР°РІРєРѕР№
+      note_encrypted: noteEncrypted, // РЁРёС„СЂСѓРµРј Р·Р°РјРµС‚РєСѓ РїРµСЂРµРґ РѕС‚РїСЂР°РІРєРѕР№
       status: 'scheduled',
     };
     
@@ -478,7 +489,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                   value={formData.note}
                   onChange={handleChange}
                   className="form-input"
-                  placeholder={isCreating ? "Цель сессии, особенности..." : ""}
+                  placeholder="Эта информация шифруется, доступ только для вас."
                   disabled={isViewing}
                 />
               </div>

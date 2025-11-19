@@ -6,7 +6,7 @@ import { ru } from 'date-fns/locale';
 import type { Session, Client } from '../../types/database';
 import { Button } from '../ui/Button';
 import { X } from 'lucide-react';
-import { decrypt, isUnlocked, ENCRYPTION_EVENT } from '../../utils/encryption';
+import { decrypt, ENCRYPTION_EVENT } from '../../utils/encryption';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface SessionDetailModalProps {
@@ -60,7 +60,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     try {
       if (!session) return;
       if (!session.note_encrypted) { setDecryptedNote(''); setDecryptionError(false); return; }
-      if (!isUnlocked(user?.id ?? '')) { setDecryptedNote(''); setDecryptionError(true); return; }
       const text = decrypt(session.note_encrypted);
       setDecryptedNote(text || '');
       setDecryptionError(!text);
@@ -73,7 +72,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   useEffect(() => {
     const handler = () => {
       if (!session?.note_encrypted) { setDecryptedNote(''); setDecryptionError(false); return; }
-      if (!isUnlocked(user?.id ?? '')) { setDecryptedNote(''); setDecryptionError(true); return; }
       try { const text = decrypt(session.note_encrypted); setDecryptedNote(text || ''); setDecryptionError(!text); }
       catch (_e) { setDecryptionError(true); setDecryptedNote(''); }
     };
@@ -117,10 +115,10 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             </div>
           )}
 
-          {(decryptionError || !isUnlocked(user?.id)) && (
+          {decryptionError && (
             <div className="space-y-3 mb-4">
               <div className="card bg-status-error-bg border-status-error-border text-status-error-text">
-                Заметка зашифрована. Разблокируйте в Настройки → Шифрование заметок.
+                Не удалось расшифровать заметку.
               </div>
             </div>
           )}

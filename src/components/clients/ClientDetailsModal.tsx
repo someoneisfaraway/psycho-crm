@@ -3,7 +3,7 @@ import type { Client } from '../../types/database';
 import type { Session } from '../../types/database';
 
 import { Mail, Phone, User, CreditCard, TrendingUp, X, MapPin, Wallet, Clock } from 'lucide-react';
-import { decrypt, isUnlocked, ENCRYPTION_EVENT } from '../../utils/encryption';
+import { decrypt, ENCRYPTION_EVENT } from '../../utils/encryption';
 import { formatDate, pluralize } from '../../utils/formatting';
 import { getSessionsByClient } from '../../api/sessions';
 import { useAuth } from '../../contexts/AuthContext';
@@ -56,12 +56,6 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
     if (!client.notes_encrypted) {
       setDecryptedNotes('');
       setDecryptionError(false);
-      return;
-    }
-
-    if (!isUnlocked(user?.id)) {
-      setDecryptedNotes('');
-      setDecryptionError(true);
       return;
     }
 
@@ -358,10 +352,10 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                 <div className="card bg-bg-secondary border-border-primary whitespace-pre-wrap text-text-primary">
                   {decryptedNotes}
                 </div>
-              ) : decryptionError || !isUnlocked(user?.id) ? (
+              ) : decryptionError ? (
                 <div className="space-y-3">
                   <div className="card bg-status-error-bg border-status-error-border text-status-error-text">
-                    Заметки зашифрованы. Разблокируйте в Настройки → Шифрование заметок.
+                    Не удалось расшифровать примечания.
                   </div>
                 </div>
               ) : (

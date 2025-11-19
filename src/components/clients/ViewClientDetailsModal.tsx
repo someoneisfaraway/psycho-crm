@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Client, Session } from '../../types/database';
 import { Button } from '../ui/Button';
 import { Mail, Phone, User, Edit3, FileText, CreditCard, X, MapPin } from 'lucide-react';
-import { decrypt, isUnlocked, ENCRYPTION_EVENT } from '../../utils/encryption';
+import { decrypt, ENCRYPTION_EVENT } from '../../utils/encryption';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { getSessionsByClient } from '../../api/sessions';
@@ -41,11 +41,6 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
       setDecryptionError(false);
       return;
     }
-    if (!isUnlocked(user?.id)) {
-      setDecryptedNotes(null);
-      setDecryptionError(true);
-      return;
-    }
     try {
       const decrypted = decrypt(client.notes_encrypted);
       if (!decrypted) {
@@ -66,19 +61,14 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
   useEffect(() => {
     const handler = () => {
       if (client.notes_encrypted) {
-        if (!isUnlocked(user?.id)) {
+        try {
+          const decrypted = decrypt(client.notes_encrypted)
+          setDecryptedNotes(decrypted || null)
+          setDecryptionError(!decrypted)
+        } catch (error) {
+          console.error('Decryption error:', error)
           setDecryptedNotes(null)
           setDecryptionError(true)
-        } else {
-          try {
-            const decrypted = decrypt(client.notes_encrypted)
-            setDecryptedNotes(decrypted || null)
-            setDecryptionError(!decrypted)
-          } catch (error) {
-            console.error('Decryption error:', error)
-            setDecryptedNotes(null)
-            setDecryptionError(true)
-          }
         }
       }
     }
@@ -407,11 +397,9 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
                     <div className="card bg-bg-secondary border-border-primary whitespace-pre-wrap text-text-primary">
                       {decryptedNotes}
                     </div>
-                  ) : decryptionError || !isUnlocked(user?.id) ? (
+                  ) : decryptionError ? (
                     <div className="space-y-3">
-                      <div className="card bg-status-error-bg border-status-error-border text-status-error-text text-sm">
-                        Заметки зашифрованы. Разблокируйте в Настройки → Шифрование заметок.
-                      </div>
+                      <div className="card bg-status-error-bg border-status-error-border text-status-error-text text-sm">Не удалось расшифровать примечания.</div>
                     </div>
                   ) : (
                     <div className="card bg-bg-secondary text-text-secondary text-sm italic">
