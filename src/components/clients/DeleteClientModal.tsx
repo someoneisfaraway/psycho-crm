@@ -43,7 +43,7 @@ const DeleteClientModal: React.FC<DeleteClientModalProps> = ({
       <div className="bg-bg-primary rounded-lg shadow-xl w-full max-w-md">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">Delete Client</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Удалить клиента</h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-500 focus:outline-none"
@@ -58,12 +58,11 @@ const DeleteClientModal: React.FC<DeleteClientModalProps> = ({
             </div>
             <div className="mt-4 text-center">
               <h3 className="text-lg font-medium text-gray-900">
-                Are you sure you want to delete this client?
+                Вы уверены, что хотите удалить этого клиента?
               </h3>
               <div className="mt-2">
                 <p className="text-sm text-gray-500">
-                  <span className="font-medium">{client.name}</span> will be permanently deleted.
-                  This action cannot be undone.
+                  <span className="font-medium">{client.name}</span> будет удалён без возможности восстановления.
                 </p>
               </div>
             </div>
@@ -75,14 +74,14 @@ const DeleteClientModal: React.FC<DeleteClientModalProps> = ({
               onClick={onClose}
               disabled={isDeleting}
             >
-              Cancel
+              Отменить
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirm}
               loading={isDeleting}
             >
-              Delete
+              Удалить
             </Button>
           </div>
         </div>

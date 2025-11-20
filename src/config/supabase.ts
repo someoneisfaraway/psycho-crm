@@ -35,6 +35,9 @@ function createSupabaseStub(): SupabaseClient {
   const stub: any = {
     from: (_table: string) => makeBuilder(),
     rpc: (_fn: string, _args?: any) => Promise.resolve(result),
+    functions: {
+      invoke: async (_name: string, _opts?: any) => ({ data: null, error: new Error('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.') })
+    },
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       onAuthStateChange: (_cb: any) => Promise.resolve({ data: { subscription: { unsubscribe() {} } }, error: null }),

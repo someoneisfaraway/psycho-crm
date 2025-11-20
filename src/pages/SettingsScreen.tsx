@@ -472,37 +472,34 @@ const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = () => {
 
     setIsDeleting(true);
     try {
-      // 1. Вызов Edge Function для удаления данных и аккаунта
-      // Важно: передавать userId напрямую из клиента небезопасно. Функция должна проверять сессию.
-      // Поэтому мы не передаём userId явно, а доверяем сессии внутри функции.
-      const session = await supabase.auth.getSession();
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`, // Замените 'delete-user' на имя вашей функции
-        {
-          method: "POST",
+      const sessionRes = await supabase.auth.getSession();
+      const token = sessionRes.data?.session?.access_token || '';
+      const invokeRes = await supabase.functions.invoke('delete-user', {
+        body: {},
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (invokeRes.error) {
+        const url = (import.meta.env.VITE_SUPABASE_URL || '').toString();
+        const resp = await fetch(`${url}/functions/v1/delete-user`, {
+          method: 'POST',
           headers: {
-            "Authorization": `Bearer ${session.data?.session?.access_token}`, // Передаём токен сессии
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({}), // Пустое тело, userId берётся из сессии внутри функции
+          body: JSON.stringify({}),
+        });
+        if (!resp.ok) {
+          let msg = 'Ошибка при удалении аккаунта';
+          try { const j = await resp.json(); msg = j?.error || msg; } catch {}
+          throw new Error(msg);
         }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Ошибка при удалении аккаунта");
       }
 
-      // 2. Выход из системы
       await signOut();
-
-      // 3. Перенаправление на экран аутентификации
-      // router.push('/auth'); // Закомментировано, так как router может не быть
-      window.location.href = '/auth'; // Альтернативный способ перенаправления
-
+      window.location.href = '/auth';
     } catch (error) {
-      console.error("Error deleting account:", error);
-      alert((error as Error).message || "Произошла ошибка при удалении аккаунта.");
+      console.error('Error deleting account:', error);
+      alert((error as Error).message || 'Произошла ошибка при удалении аккаунта.');
     } finally {
       setIsDeleting(false);
     }
@@ -527,14 +524,14 @@ const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = () => {
           placeholder="УДАЛИТЬ МОЙ АККАУНТ"
         />
       </div>
-      <button
+      <Button
         type="button"
+        variant="destructive"
         onClick={handleDeleteAccount}
         disabled={!isConfirmed || isDeleting}
-        className={`btn-danger ${!isConfirmed || isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
-      </button>
+      </Button>
     </div>
   );
 };
