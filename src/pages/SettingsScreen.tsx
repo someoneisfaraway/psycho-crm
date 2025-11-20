@@ -795,8 +795,8 @@ const SettingsScreen: React.FC = () => {
       <div className="mt-8">
         <Button
           type="button"
-          variant="secondary"
-          className="w-full"
+          variant="primary"
+          className="w-full relative z-20"
           onClick={async () => {
             try {
               await signOut();
@@ -813,6 +813,15 @@ const SettingsScreen: React.FC = () => {
               console.error('Ошибка выхода из аккаунта (touch):', e);
             }
           }}
+          onPointerUp={async () => {
+            try {
+              await signOut();
+              window.location.href = '/auth';
+            } catch (e) {
+              console.error('Ошибка выхода из аккаунта (pointer):', e);
+            }
+          }}
+          aria-label="Выйти из аккаунта"
         >
           Выйти из аккаунта
         </Button>
