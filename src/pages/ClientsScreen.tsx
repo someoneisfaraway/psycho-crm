@@ -8,7 +8,6 @@ import AddClientModal from '../components/clients/AddClientModal';
 import EditClientModal from '../components/clients/EditClientModal';
 import DeleteClientModal from '../components/clients/DeleteClientModal';
 import ViewClientDetailsModal from '../components/clients/ViewClientDetailsModal';
-import { Button } from '../components/ui/Button'; // Путь может отличаться
 import { Plus } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -177,10 +176,10 @@ const ClientsScreen: React.FC = () => {
         <div className="flex flex-col sm:flex-row justify-end items-center mb-6 gap-4">
           {/* Заголовок перенесён в общий хедер макета */}
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button variant="primary" onClick={() => setIsAddModalOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
+            <button onClick={() => setIsAddModalOpen(true)} className="btn-primary text-sm px-3 py-1 flex items-center gap-1">
+              <Plus className="h-4 w-4" />
               Добавить клиента
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -277,6 +276,10 @@ const ClientsScreen: React.FC = () => {
             onEdit={(client: Client) => {
               setSelectedClient(client);
               setIsEditModalOpen(true);
+            }}
+            onDelete={(client: Client) => {
+              setSelectedClient(client);
+              setIsDeleteModalOpen(true);
             }}
           />
         )}

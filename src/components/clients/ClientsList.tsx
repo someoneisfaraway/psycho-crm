@@ -97,7 +97,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
           {/* Кнопка «Add Client» удалена по просьбе пользователя */}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-3">
           {filteredClients.map((client) => (
             <ClientCard
               key={client.id}

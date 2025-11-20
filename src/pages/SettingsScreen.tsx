@@ -307,7 +307,7 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
   };
 
   return (
-    <div className="card">
+    <div className="card mb-6">
       <h2 className="text-lg font-semibold text-text-primary mb-4">Рабочие настройки</h2>
       {!isEditing ? (
         <div className="space-y-4">
@@ -797,7 +797,7 @@ const SettingsScreen: React.FC = () => {
       {/* Кнопка выхода из аккаунта внизу экрана настроек */}
       <div className="mt-8">
         <Button
-          variant="outline"
+          variant="secondary"
           className="w-full"
           onClick={async () => {
             try {

@@ -13,13 +13,15 @@ interface ViewClientDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEdit: (client: Client) => void;
+  onDelete: (client: Client) => void;
 }
 
 const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({ 
   client, 
   isOpen, 
   onClose, 
-  onEdit 
+  onEdit,
+  onDelete,
 }) => {
   const { user } = useAuth();
   const [decryptedNotes, setDecryptedNotes] = useState<string | null>(null);
@@ -412,13 +414,12 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
           )}
           
           <div className="flex justify-end space-x-3 pt-4 border-t border-border-primary">
-            <Button variant="secondary" onClick={onClose}>
-              Закрыть
-            </Button>
+            <Button variant="secondary" onClick={onClose}>Закрыть</Button>
             <Button variant="secondary" onClick={() => onEdit(client)}>
               <Edit3 className="mr-2 h-4 w-4" aria-hidden="true" />
               Редактировать
             </Button>
+            <Button variant="destructive" onClick={() => onDelete(client)}>Удалить</Button>
           </div>
         </div>
       </div>
