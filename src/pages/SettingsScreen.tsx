@@ -794,6 +794,7 @@ const SettingsScreen: React.FC = () => {
       {/* Кнопка выхода из аккаунта внизу экрана настроек */}
       <div className="mt-8">
         <Button
+          type="button"
           variant="secondary"
           className="w-full"
           onClick={async () => {
@@ -802,6 +803,14 @@ const SettingsScreen: React.FC = () => {
               window.location.href = '/auth';
             } catch (e) {
               console.error('Ошибка выхода из аккаунта:', e);
+            }
+          }}
+          onTouchStart={async () => {
+            try {
+              await signOut();
+              window.location.href = '/auth';
+            } catch (e) {
+              console.error('Ошибка выхода из аккаунта (touch):', e);
             }
           }}
         >
