@@ -35,13 +35,17 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
     const hasMore = total > maxDots;
 
     return (
-      <div className="flex justify-center mt-1">
+      <div className="flex flex-col items-center mt-1">
         <div className="flex space-x-1">
           {Array.from({ length: dotsToShow }).map((_, i) => (
             <div key={i} className={`w-2 h-2 rounded-full ${indicatorColor}`}></div>
           ))}
-          {hasMore && <span className="text-xs text-text-secondary ml-1">+{total - maxDots}</span>}
         </div>
+        {hasMore && (
+          <div className="text-xs text-text-secondary leading-tight mt-0.5">
+            +{total - maxDots}
+          </div>
+        )}
       </div>
     );
   };

@@ -26,12 +26,12 @@ const ClientCard: React.FC<ClientCardProps> = ({
     <div className="bg-white rounded-lg">
       <div className={'p-4 border border-gray-200 rounded-lg cursor-pointer bg-white'} onClick={() => onViewDetails(client)}>
         <div className="flex justify-between items-start">
-          <div className="flex items-center">
+          <div className="flex items-center min-w-0">
             <div className="bg-indigo-100 p-2 rounded-full">
               <User className="h-6 w-6 text-indigo-600" />
             </div>
-            <div className="ml-4">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
+            <div className="ml-4 min-w-0">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 truncate">
                 {client.name}
               </h3>
               <p className="text-sm text-gray-500">{displayId || client.id}</p>
@@ -44,7 +44,7 @@ const ClientCard: React.FC<ClientCardProps> = ({
               : client.status === 'paused'
                 ? 'bg-yellow-100 text-yellow-800'
                 : 'bg-blue-100 text-blue-800')
-          }>
+          + ' flex-shrink-0 ml-2'}>
             {client.status === 'completed' ? 'Завершён' : client.status === 'paused' ? 'Пауза' : 'Активный'}
           </span>
         </div>

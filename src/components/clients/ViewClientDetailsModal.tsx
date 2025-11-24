@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Client, Session } from '../../types/database';
 import { Button } from '../ui/Button';
-import { Mail, Phone, User, Edit3, FileText, CreditCard, X, MapPin } from 'lucide-react';
+import { Mail, Phone, User, FileText, CreditCard, X, MapPin } from 'lucide-react';
 import { decrypt, ENCRYPTION_EVENT } from '../../utils/encryption';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -424,9 +424,7 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
           )}
           
           <div className="flex justify-end space-x-3 pt-4 border-t border-border-primary">
-            <Button variant="secondary" onClick={onClose}>Закрыть</Button>
             <Button variant="secondary" onClick={() => onEdit(client)}>
-              <Edit3 className="mr-2 h-4 w-4" aria-hidden="true" />
               Редактировать
             </Button>
             <Button variant="destructive" onClick={() => onDelete(client)}>Удалить</Button>

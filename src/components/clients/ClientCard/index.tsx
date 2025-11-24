@@ -64,13 +64,13 @@ const ClientCard: React.FC<ClientCardProps> = ({
       <div className="px-4 py-5 sm:p-6">
         {/* Строка кода и статуса */}
         <div className="flex justify-between items-start">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-text-muted">Код: {displayId || client.id}</p>
-            <h3 className="text-lg leading-6 font-medium text-text-primary mt-1">
+            <h3 className="text-lg leading-6 font-medium text-text-primary mt-1 truncate">
               {client.name}
             </h3>
           </div>
-          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(client.status)}`}>
+          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full flex-shrink-0 ml-2 ${getStatusColor(client.status)}`}>
             {client.status === 'active' ? 'Активный' :
              client.status === 'paused' ? 'На паузе' :
              'Завершён'}
