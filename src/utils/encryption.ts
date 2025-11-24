@@ -12,6 +12,27 @@ const TABLE_NAME = 'encryption_keys'
 let DATA_KEY: string | null = null
 let UNLOCKED_USER_ID: string | null = null
 
+// Persist the unlocked state for the browser session to survive reloads
+const SESSION_STORAGE_KEY = 'encryption:data_key'
+const SESSION_STORAGE_UID = 'encryption:user_id'
+
+const restoreFromSession = () => {
+  if (typeof window === 'undefined') return
+  try {
+    const dk = window.sessionStorage.getItem(SESSION_STORAGE_KEY)
+    const uid = window.sessionStorage.getItem(SESSION_STORAGE_UID)
+    if (dk && uid) {
+      DATA_KEY = dk
+      UNLOCKED_USER_ID = uid
+      notifyEncryptionState(true)
+    }
+  } catch (_) {
+    // ignore
+  }
+}
+
+restoreFromSession()
+
 // --- Глобальное событие для уведомления компонентов об изменении состояния шифрования ---
 export const ENCRYPTION_EVENT = 'encryption:state'
 const notifyEncryptionState = (unlocked: boolean) => {
@@ -86,6 +107,12 @@ export const unlockWithPassword = async (userId: string, password: string): Prom
 
     DATA_KEY = dataKey
     UNLOCKED_USER_ID = userId
+    try {
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(SESSION_STORAGE_KEY, DATA_KEY)
+        window.sessionStorage.setItem(SESSION_STORAGE_UID, UNLOCKED_USER_ID)
+      }
+    } catch (_) {}
     notifyEncryptionState(true)
     return true
   } catch (e) {
@@ -103,6 +130,12 @@ export const isUnlocked = (userId?: string): boolean => {
 export const lockEncryption = (): void => {
   DATA_KEY = null
   UNLOCKED_USER_ID = null
+  try {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(SESSION_STORAGE_KEY)
+      window.sessionStorage.removeItem(SESSION_STORAGE_UID)
+    }
+  } catch (_) {}
   notifyEncryptionState(false)
 }
 
