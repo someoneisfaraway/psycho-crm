@@ -1,7 +1,6 @@
 // src/components/calendar/SessionModal.tsx
 import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { ru } from 'date-fns/locale'; // РЈР±РµРґРёС‚РµСЃСЊ, С‡С‚Рѕ Р»РѕРєР°Р»СЊ СѓСЃС‚Р°РЅРѕРІР»РµРЅР°, РµСЃР»Рё РЅСѓР¶РЅР° СЂСѓСЃСЃРєР°СЏ Р»РѕРєР°Р»РёР·Р°С†РёСЏ
 import type { Session, Client } from '../../types/database';
 import { Button } from '../ui/Button';
 import { X, Calendar, Clock, Wallet } from 'lucide-react';
@@ -60,6 +59,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
   const [priceInput, setPriceInput] = useState<string>('');
   const [submitError, setSubmitError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [durationInput, setDurationInput] = useState<string>('');
 
   // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЃРѕСЃС‚РѕСЏРЅРёСЏ РїСЂРё РѕС‚РєСЂС‹С‚РёРё РјРѕРґР°Р»РєРё
   useEffect(() => {
@@ -74,6 +74,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
         note: '', // РћС‡РёС‰Р°РµРј Р·Р°РјРµС‚РєСѓ
         // price Р±СѓРґРµС‚ Р·Р°РїРѕР»РЅРµРЅРѕ РїСЂРё РІС‹Р±РѕСЂРµ РєР»РёРµРЅС‚Р°
       }));
+      setDurationInput('50');
     } else if ((isEditing || isViewing) && session) {
       // Для редактирования/просмотра используем данные сессии
       let decryptedNote = '';
@@ -95,6 +96,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
         note: decryptedNote,
       });
       setPriceInput(session.price > 0 ? new Intl.NumberFormat('ru-RU').format(session.price) : '');
+      setDurationInput(String(session.duration || 50));
     }
   }, [isCreating, isEditing, isViewing, session, selectedDate, initialClientId, user?.id]);
 
@@ -335,10 +337,11 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                 >
                   <option value="">Выберите клиента</option>
                   {clients
-                    .filter(c => c.status === 'active') // РџРѕРєР°Р·С‹РІР°РµРј С‚РѕР»СЊРєРѕ Р°РєС‚РёРІРЅС‹С…
+                    .filter(c => c.status === 'active')
+                    .sort((a, b) => a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' }))
                     .map(client => (
                       <option key={client.id} value={client.id}>
-                        {client.name} • {client.id} • Последняя: {client.last_session_at ? format(parseISO(client.last_session_at), 'd MMM', { locale: ru }) : 'Нет'}
+                        {client.name}
                       </option>
                     ))}
                 </select>
@@ -381,8 +384,19 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                     type="number"
                     id="duration"
                     name="duration"
-                    value={formData.duration}
-                    onChange={handleChange}
+                    value={durationInput}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setDurationInput(raw);
+                      const num = parseInt(raw.replace(/[^\d]/g, ''), 10);
+                      setFormData(prev => ({ ...prev, duration: Number.isFinite(num) ? num : 0 }));
+                      if (errors.duration) {
+                        setErrors(prev => ({ ...prev, duration: undefined }));
+                      }
+                      if (submitError) {
+                        setSubmitError('');
+                      }
+                    }}
                     className="form-input pl-10"
                     disabled={isViewing}
                   />
