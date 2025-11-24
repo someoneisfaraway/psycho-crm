@@ -92,17 +92,16 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
           </h2>
         </div>
         <div className="mt-2 flex items-center gap-2 flex-wrap w-full">
-          <button onClick={goToToday} className="btn-primary">Сегодня</button>
           <button
             onClick={() => setViewMode('week')}
-            className={`btn-secondary ${viewMode === 'week' ? 'bg-primary-50 text-primary-700' : ''}`}
+            className={viewMode === 'week' ? 'btn-primary' : 'btn-secondary'}
             aria-label="Показать неделю"
           >
             Неделя
           </button>
           <button
             onClick={() => setViewMode('month')}
-            className={`btn-secondary ${viewMode === 'month' ? 'bg-primary-50 text-primary-700' : ''}`}
+            className={viewMode === 'month' ? 'btn-primary' : 'btn-secondary'}
             aria-label="Показать месяц"
           >
             Месяц
@@ -115,6 +114,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
             >
               &lt;
             </button>
+            <button onClick={goToToday} className="btn-secondary">Сегодня</button>
             <button
               onClick={next}
               className="btn-secondary"
