@@ -90,8 +90,7 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
       setSessionsLoading(true);
       try {
         const data = await getSessionsByClient(client.id);
-        const completed = (data || []).filter((s) => s.status === 'completed');
-        const sorted = completed.sort((a: Session, b: Session) =>
+        const sorted = (data || []).sort((a: Session, b: Session) =>
           new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()
         );
         setSessions(sorted);
@@ -113,6 +112,14 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
       return format(new Date(dateString), 'd MMMM yyyy', { locale: ru });
     } catch (error) {
       console.error('Date formatting error:', error);
+      return '';
+    }
+  };
+
+  const formatShort = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'dd.MM.yy', { locale: ru });
+    } catch {
       return '';
     }
   };
@@ -305,37 +312,43 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="card">
                 <p className="text-text-secondary">Всего сессий</p>
-                <p className="font-semibold text-lg text-text-primary">{client.total_sessions || 0}</p>
+                <p className="font-semibold text-lg text-text-primary">{sessions.length}</p>
               </div>
               
               <div className="card">
                 <p className="text-text-secondary">Оплачено</p>
-                <p className="font-semibold text-lg text-text-primary">{client.total_paid?.toLocaleString('ru-RU') || 0} ₽</p>
+                <p className="font-semibold text-lg text-text-primary">{sessions.filter(s => !!s.paid).reduce((sum, s) => sum + (s.price || 0), 0).toLocaleString('ru-RU')} ₽</p>
               </div>
               
               <div className="card">
                 <p className="text-text-secondary">Первая сессия</p>
-                <p className="font-semibold text-text-primary">{client.created_at ? formatDate(client.created_at) : '—'}</p>
+                <p className="font-semibold text-text-primary">{(() => {
+                  const firstCompleted = sessions.filter(s => s.status === 'completed').sort((a,b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
+                  return firstCompleted ? formatDate(firstCompleted.scheduled_at) : '—';
+                })()}</p>
               </div>
               
               <div className="card">
                 <p className="text-text-secondary">Последняя сессия</p>
-                <p className="font-semibold text-text-primary">{client.last_session_at ? formatDate(client.last_session_at) : '—'}</p>
+                <p className="font-semibold text-text-primary">{(() => {
+                  const lastCompleted = sessions.filter(s => s.status === 'completed').sort((a,b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())[0];
+                  return lastCompleted ? formatDate(lastCompleted.scheduled_at) : '—';
+                })()}</p>
               </div>
               
-              {client.next_session_at && (
-                <div className="col-span-2 md:col-span-4 card">
-                  <p className="text-text-secondary">Следующая сессия</p>
-                  <p className="font-semibold text-text-primary">{formatDate(client.next_session_at)}</p>
-                </div>
-              )}
+              <div className="col-span-2 md:col-span-4 card">
+                <p className="text-text-secondary">Следующая сессия</p>
+                <p className="font-semibold text-text-primary">{(() => {
+                  const now = new Date();
+                  const nextScheduled = sessions.filter(s => s.status === 'scheduled' && new Date(s.scheduled_at) > now).sort((a,b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
+                  return nextScheduled ? format(new Date(nextScheduled.scheduled_at), 'd MMMM yyyy, HH:mm', { locale: ru }) : '—';
+                })()}</p>
+              </div>
               
-              {client.debt && client.debt > 0 && (
-                <div className="col-span-2 md:col-span-4 card bg-status-warning-bg border-status-warning-border">
-                  <p className="text-text-secondary">Задолженность</p>
-                  <p className="font-bold text-lg text-status-warning-text">{client.debt.toLocaleString('ru-RU')} ₽</p>
-                </div>
-              )}
+              <div className="col-span-2 md:col-span-4 card">
+                <p className="text-text-secondary">Задолженность</p>
+                <p className="font-semibold text-lg text-text-primary">{sessions.filter(s => s.status === 'completed' && !s.paid).reduce((sum,s) => sum + (s.price || 0), 0).toLocaleString('ru-RU')} ₽</p>
+              </div>
             </div>
           </div>
 
@@ -352,11 +365,8 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
                   {sessions
                     .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
                     .map((session) => (
-                      <li key={session.id} className="py-2 text-sm text-text-primary flex justify-between">
-                        <span>Сессия #{session.session_number}</span>
-                        <span className="text-text-secondary">
-                          {format(new Date(session.scheduled_at), 'd MMMM yyyy, HH:mm', { locale: ru })}
-                        </span>
+                      <li key={session.id} className="py-2 text-sm text-text-primary">
+                        Сессия №{session.session_number} {formatShort(session.scheduled_at)} {session.status === 'completed' ? 'завершена' : session.status === 'scheduled' ? 'запланирована' : 'отменена'}
                       </li>
                     ))}
                 </ul>
