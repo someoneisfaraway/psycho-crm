@@ -10,14 +10,14 @@ import DeleteClientModal from '../components/clients/DeleteClientModal';
 import ViewClientDetailsModal from '../components/clients/ViewClientDetailsModal';
 import { Plus } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { supabase } from '../config/supabase';
 
-// Интерфейс для состояния фильтров
-interface FilterState {
-  status: string; // 'all', 'active', 'paused', 'completed'
-  source: string; // 'all' | 'private' | 'yasno' | 'zigmund' | 'alter' | 'other'
-  schedule: string;   // 'all' | '2x/week' | '1x/week' | '1x/2weeks' | 'flexible'
-  debt: 'with_debt' | 'no_debt' | 'all';
-}
+  interface FilterState {
+    status: string;
+    source: string;
+    schedule: string;
+    debt: 'with_debt' | 'no_debt' | 'all';
+  }
 
 const ClientsScreen: React.FC = () => {
   const { user } = useAuth();
@@ -170,6 +170,26 @@ const ClientsScreen: React.FC = () => {
 
   // Раньше детали клиента заменяли весь экран. Теперь используем модал поверх экрана.
 
+  const [clientSources, setClientSources] = useState<string[]>(['источник 2','источник 3','источник 4']);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.id) return;
+      try {
+        const { data } = await supabase
+          .from('users')
+          .select('client_source2, client_source3, client_source4')
+          .eq('id', user.id)
+          .single();
+        const s2 = (data as any)?.client_source2 || 'источник 2';
+        const s3 = (data as any)?.client_source3 || 'источник 3';
+        const s4 = (data as any)?.client_source4 || 'источник 4';
+        setClientSources([s2, s3, s4]);
+      } catch {}
+    };
+    load();
+  }, [user?.id]);
+
   return (
     <div className="screen-container">
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -211,11 +231,10 @@ const ClientsScreen: React.FC = () => {
                 className="form-input"
               >
                 <option value="all">Все</option>
-                <option value="private">Личный</option>
-                <option value="yasno">Ясно</option>
-                <option value="zigmund">Зигмунд</option>
-                <option value="alter">Альтер</option>
-                <option value="other">Другое</option>
+                <option value="private">личный</option>
+                {clientSources.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
               </select>
             </div>
 

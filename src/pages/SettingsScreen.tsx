@@ -18,6 +18,9 @@ interface WorkSettingsData {
   defaultSessionPrice: number;
   defaultSessionDuration: number; // в минутах
   timezone: string;
+  clientSource2?: string;
+  clientSource3?: string;
+  clientSource4?: string;
   // Добавьте другие рабочие настройки при необходимости
 }
 
@@ -289,14 +292,12 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
   };
 
   const handleSave = async () => {
-    // Поддерживаем как sync, так и async обработчик сохранения
     await Promise.resolve(onUpdateSettings(formData));
     setIsEditing(false);
   };
 
   const handleEdit = () => {
     setIsEditing(true);
-    // Сбросим форму к текущим данным
     setFormData(settings);
   };
 
@@ -323,6 +324,14 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
             <div className="md:col-span-2">
               <p className="text-sm text-text-secondary">Часовой пояс</p>
               <p className="text-text-primary font-medium">{settings.timezone}</p>
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-sm text-text-secondary">Источники клиентов</p>
+              <div className="text-text-primary font-medium space-y-1">
+                <div>{settings.clientSource2 || 'источник 2'}</div>
+                <div>{settings.clientSource3 || 'источник 3'}</div>
+                <div>{settings.clientSource4 || 'источник 4'}</div>
+              </div>
             </div>
           </div>
           <button
@@ -380,6 +389,35 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
                 <option value="Asia/Yekaterinburg">Екатеринбург (YEKT)</option>
                 {/* Добавьте другие по необходимости */}
               </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-text-secondary">Источники клиентов</label>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  name="clientSource2"
+                  value={formData.clientSource2 || ''}
+                  onChange={handleChange}
+                  placeholder="источник 2"
+                  className="form-input"
+                />
+                <input
+                  type="text"
+                  name="clientSource3"
+                  value={formData.clientSource3 || ''}
+                  onChange={handleChange}
+                  placeholder="источник 3"
+                  className="form-input"
+                />
+                <input
+                  type="text"
+                  name="clientSource4"
+                  value={formData.clientSource4 || ''}
+                  onChange={handleChange}
+                  placeholder="источник 4"
+                  className="form-input"
+                />
+              </div>
             </div>
           </div>
           <div className="flex space-x-3">
@@ -608,6 +646,9 @@ const SettingsScreen: React.FC = () => {
         default_session_price: newSettings.defaultSessionPrice,
         default_session_duration: newSettings.defaultSessionDuration,
         timezone: newSettings.timezone,
+        client_source2: newSettings.clientSource2 || null,
+        client_source3: newSettings.clientSource3 || null,
+        client_source4: newSettings.clientSource4 || null,
       };
 
       const { error: updateDbError } = await supabase
@@ -736,7 +777,7 @@ const SettingsScreen: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('users')
-          .select('default_session_price, default_session_duration, timezone')
+          .select('default_session_price, default_session_duration, timezone, client_source2, client_source3, client_source4')
           .eq('id', authUser.id)
           .single();
 
@@ -750,6 +791,9 @@ const SettingsScreen: React.FC = () => {
           defaultSessionPrice: (data as any)?.default_session_price ?? 5000,
           defaultSessionDuration: (data as any)?.default_session_duration ?? 50,
           timezone: (data as any)?.timezone ?? 'Europe/Moscow',
+          clientSource2: (data as any)?.client_source2 ?? undefined,
+          clientSource3: (data as any)?.client_source3 ?? undefined,
+          clientSource4: (data as any)?.client_source4 ?? undefined,
         };
         setWorkSettings(loaded);
       } catch (e) {

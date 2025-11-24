@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import type { Client, NewClient, UpdateClient } from '../../types/database'; // Обновим тип, чтобы он не включал id при создании, если генерируется
 import { Button } from '../ui/Button';
 import { Mail, Phone, Wallet } from 'lucide-react';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { encrypt, decrypt, isUnlocked } from '../../utils/encryption'; // Импортируем функции шифрования/расшифровки
 
 // Определим тип пропсов для формы
@@ -358,26 +360,17 @@ const ClientForm: React.FC<ClientFormProps> = ({
         {/* Секция 2: Классификация */}
         <div className="space-y-4">
           <h3 className="text-lg font-medium text-gray-900">Классификация</h3>
-          <div>
-            <label htmlFor="source" className="block text-sm font-medium text-gray-700">
-              Источник *
-            </label>
-            <select
-              id="source"
-              name="source"
-              value={formData.source}
-              onChange={handleChange}
-              className={`mt-1 block w-full px-3 py-2 border ${errors.source ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
-            >
-              <option value="">Выберите источник</option>
-              <option value="private">Личный</option>
-              <option value="yasno">Ясно</option>
-              <option value="zigmund">Зигмунд</option>
-              <option value="alter">Alter</option>
-              <option value="other">Другое</option>
-            </select>
-            {errors.source && <p className="mt-1 text-sm text-red-600">{errors.source}</p>}
-          </div>
+  <div>
+    <label htmlFor="source" className="block text-sm font-medium text-gray-700">
+      Источник *
+    </label>
+    <ClientSourceSelect
+      value={formData.source}
+      onChange={(v: string) => handleChange({ target: { name: 'source', value: v } } as any)}
+      hasError={!!errors.source}
+    />
+    {errors.source && <p className="mt-1 text-sm text-red-600">{errors.source}</p>}
+  </div>
 
           <div>
             <label htmlFor="schedule" className="block text-sm font-medium text-gray-700">
@@ -627,6 +620,48 @@ const ClientForm: React.FC<ClientFormProps> = ({
 };
 
 export default ClientForm;
+
+const ClientSourceSelect: React.FC<{ value: string; onChange: (v: string) => void; hasError: boolean }> = ({ value, onChange, hasError }) => {
+  const [sources, setSources] = React.useState<string[]>(['источник 2', 'источник 3', 'источник 4']);
+  const { user } = useAuth();
+
+  React.useEffect(() => {
+    const load = async () => {
+      if (!user?.id) return;
+      try {
+        const { data } = await supabase
+          .from('users')
+          .select('client_source2, client_source3, client_source4')
+          .eq('id', user.id)
+          .single();
+        const s2 = (data as any)?.client_source2 || 'источник 2';
+        const s3 = (data as any)?.client_source3 || 'источник 3';
+        const s4 = (data as any)?.client_source4 || 'источник 4';
+        setSources([s2, s3, s4]);
+      } catch {}
+    };
+    load();
+  }, [user?.id]);
+
+  const currentInList = value && (value === 'private' || sources.includes(value));
+
+  return (
+    <select
+      id="source"
+      name="source"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`mt-1 block w-full px-3 py-2 border ${hasError ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
+    >
+      <option value="">Выберите источник</option>
+      <option value="private">личный</option>
+      {sources.map((s) => (
+        <option key={s} value={s}>{s}</option>
+      ))}
+      {!currentInList && value && <option value={value}>{value}</option>}
+    </select>
+  );
+};
 
 // Тип для ошибок валидации
 interface FormErrors {

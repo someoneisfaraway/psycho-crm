@@ -113,7 +113,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
 
   const getSourceLabel = (source: string): string => {
     const labels: Record<string, string> = {
-      'private': 'Частный',
+      'private': 'личный',
       'yasno': 'Ясно',
       'zigmund': 'Зигмунд',
       'alter': 'Alter',
