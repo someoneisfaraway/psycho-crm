@@ -187,6 +187,32 @@ const CalendarScreen: React.FC = () => {
     } finally { setIsProcessing(false); }
   };
 
+  const handleDeleteSession = async (id: string) => {
+    if (!confirm('Удалить эту сессию безвозвратно?')) return;
+    setIsProcessing(true); setOperationError('');
+    try {
+      await sessionsApi.delete(id);
+      setSessions(prev => prev.filter(s => s.id !== id));
+      setSessionsForSelectedDate(prev => prev.filter(s => s.id !== id));
+      setIsSessionDetailModalOpen(false);
+    } catch (e: any) {
+      console.error(e);
+      setOperationError(e?.message || 'Не удалось удалить сессию');
+    } finally { setIsProcessing(false); }
+  };
+
+  const handleRevertToScheduled = async (id: string) => {
+    setIsProcessing(true); setOperationError('');
+    try {
+      const updated = await sessionsApi.update(id, { status: 'scheduled', completed_at: null } as any);
+      updateLocalSessions(updated as any);
+      setIsSessionDetailModalOpen(false);
+    } catch (e: any) {
+      console.error(e);
+      setOperationError(e?.message || 'Не удалось отменить завершение');
+    } finally { setIsProcessing(false); }
+  };
+
   const handleConfirmTransfer = async (newDateTime: Date) => {
     if (!selectedSession) return;
     setIsProcessing(true); setOperationError('');
@@ -299,7 +325,11 @@ const CalendarScreen: React.FC = () => {
                             </div>
                             <div className="text-xs mt-1">
                               {session.paid ? <span className="text-status-success">✅ Оплачено</span> : <span className="text-status-warning">⚠ Не оплачено</span>}
-                              {session.paid && session.receipt_sent ? <span className="ml-2 text-status-success">✉ Чек отправлен</span> : session.paid ? <span className="ml-2 text-status-warning">⏰ Чек не отправлен</span> : null}
+                              {session.status !== 'cancelled' && session.paid && session.receipt_sent ? (
+                                <span className="ml-2 text-status-success">✉ Чек отправлен</span>
+                              ) : session.status !== 'cancelled' && session.paid ? (
+                                <span className="ml-2 text-status-warning">⏰ Чек не отправлен</span>
+                              ) : null}
                             </div>
                           </div>
                           <span className={`status-badge ${session.status === 'scheduled' ? 'status-info' : session.status === 'completed' ? 'status-success' : 'status-neutral'}`}>
@@ -351,6 +381,8 @@ const CalendarScreen: React.FC = () => {
           onMarkCancelled={(id) => handleMarkCancelled(id)}
           onMarkReceiptSent={(id) => handleMarkReceiptSent(id)}
           onUnmarkReceiptSent={(id) => handleUnmarkReceiptSent(id)}
+          onDelete={(id) => handleDeleteSession(id)}
+          onRevertToScheduled={(id) => handleRevertToScheduled(id)}
           error={operationError}
           isProcessing={isProcessing}
         />
@@ -369,4 +401,3 @@ const CalendarScreen: React.FC = () => {
 };
 
 export default CalendarScreen;
-

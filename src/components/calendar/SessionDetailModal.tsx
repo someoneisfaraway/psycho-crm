@@ -22,6 +22,8 @@ interface SessionDetailModalProps {
   onUnmarkPaid: (id: string) => void;
   onUnmarkReceiptSent: (id: string) => void;
   onMarkCancelled: (id: string) => void;
+  onDelete: (id: string) => void;
+  onRevertToScheduled: (id: string) => void;
   error?: string;
   isProcessing?: boolean;
 }
@@ -39,6 +41,8 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onUnmarkPaid,
   onUnmarkReceiptSent,
   onMarkCancelled,
+  onDelete,
+  onRevertToScheduled,
   error,
   isProcessing,
 }) => {
@@ -145,9 +149,15 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             <div className="space-y-2">
               <div className="flex justify-between"><span className="text-text-secondary">Стоимость:</span><span className="font-medium text-text-primary">{session.price} ₽</span></div>
               <div className="flex justify-between"><span className="text-text-secondary">Оплачено:</span><span className={paymentIndicatorColor}>{session.paid ? '✓ Да' : '⚠ Нет'}</span></div>
-              {session.paid && (<div className="flex justify-between"><span className="text-text-secondary">Дата оплаты:</span><span className="font-medium text-text-primary">{session.paid_at ? formatDate(session.paid_at) : 'Не указана'}</span></div>)}
-              {session.paid && (<div className="flex justify-between"><span className="text-text-secondary">Чек отправлен:</span><span className={receiptIndicatorColor}>{session.receipt_sent ? '✓ Да' : '⏰ Нет'}</span></div>)}
-              {session.paid && session.receipt_sent && session.receipt_sent_at && (<div className="flex justify-between"><span className="text-text-secondary">Дата отправки чека:</span><span className="font-medium text-text-primary">{formatDate(session.receipt_sent_at)}</span></div>)}
+              {session.paid && (
+                <div className="flex justify-between"><span className="text-text-secondary">Дата оплаты:</span><span className="font-medium text-text-primary">{session.paid_at ? formatDate(session.paid_at) : 'Не указана'}</span></div>
+              )}
+              {session.status !== 'cancelled' && session.paid && (
+                <div className="flex justify-between"><span className="text-text-secondary">Чек отправлен:</span><span className={receiptIndicatorColor}>{session.receipt_sent ? '✓ Да' : '⏰ Нет'}</span></div>
+              )}
+              {session.status !== 'cancelled' && session.paid && session.receipt_sent && session.receipt_sent_at && (
+                <div className="flex justify-between"><span className="text-text-secondary">Дата отправки чека:</span><span className="font-medium text-text-primary">{formatDate(session.receipt_sent_at)}</span></div>
+              )}
             </div>
           </div>
 
@@ -196,7 +206,11 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                 </Button>
               )}
 
-              {session.status !== 'cancelled' && (
+              {session.status === 'cancelled' ? (
+                session.paid ? (
+                  <Button variant="secondary" onClick={() => onUnmarkPaid(session.id)}>Снять оплату</Button>
+                ) : null
+              ) : (
                 !session.paid ? (
                   <>
                     <Button variant="primary" onClick={handleShowPaymentMenu}>Оплачено</Button>
@@ -215,15 +229,29 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                 )
               )}
 
-              {session.paid && (
+              {session.status !== 'cancelled' && session.paid && (
                 !session.receipt_sent ? (
                   <Button variant="primary" onClick={() => onMarkReceiptSent(session.id)}>Отправить чек</Button>
                 ) : (
                   <Button variant="secondary" onClick={() => onUnmarkReceiptSent(session.id)}>Снять чек</Button>
                 )
               )}
+
+              {session.status === 'completed' && (
+                <Button variant="secondary" onClick={() => onRevertToScheduled(session.id)}>
+                  Отменить завершение
+                </Button>
+              )}
             </div>
           </div>
+
+          {session.status === 'cancelled' && (
+            <div className="mt-6">
+              <Button variant="destructive" onClick={() => onDelete(session.id)}>
+                Удалить
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
