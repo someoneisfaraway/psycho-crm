@@ -69,6 +69,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, []);
 
+  useEffect(() => {
+    try {
+      // Login OneSignal with external user id when authenticated
+      if (user && (window as any).OneSignalDeferred) {
+        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
+          try {
+            await OneSignal.login(user.id);
+            // Optionally request permission on first login
+            await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
+          } catch (e) {
+            console.warn('OneSignal login failed:', e);
+          }
+        });
+      }
+      // Logout OneSignal on signout
+      if (!user && (window as any).OneSignalDeferred) {
+        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
+          try { await OneSignal.logout(); } catch {}
+        });
+      }
+    } catch {}
+  }, [user]);
+
   const signUp = async (email: string, password: string) => {
     const redirectTo = `${import.meta.env.VITE_APP_URL}/auth/callback`;
     const { data, error } = await supabase.auth.signUp({
@@ -109,6 +132,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Sign out error:', error.message);
       throw error;
     }
+    try {
+      if ((window as any).OneSignalDeferred) {
+        (window as any).OneSignalDeferred.push(async function(OneSignal: any) { try { await OneSignal.logout(); } catch {} });
+      }
+    } catch {}
   };
 
   const forgotPassword = async (email: string) => {

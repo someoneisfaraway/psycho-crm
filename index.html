@@ -24,8 +24,16 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png" />
 
-    <!-- App Title -->
     <title>CRM для психологов</title>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "1a7c4c27-39e6-4e7b-ad8c-8e41eb1856e8"
+        });
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
