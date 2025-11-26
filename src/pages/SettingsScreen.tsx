@@ -5,6 +5,7 @@ import { exportUserData } from '../utils/exportData'; // Импортируем 
 import { supabase } from '../config/supabase'; // Импортируем клиент
 // import of encryption settings removed
 import { Button } from '../components/ui/Button';
+import { sendPushToUser } from '../api/notifications';
 
 // --- Тип для настроек уведомлений ---
 interface NotificationSettingsData {
@@ -611,6 +612,25 @@ const SettingsScreen: React.FC = () => {
     // await updateNotificationSettingsInSupabase(newSettings);
   };
 
+  const requestPushPermission = async () => {
+    try {
+      if ((window as any).OneSignalDeferred) {
+        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
+          await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
+        });
+      }
+    } catch {}
+  };
+
+  const sendTestPush = async () => {
+    try {
+      await sendPushToUser(authUser.id, 'Тестовое уведомление', 'Это тестовое web push уведомление');
+      alert('Тестовое пуш-уведомление отправлено');
+    } catch (e: any) {
+      alert(e?.message || 'Не удалось отправить пуш');
+    }
+  };
+
   // --- Функция для обновления рабочих настроек ---
   const handleUpdateWorkSettings = async (newSettings: WorkSettingsData) => {
     console.log("Попытка обновить рабочие настройки:", newSettings);
@@ -820,6 +840,14 @@ const SettingsScreen: React.FC = () => {
         settings={notificationSettings}
         onUpdateSettings={handleUpdateNotificationSettings}
       />
+
+      <div className="card mb-6">
+        <h2 className="text-lg font-semibold text-text-primary mb-4">Web Push</h2>
+        <div className="flex gap-3">
+          <button className="btn-secondary" onClick={requestPushPermission}>Включить уведомления</button>
+          <button className="btn-primary" onClick={sendTestPush}>Отправить тест</button>
+        </div>
+      </div>
 
       {/* Компонент рабочих настроек */}
       <WorkSettings
