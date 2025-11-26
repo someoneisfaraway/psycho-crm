@@ -615,12 +615,23 @@ const SettingsScreen: React.FC = () => {
 
   const requestPushPermission = async () => {
     try {
-      if ((window as any).OneSignalDeferred) {
-        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
-          await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
-          const p = await OneSignal.Notifications.getPermission();
-          setPushPermission(String(p || 'unknown'));
+      const d = (window as any).OneSignalDeferred;
+      if (d) {
+        d.push(async function(OneSignal: any) {
+          try {
+            if (OneSignal?.Notifications?.requestPermission) {
+              await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
+            } else if (typeof Notification !== 'undefined' && Notification.requestPermission) {
+              await Notification.requestPermission();
+            }
+          } finally {
+            const p = (typeof Notification !== 'undefined' && Notification.permission) ? Notification.permission : 'unknown';
+            setPushPermission(String(p));
+          }
         });
+      } else if (typeof Notification !== 'undefined' && Notification.requestPermission) {
+        await Notification.requestPermission();
+        setPushPermission(String(Notification.permission));
       }
     } catch {}
   };
@@ -636,42 +647,41 @@ const SettingsScreen: React.FC = () => {
 
   const checkPushPermission = async () => {
     try {
-      if ((window as any).OneSignalDeferred) {
-        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
-          const p = await OneSignal.Notifications.getPermission();
-          setPushPermission(String(p || 'unknown'));
-          alert('Статус: ' + String(p || 'unknown'));
-        });
-      }
+      const p = (typeof Notification !== 'undefined' && Notification.permission) ? Notification.permission : 'unknown';
+      setPushPermission(String(p));
+      alert('Статус: ' + String(p));
     } catch {}
   };
 
   const rebindAndRequest = async () => {
     try {
-      if ((window as any).OneSignalDeferred) {
-        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
+      const d = (window as any).OneSignalDeferred;
+      if (d) {
+        d.push(async function(OneSignal: any) {
           try {
-            await OneSignal.logout();
-            await OneSignal.login(authUser.id);
-            await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
-            const p = await OneSignal.Notifications.getPermission();
-            setPushPermission(String(p || 'unknown'));
-          } catch {}
+            if (OneSignal?.logout) await OneSignal.logout();
+            if (OneSignal?.login) await OneSignal.login(authUser.id);
+            if (OneSignal?.Notifications?.requestPermission) {
+              await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
+            } else if (typeof Notification !== 'undefined' && Notification.requestPermission) {
+              await Notification.requestPermission();
+            }
+          } finally {
+            const p = (typeof Notification !== 'undefined' && Notification.permission) ? Notification.permission : 'unknown';
+            setPushPermission(String(p));
+          }
         });
+      } else if (typeof Notification !== 'undefined' && Notification.requestPermission) {
+        await Notification.requestPermission();
+        setPushPermission(String(Notification.permission));
       }
     } catch {}
   };
 
   React.useEffect(() => {
     try {
-      if ((window as any).OneSignalDeferred) {
-        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
-          try {
-            const p = await OneSignal.Notifications.getPermission();
-            setPushPermission(String(p || 'unknown'));
-          } catch {}
-        });
-      }
+      const p = (typeof Notification !== 'undefined' && Notification.permission) ? Notification.permission : 'unknown';
+      setPushPermission(String(p));
     } catch {}
   }, []);
 
