@@ -141,9 +141,9 @@ export const deleteNotification = async (id: string) => {
   return true;
 };
 
-export const sendPushToUser = async (externalId: string, title: string, message: string, url?: string) => {
+export const sendPushToUser = async (externalId: string, title: string, message: string, url?: string, sendAfter?: string) => {
   const { data, error } = await supabase.functions.invoke('onesignal-push', {
-    body: { externalId, title, message, url },
+    body: { externalId, title, message, url, sendAfter },
   } as any);
   if (error) {
     console.error('Error sending push via OneSignal:', error);

@@ -18,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    const { externalId, title, message, url } = await req.json();
+    const { externalId, title, message, url, sendAfter } = await req.json();
 
     if (!externalId || !title || !message) {
       return new Response(
@@ -46,6 +46,9 @@ serve(async (req) => {
     };
     if (url && typeof url === "string" && url.length > 0) {
       payload.url = url;
+    }
+    if (sendAfter && typeof sendAfter === "string" && sendAfter.length > 0) {
+      payload.send_after = sendAfter;
     }
 
     const resp = await fetch("https://api.onesignal.com/notifications", {

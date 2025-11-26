@@ -1,6 +1,7 @@
 // src/api/sessions.ts
 import { supabase } from '../config/supabase';
 import type { Session } from '../types/database';
+import { sendPushToUser } from './notifications';
 
 // РўРёРї РґР»СЏ СЃРѕР·РґР°РЅРёСЏ СЃРµСЃСЃРёРё
 interface CreateSessionDto {
@@ -268,6 +269,19 @@ export const sessionsApi = {
       }
       
       console.log('Session created successfully:', createdSession);
+
+      try {
+        const when = new Date(createdSession.scheduled_at);
+        const title = 'Сессия создана';
+        const msg = (createdSession.clients && (createdSession as any).clients?.name)
+          ? `Клиент: ${(createdSession as any).clients.name}. Время: ${when.toLocaleString()}`
+          : `Время: ${when.toLocaleString()}`;
+        await sendPushToUser(user.id, title, msg);
+        const reminderAt = new Date(when.getTime() - 60 * 60 * 1000);
+        if (reminderAt.getTime() > Date.now()) {
+          await sendPushToUser(user.id, 'Напоминание о сессии', `Через 60 минут: ${when.toLocaleString()}`, undefined, reminderAt.toISOString());
+        }
+      } catch {}
       
       // Update client's next_session_at field
       if (createdSession.client_id && createdSession.scheduled_at) {
@@ -293,6 +307,12 @@ export const sessionsApi = {
 
   // РћР±РЅРѕРІРёС‚СЊ СЃРµСЃСЃРёСЋ
   async update(id: string, updates: Partial<UpdateSessionDto>) {
+    const { data: before } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('id', id)
+      .single();
+
     const { data, error } = await supabase
       .from('sessions')
       .update(updates)
@@ -307,6 +327,25 @@ export const sessionsApi = {
       console.error(`Error updating session with id ${id}:`, error);
       throw error;
     }
+
+    try {
+      const oldAt = before ? new Date((before as any).scheduled_at) : null;
+      const newAt = data ? new Date((data as any).scheduled_at) : null;
+      if (updates.scheduled_at && oldAt && newAt && oldAt.getTime() !== newAt.getTime()) {
+        const title = 'Сессия перенесена';
+        const msg = (data && (data as any).clients?.name)
+          ? `Клиент: ${(data as any).clients.name}. Новое время: ${newAt.toLocaleString()}`
+          : `Новое время: ${newAt.toLocaleString()}`;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) {
+          await sendPushToUser(user.id, title, msg);
+          const reminderAt = new Date(newAt.getTime() - 60 * 60 * 1000);
+          if (reminderAt.getTime() > Date.now()) {
+            await sendPushToUser(user.id, 'Напоминание о сессии', `Через 60 минут: ${newAt.toLocaleString()}`, undefined, reminderAt.toISOString());
+          }
+        }
+      }
+    } catch {}
 
     return data;
   },
