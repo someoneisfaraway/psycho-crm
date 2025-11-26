@@ -38,8 +38,9 @@ serve(async (req) => {
 
     const payload: Record<string, unknown> = {
       app_id: appId,
-      include_external_user_ids: [externalId],
-      target_channel: "web_push",
+      include_aliases: { external_id: [externalId] },
+      target_channel: "push",
+      isAnyWeb: true,
       headings: { en: title, ru: title },
       contents: { en: message, ru: message },
     };
