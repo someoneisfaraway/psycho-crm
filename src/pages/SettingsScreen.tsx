@@ -603,6 +603,7 @@ const SettingsScreen: React.FC = () => {
     timezone: 'Europe/Moscow', // Значение по умолчанию
   });
   const [dbUserName, setDbUserName] = useState<string>('');
+  const [pushPermission, setPushPermission] = useState<string>('unknown');
 
   // --- Функция для обновления настроек уведомлений ---
   const handleUpdateNotificationSettings = (newSettings: NotificationSettingsData) => {
@@ -617,6 +618,8 @@ const SettingsScreen: React.FC = () => {
       if ((window as any).OneSignalDeferred) {
         (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
           await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
+          const p = await OneSignal.Notifications.getPermission();
+          setPushPermission(String(p || 'unknown'));
         });
       }
     } catch {}
@@ -630,6 +633,47 @@ const SettingsScreen: React.FC = () => {
       alert(e?.message || 'Не удалось отправить пуш');
     }
   };
+
+  const checkPushPermission = async () => {
+    try {
+      if ((window as any).OneSignalDeferred) {
+        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
+          const p = await OneSignal.Notifications.getPermission();
+          setPushPermission(String(p || 'unknown'));
+          alert('Статус: ' + String(p || 'unknown'));
+        });
+      }
+    } catch {}
+  };
+
+  const rebindAndRequest = async () => {
+    try {
+      if ((window as any).OneSignalDeferred) {
+        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
+          try {
+            await OneSignal.logout();
+            await OneSignal.login(authUser.id);
+            await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
+            const p = await OneSignal.Notifications.getPermission();
+            setPushPermission(String(p || 'unknown'));
+          } catch {}
+        });
+      }
+    } catch {}
+  };
+
+  React.useEffect(() => {
+    try {
+      if ((window as any).OneSignalDeferred) {
+        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
+          try {
+            const p = await OneSignal.Notifications.getPermission();
+            setPushPermission(String(p || 'unknown'));
+          } catch {}
+        });
+      }
+    } catch {}
+  }, []);
 
   // --- Функция для обновления рабочих настроек ---
   const handleUpdateWorkSettings = async (newSettings: WorkSettingsData) => {
@@ -843,8 +887,11 @@ const SettingsScreen: React.FC = () => {
 
       <div className="card mb-6">
         <h2 className="text-lg font-semibold text-text-primary mb-4">Web Push</h2>
-        <div className="flex gap-3">
+        <div className="text-sm text-text-secondary mb-3">Статус: {pushPermission}</div>
+        <div className="flex gap-3 flex-wrap">
           <button className="btn-secondary" onClick={requestPushPermission}>Включить уведомления</button>
+          <button className="btn-secondary" onClick={checkPushPermission}>Проверить статус</button>
+          <button className="btn-secondary" onClick={rebindAndRequest}>Сбросить и запросить заново</button>
           <button className="btn-primary" onClick={sendTestPush}>Отправить тест</button>
         </div>
       </div>

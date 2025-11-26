@@ -1,8 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders, status: 204 });
+  }
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   try {
@@ -11,7 +20,7 @@ serve(async (req) => {
     if (!externalId || !title || !message) {
       return new Response(
         JSON.stringify({ error: "Missing fields: externalId, title, message" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -20,7 +29,7 @@ serve(async (req) => {
     if (!restApiKey || !appId) {
       return new Response(
         JSON.stringify({ error: "OneSignal env vars not set" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -48,16 +57,15 @@ serve(async (req) => {
     if (!resp.ok) {
       return new Response(
         JSON.stringify({ error: "OneSignal error", status: resp.status, body: bodyText }),
-        { status: resp.status, headers: { "Content-Type": "application/json" } }
+        { status: resp.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    return new Response(bodyText, { status: 200, headers: { "Content-Type": "application/json" } });
+    return new Response(bodyText, { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
   } catch (e) {
     return new Response(
       JSON.stringify({ error: "Unexpected", details: (e as Error).message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 });
-
