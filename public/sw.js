@@ -1,5 +1,6 @@
 // public/sw.js
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDKWorker.js');
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDKUpdaterWorker.js');
 import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { StaleWhileRevalidate, CacheFirst, NetworkFirst } from 'workbox-strategies';

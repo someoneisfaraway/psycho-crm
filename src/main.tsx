@@ -24,6 +24,13 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       .register('/sw.js')
       .then((registration) => {
         console.log('SW зарегистрирован: ', registration);
+        try {
+          if ((window as any).OneSignalDeferred) {
+            (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
+              try { await OneSignal.Notifications.requestPermission({ fallbackToSettings: true }); } catch {}
+            });
+          }
+        } catch {}
       })
       .catch((registrationError) => {
         console.log('SW ошибка регистрации: ', registrationError);
