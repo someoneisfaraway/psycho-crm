@@ -11,7 +11,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        importScripts: ['/onesignal/OneSignalSDK.sw.js']
       },
       manifest: {
         name: 'Psychological Practice Support Tool',
