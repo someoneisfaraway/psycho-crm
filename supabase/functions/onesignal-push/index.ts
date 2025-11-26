@@ -48,7 +48,10 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${restApiKey}`,
+        // OneSignal REST API expects Authorization with API key
+        // Modern scheme: Authorization: Key <REST_API_KEY>
+        // Legacy also accepts: Authorization: Basic <REST_API_KEY>
+        "Authorization": `Key ${restApiKey}`,
       },
       body: JSON.stringify(payload),
     });
