@@ -17,8 +17,9 @@ serve(async () => {
 
   const now = new Date();
   const windowMinutes = Number(Deno.env.get("REMINDER_WINDOW_MINUTES") ?? "15");
-  const start = new Date(now.getTime() + 60 * 60 * 1000);
-  const end = new Date(start.getTime() + windowMinutes * 60 * 1000);
+  const target = new Date(now.getTime() + 60 * 60 * 1000);
+  const start = new Date(target.getTime() - windowMinutes * 60 * 1000);
+  const end = new Date(target.getTime() + windowMinutes * 60 * 1000);
 
   const { data: sessions, error } = await supabase
     .from("sessions")
@@ -35,6 +36,7 @@ serve(async () => {
   }
 
   let processed = 0;
+  console.log("[reminders] window:", { start: start.toISOString(), end: end.toISOString(), count: sessions?.length || 0 });
   for (const s of sessions ?? []) {
     try {
       const when = new Date((s as any).scheduled_at);
@@ -42,7 +44,7 @@ serve(async () => {
       const title = name ? `Сессия с ${name}` : "Сессия";
       const message = formatRuDateTime(when);
       const idempotencyKey = `${(s as any).id}-reminder-60m`;
-      await supabase.functions.invoke("onesignal-push", {
+      const { error: sendError } = await supabase.functions.invoke("onesignal-push", {
         body: {
           externalId: (s as any).user_id,
           title,
@@ -51,6 +53,10 @@ serve(async () => {
           idempotencyKey,
         },
       } as any);
+      if (sendError) {
+        console.error("[reminders] send error", sendError.message);
+        continue;
+      }
       processed += 1;
     } catch (_) {}
   }
