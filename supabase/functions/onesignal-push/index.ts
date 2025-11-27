@@ -18,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    const { externalId, title, message, url, sendAfter } = await req.json();
+    const { externalId, title, message, url, sendAfter, idempotencyKey } = await req.json();
 
     if (!externalId || !title || !message) {
       return new Response(
@@ -49,6 +49,9 @@ serve(async (req) => {
     }
     if (sendAfter && typeof sendAfter === "string" && sendAfter.length > 0) {
       payload.send_after = sendAfter;
+    }
+    if (idempotencyKey && typeof idempotencyKey === "string" && idempotencyKey.length > 0) {
+      payload.idempotency_key = idempotencyKey;
     }
 
     const resp = await fetch("https://api.onesignal.com/notifications", {

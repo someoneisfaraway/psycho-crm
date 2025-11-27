@@ -1,0 +1,6 @@
+[function]
+memory = 256
+timeout = 10
+
+[schedule]
+cron = "*/15 * * * *"  # Каждые 15 минут
