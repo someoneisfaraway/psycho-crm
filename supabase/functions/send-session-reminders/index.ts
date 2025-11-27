@@ -16,7 +16,7 @@ serve(async () => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   const now = new Date();
-  const windowMinutes = Number(Deno.env.get("REMINDER_WINDOW_MINUTES") ?? "5");
+  const windowMinutes = Number(Deno.env.get("REMINDER_WINDOW_MINUTES") ?? "15");
   const start = new Date(now.getTime() + 60 * 60 * 1000);
   const end = new Date(start.getTime() + windowMinutes * 60 * 1000);
 
@@ -59,4 +59,3 @@ serve(async () => {
     headers: { "Content-Type": "application/json" },
   });
 });
-
