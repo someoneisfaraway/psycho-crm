@@ -14,17 +14,20 @@ serve(async () => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const appId = Deno.env.get("ONESIGNAL_APP_ID")!;
+  const restApiKey = Deno.env.get("ONESIGNAL_REST_API_KEY")!;
 
   const now = new Date();
-  const windowMinutes = Number(Deno.env.get("REMINDER_WINDOW_MINUTES") ?? "15");
+  const windowMinutes = Number(Deno.env.get("REMINDER_WINDOW_MINUTES") ?? "5");
   const target = new Date(now.getTime() + 60 * 60 * 1000);
   const start = new Date(target.getTime() - windowMinutes * 60 * 1000);
   const end = new Date(target.getTime() + windowMinutes * 60 * 1000);
 
   const { data: sessions, error } = await supabase
     .from("sessions")
-    .select(`id, scheduled_at, user_id, clients(name)`) // relies on FK sessions.client_id -> clients.id
+    .select(`id, scheduled_at, user_id, clients(id, name)`) // relies on FK sessions.client_id -> clients.id
     .eq("status", "scheduled")
+    .eq("reminder_sent", false)
     .gte("scheduled_at", start.toISOString())
     .lt("scheduled_at", end.toISOString());
 
@@ -43,20 +46,34 @@ serve(async () => {
       const name = (s as any).clients?.name || "";
       const title = name ? `Сессия с ${name}` : "Сессия";
       const message = formatRuDateTime(when);
-      const idempotencyKey = `${(s as any).id}-reminder-60m`;
-      const { error: sendError } = await supabase.functions.invoke("onesignal-push", {
-        body: {
-          externalId: (s as any).user_id,
-          title,
-          message,
-          url: "/calendar",
-          idempotencyKey,
+      const idempotencyKey = String((s as any).id);
+      const payload: Record<string, unknown> = {
+        app_id: appId,
+        include_aliases: { external_id: [(s as any).user_id] },
+        target_channel: "push",
+        isAnyWeb: true,
+        headings: { ru: title, en: title },
+        contents: { ru: message, en: message },
+        url: "/calendar",
+        idempotency_key: idempotencyKey,
+      };
+      const resp = await fetch("https://api.onesignal.com/notifications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Key ${restApiKey}`,
         },
-      } as any);
-      if (sendError) {
-        console.error("[reminders] send error", sendError.message);
+        body: JSON.stringify(payload),
+      });
+      const bodyText = await resp.text();
+      if (!resp.ok) {
+        console.error("[reminders] onesignal error", resp.status, bodyText);
         continue;
       }
+      await supabase
+        .from("sessions")
+        .update({ reminder_sent: true })
+        .eq("id", (s as any).id);
       processed += 1;
     } catch (_) {}
   }
