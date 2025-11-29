@@ -171,6 +171,18 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
     return labels[type] || type;
   };
 
+  const getSessionStatusLabel = (status: string) => {
+    if (status === 'completed') return 'Завершена';
+    if (status === 'scheduled') return 'Запланирована';
+    return 'Отменена';
+  };
+
+  const getSessionStatusClass = (status: string) => {
+    if (status === 'completed') return 'text-status-success-text';
+    if (status === 'cancelled') return 'text-status-error-text';
+    return 'text-text-secondary';
+  };
+
   const getClientScheduleLabel = (schedule: string): string => {
     const labels: Record<string, string> = {
       '2x/week': '2х/нед',
@@ -365,8 +377,14 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
                   {sessions
                     .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
                     .map((session) => (
-                      <li key={session.id} className="py-2 text-sm text-text-primary">
-                        Сессия №{session.session_number} {formatShort(session.scheduled_at)} {session.status === 'completed' ? 'завершена' : session.status === 'scheduled' ? 'запланирована' : 'отменена'}
+                      <li key={session.id} className="py-2 text-sm text-text-primary flex justify-between items-center">
+                        <span>
+                          Сессия №{session.session_number} {formatShort(session.scheduled_at)}
+                        </span>
+                        <span className={`inline-flex items-center ${getSessionStatusClass(session.status)}`}>
+                          {getSessionStatusLabel(session.status)}
+                          {session.paid ? <span className="ml-1">₽</span> : null}
+                        </span>
                       </li>
                     ))}
                 </ul>
