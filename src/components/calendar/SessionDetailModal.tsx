@@ -41,7 +41,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onUnmarkPaid,
   onUnmarkReceiptSent,
   onMarkCancelled,
-  onDelete,
   onRevertToScheduled,
   error,
   isProcessing,
@@ -242,16 +241,14 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                   Отменить завершение
                 </Button>
               )}
+              {session.status === 'cancelled' && (
+                <Button variant="secondary" onClick={() => onRevertToScheduled(session.id)}>
+                  Откатить отмену
+                </Button>
+              )}
             </div>
           </div>
 
-          {session.status === 'cancelled' && (
-            <div className="mt-6">
-              <Button variant="destructive" onClick={() => onDelete(session.id)}>
-                Удалить
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     </div>
