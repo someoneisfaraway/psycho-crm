@@ -1,0 +1,8 @@
+[function]
+entrypoint = "index.ts"
+
+[[function.schedules]]
+id = "auto-cancel-sessions-daily-midnight"
+cron = "0 0 * * *"
+# timezone = "UTC"
+
