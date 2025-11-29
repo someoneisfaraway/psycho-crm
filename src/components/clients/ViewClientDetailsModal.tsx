@@ -176,11 +176,10 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
     if (status === 'scheduled') return 'Запланирована';
     return 'Отменена';
   };
-
-  const getSessionStatusClass = (status: string) => {
-    if (status === 'completed') return 'text-status-success-text';
-    if (status === 'cancelled') return 'text-status-error-text';
-    return 'text-text-secondary';
+  const getSessionStatusStyle = (status: string) => {
+    if (status === 'completed') return { color: '#48c053', fontWeight: 700 } as React.CSSProperties;
+    if (status === 'cancelled') return { color: '#ff0000', fontWeight: 700 } as React.CSSProperties;
+    return {} as React.CSSProperties;
   };
 
   const getClientScheduleLabel = (schedule: string): string => {
@@ -381,9 +380,9 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
                         <span>
                           Сессия №{session.session_number} {formatShort(session.scheduled_at)}
                         </span>
-                        <span className={`inline-flex items-center ${getSessionStatusClass(session.status)}`}>
+                        <span className="inline-flex items-center" style={getSessionStatusStyle(session.status)}>
                           {getSessionStatusLabel(session.status)}
-                          {session.paid ? <span className="ml-1">₽</span> : null}
+                          {session.paid ? <span className="ml-1">₽₽</span> : null}
                         </span>
                       </li>
                     ))}
