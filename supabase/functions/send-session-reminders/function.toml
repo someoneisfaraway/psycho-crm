@@ -9,7 +9,7 @@ entrypoint = "index.ts"
 
 [[function.schedules]]
 id = "send-session-reminders-every-15-min"
-cron = "*/5 * * * *"
+cron = "*/15 * * * *"
 # timezone = "UTC" # Опционально, по умолчанию UTC
 # enabled = true   # Опционально, по умолчанию true
 # payload = '{"action":"run"}' # Опционально, полезно если функция ожидает тело POST-запроса

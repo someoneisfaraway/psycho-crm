@@ -44,7 +44,7 @@ serve(async () => {
     try {
       const when = new Date((s as any).scheduled_at);
       const name = (s as any).clients?.name || "";
-      const title = name ? `Сессия с ${name}` : "Сессия";
+      const title = name ? `Напоминание о сессии с ${name}` : "Напоминание о сессии";
       const message = formatRuDateTime(when);
       const idempotencyKey = String((s as any).id);
       const payload: Record<string, unknown> = {

@@ -281,13 +281,13 @@ export const sessionsApi = {
           return `${dd}.${mm}.${yyyy}. ${hh}:${min}`;
         };
         const immediateClientName = (createdSession.clients && (createdSession as any).clients?.name) ? (createdSession as any).clients.name : '';
-        const immediateHeading = immediateClientName ? `Сессия с ${immediateClientName}` : 'Сессия';
+        const immediateHeading = immediateClientName ? `Создана сессия с ${immediateClientName}` : 'Создана сессия';
         const immediateBody = formatRuDateTime(when);
         await sendPushToUser(user.id, immediateHeading, immediateBody);
         const reminderAt = new Date(when.getTime() - 60 * 60 * 1000);
         if (reminderAt.getTime() > Date.now()) {
           const clientName = (createdSession.clients && (createdSession as any).clients?.name) ? (createdSession as any).clients.name : '';
-          const heading = clientName ? `Сессия с ${clientName}` : 'Сессия';
+          const heading = clientName ? `Напоминание о сессии с ${clientName}` : 'Напоминание о сессии';
           const body = formatRuDateTime(when);
           await sendPushToUser(user.id, heading, body, undefined, reminderAt.toISOString());
         }
@@ -351,7 +351,7 @@ export const sessionsApi = {
           const min = String(d.getMinutes()).padStart(2, '0');
           return `${dd}.${mm}.${yyyy}. ${hh}:${min}`;
         };
-        const immediateHeading = immediateClientName ? `Сессия с ${immediateClientName}` : 'Сессия';
+        const immediateHeading = immediateClientName ? `Создана сессия с ${immediateClientName}` : 'Создана сессия';
         const immediateBody = formatRuDateTime(newAt);
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.id) {
@@ -367,7 +367,7 @@ export const sessionsApi = {
               return `${dd}.${mm}.${yyyy}. ${hh}:${min}`;
             };
             const clientName = (data && (data as any).clients?.name) ? (data as any).clients.name : '';
-            const heading = clientName ? `Сессия с ${clientName}` : 'Сессия';
+            const heading = clientName ? `Напоминание о сессии с ${clientName}` : 'Напоминание о сессии';
             const body = formatRuDateTime(newAt);
             await sendPushToUser(user.id, heading, body, undefined, reminderAt.toISOString());
           }
