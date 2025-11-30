@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { parseISO } from 'date-fns';
+import { parseISO, addMinutes } from 'date-fns';
 import type { Session } from '../../types/database';
 import { Button } from '../ui/Button';
 import { X } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { sessionsApi } from '../../api/sessions';
 
 interface SessionTransferModalProps {
   session: Session;
@@ -25,6 +27,7 @@ const SessionTransferModal: React.FC<SessionTransferModalProps> = ({ session, is
   const [dateTime, setDateTime] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -51,6 +54,27 @@ const SessionTransferModal: React.FC<SessionTransferModalProps> = ({ session, is
         setError('Некорректная дата');
         setSubmitting(false);
         return;
+      }
+      if (user?.id) {
+        const dayStr = `${newDate.getFullYear()}-${String(newDate.getMonth()+1).padStart(2,'0')}-${String(newDate.getDate()).padStart(2,'0')}`;
+        const sessions = await sessionsApi.getForDate(user.id, dayStr);
+        const candidates = (sessions as any[]).filter(s => s.status !== 'cancelled' && s.id !== session.id);
+        const sorted = candidates.sort((a,b)=> new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+        const before = sorted.filter(s => new Date(s.scheduled_at).getTime() <= newDate.getTime());
+        const prev = before.length ? before[before.length - 1] : null;
+        const prevEnd = prev ? addMinutes(new Date(prev.scheduled_at), prev.duration || 50) : null;
+        if (prevEnd && newDate.getTime() <= prevEnd.getTime()) {
+          setError('Это время уже занято!');
+          setSubmitting(false);
+          return;
+        }
+        const next = sorted.find(s => new Date(s.scheduled_at).getTime() >= newDate.getTime());
+        const newEnd = addMinutes(newDate, session.duration || 50);
+        if (next && newEnd.getTime() > new Date(next.scheduled_at).getTime()) {
+          setError('Это время уже занято!');
+          setSubmitting(false);
+          return;
+        }
       }
       await Promise.resolve(onTransfer(newDate));
       setSubmitting(false);

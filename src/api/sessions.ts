@@ -236,7 +236,7 @@ export const sessionsApi = {
         .insert([insertData])
         .select(`
           *,
-          clients(id, name)
+          clients(id, name, source)
         `)
         .single();
       
@@ -287,7 +287,10 @@ export const sessionsApi = {
         const reminderAt = new Date(when.getTime() - 60 * 60 * 1000);
         if (reminderAt.getTime() > Date.now()) {
           const clientName = (createdSession.clients && (createdSession as any).clients?.name) ? (createdSession as any).clients.name : '';
-          const heading = clientName ? `Напоминание о сессии с ${clientName}` : 'Напоминание о сессии';
+          const source = (createdSession.clients && (createdSession as any).clients?.source) ? (createdSession as any).clients.source : undefined;
+          const labelMap: Record<string, string> = { private: 'личный', yasno: 'Ясно', zigmund: 'Зигмунд', alter: 'Alter', other: 'Другое' };
+          const middleLine = source === 'private' ? 'с личным клиентом' : source ? `с клиентом ${labelMap[source] || source}` : 'с клиентом';
+          const heading = clientName ? `Напоминание о сессии\n${middleLine}\n${clientName}` : 'Напоминание о сессии';
           const body = formatRuDateTime(when);
           await sendPushToUser(user.id, heading, body, undefined, reminderAt.toISOString());
         }
@@ -329,7 +332,7 @@ export const sessionsApi = {
       .eq('id', id)
       .select(`
         *,
-        clients(id, name)
+        clients(id, name, source)
       `)
       .single();
 
@@ -367,7 +370,10 @@ export const sessionsApi = {
               return `${dd}.${mm}.${yyyy}. ${hh}:${min}`;
             };
             const clientName = (data && (data as any).clients?.name) ? (data as any).clients.name : '';
-            const heading = clientName ? `Напоминание о сессии с ${clientName}` : 'Напоминание о сессии';
+            const source = (data && (data as any).clients?.source) ? (data as any).clients.source : undefined;
+            const labelMap: Record<string, string> = { private: 'личный', yasno: 'Ясно', zigmund: 'Зигмунд', alter: 'Alter', other: 'Другое' };
+            const middleLine = source === 'private' ? 'с личным клиентом' : source ? `с клиентом ${labelMap[source] || source}` : 'с клиентом';
+            const heading = clientName ? `Напоминание о сессии\n${middleLine}\n${clientName}` : 'Напоминание о сессии';
             const body = formatRuDateTime(newAt);
             await sendPushToUser(user.id, heading, body, undefined, reminderAt.toISOString());
           }

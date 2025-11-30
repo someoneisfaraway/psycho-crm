@@ -1,6 +1,6 @@
 // src/components/calendar/SessionModal.tsx
 import React, { useState, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addMinutes } from 'date-fns';
 import type { Session, Client } from '../../types/database';
 import { Button } from '../ui/Button';
 import { X, Calendar, Clock, Wallet } from 'lucide-react';
@@ -9,6 +9,7 @@ import { decrypt } from '../../utils/encryption';
 import { isUnlocked } from '../../utils/encryption';
 import { ENCRYPTION_EVENT } from '../../utils/encryption';
 import { useAuth } from '../../contexts/AuthContext';
+import { sessionsApi } from '../../api/sessions';
 
 interface SessionModalProps {
   mode?: 'create' | 'edit' | 'view'; // Р РµР¶РёРј СЂР°Р±РѕС‚С‹ РјРѕРґР°Р»СЊРЅРѕРіРѕ РѕРєРЅР°
@@ -60,6 +61,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
   const [submitError, setSubmitError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [durationInput, setDurationInput] = useState<string>('');
+  const [timeBusy, setTimeBusy] = useState<boolean>(false);
 
   // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЃРѕСЃС‚РѕСЏРЅРёСЏ РїСЂРё РѕС‚РєСЂС‹С‚РёРё РјРѕРґР°Р»РєРё
   useEffect(() => {
@@ -154,6 +156,29 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
     }
   };
 
+  useEffect(() => {
+    const checkConflict = async () => {
+      try {
+        setTimeBusy(false);
+        if (!userId) return;
+        const start = formData.scheduled_at;
+        if (!start || isNaN(start.getTime())) return;
+        const dayStr = format(start, 'yyyy-MM-dd');
+        const sessions = await sessionsApi.getForDate(userId, dayStr);
+        const candidates = (sessions as any[]).filter(s => s.status !== 'cancelled' && (!session || s.id !== session.id));
+        const sorted = candidates.sort((a,b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+        const before = sorted.filter(s => new Date(s.scheduled_at).getTime() <= start.getTime());
+        const prev = before.length ? before[before.length - 1] : null;
+        const conflictPrev = prev ? start.getTime() <= addMinutes(new Date(prev.scheduled_at), prev.duration || 50).getTime() : false;
+        const next = sorted.find(s => new Date(s.scheduled_at).getTime() >= start.getTime());
+        const newEnd = addMinutes(start, formData.duration || 0);
+        const conflictNext = next ? newEnd.getTime() > new Date(next.scheduled_at).getTime() : false;
+        setTimeBusy(Boolean(conflictPrev || conflictNext));
+      } catch {}
+    };
+    checkConflict();
+  }, [formData.scheduled_at, formData.duration, session?.id, userId]);
+
   const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const clientId = e.target.value;
     setFormData((prev: FormState) => ({
@@ -214,6 +239,10 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Form validation starting...');
+    if (timeBusy) {
+      setErrors(prev => ({ ...prev, scheduled_at: 'Это время уже занято!' }));
+      return;
+    }
     if (!validate()) {
       console.log('Form validation failed');
       return;
@@ -368,7 +397,8 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                     disabled={isViewing}
                   />
                 </div>
-                {errors.scheduled_at && <p className="form-error">{errors.scheduled_at}</p>}
+                {timeBusy && <p className="form-error">Это время уже занято!</p>}
+                {errors.scheduled_at && !timeBusy && <p className="form-error">{errors.scheduled_at}</p>}
               </div>
 
               {/* Секция 3: Длительность */}

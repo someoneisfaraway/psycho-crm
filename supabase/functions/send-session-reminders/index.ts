@@ -25,7 +25,7 @@ serve(async () => {
 
   const { data: sessions, error } = await supabase
     .from("sessions")
-    .select(`id, scheduled_at, user_id, clients(id, name)`) // relies on FK sessions.client_id -> clients.id
+    .select(`id, scheduled_at, user_id, clients(id, name, source)`) // relies on FK sessions.client_id -> clients.id
     .eq("status", "scheduled")
     .eq("reminder_sent", false)
     .gte("scheduled_at", start.toISOString())
@@ -44,7 +44,12 @@ serve(async () => {
     try {
       const when = new Date((s as any).scheduled_at);
       const name = (s as any).clients?.name || "";
-      const title = name ? `Напоминание о сессии с ${name}` : "Напоминание о сессии";
+      const src: string | undefined = (s as any).clients?.source;
+      const srcLabelMap: Record<string, string> = { private: 'личный', yasno: 'Ясно', zigmund: 'Зигмунд', alter: 'Alter', other: 'Другое' };
+      const middleLine = src === 'private' ? 'с личным клиентом' : src ? `с клиентом ${srcLabelMap[src] || src}` : 'с клиентом';
+      const title = name
+        ? `Напоминание о сессии\n${middleLine}\n${name}`
+        : `Напоминание о сессии`;
       const message = formatRuDateTime(when);
       const idempotencyKey = String((s as any).id);
       const payload: Record<string, unknown> = {
