@@ -151,14 +151,7 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
   };
 
   const getSourceLabel = (source: string): string => {
-    const labels: Record<string, string> = {
-      private: 'личный',
-      yasno: 'Ясно',
-      zigmund: 'Зигмунд',
-      alter: 'Alter',
-      other: 'Другое'
-    };
-    return labels[source] || source;
+    return source === 'private' ? 'Личные' : source;
   };
 
   const getPaymentTypeLabel = (type: string): string => {

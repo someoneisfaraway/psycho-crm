@@ -16,12 +16,6 @@ interface RevenueBySource {
   total: number;
 }
 
-const sourceLabel: Record<string, string> = {
-  private: 'Личные',
-  yasno: 'Ясно',
-  b17: 'B17',
-};
-
 const EarnedRevenueModal: React.FC<EarnedRevenueModalProps> = ({
   isOpen,
   onClose,
@@ -76,7 +70,7 @@ const EarnedRevenueModal: React.FC<EarnedRevenueModalProps> = ({
       });
 
       const breakdown = Object.entries(totals).map(([source, amount]) => ({
-        source: sourceLabel[source] || 'Другое/Неизвестно',
+        source: source === 'private' ? 'Личные' : source,
         total: amount,
       }));
 

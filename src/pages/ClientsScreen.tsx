@@ -170,24 +170,42 @@ const ClientsScreen: React.FC = () => {
 
   // Раньше детали клиента заменяли весь экран. Теперь используем модал поверх экрана.
 
-  const [clientSources, setClientSources] = useState<string[]>(['источник 2','источник 3','источник 4']);
+  const [availableSources, setAvailableSources] = useState<string[]>([]);
 
   useEffect(() => {
-    const load = async () => {
+    const loadSources = async () => {
       if (!user?.id) return;
       try {
-        const { data } = await supabase
+        const { data: userData } = await supabase
           .from('users')
           .select('client_source2, client_source3, client_source4')
           .eq('id', user.id)
           .single();
-        const s2 = (data as any)?.client_source2 || 'источник 2';
-        const s3 = (data as any)?.client_source3 || 'источник 3';
-        const s4 = (data as any)?.client_source4 || 'источник 4';
-        setClientSources([s2, s3, s4]);
-      } catch {}
+
+        const s2 = (userData as any)?.client_source2 || undefined;
+        const s3 = (userData as any)?.client_source3 || undefined;
+        const s4 = (userData as any)?.client_source4 || undefined;
+
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('source')
+          .eq('user_id', user.id);
+
+        const set = new Set<string>();
+        set.add('private');
+        [s2, s3, s4].forEach((s) => { if (s && String(s).trim() !== '') set.add(String(s).trim()); });
+        (clientData || []).forEach((row: any) => {
+          const src = row?.source;
+          if (src && String(src).trim() !== '') set.add(String(src).trim());
+        });
+
+        const values = Array.from(set);
+        setAvailableSources(values);
+      } catch {
+        setAvailableSources(['private']);
+      }
     };
-    load();
+    loadSources();
   }, [user?.id]);
 
   return (
@@ -231,8 +249,8 @@ const ClientsScreen: React.FC = () => {
                 className="form-input"
               >
                 <option value="all">Все</option>
-                <option value="private">личный</option>
-                {clientSources.map((s) => (
+                <option value="private">Личные</option>
+                {availableSources.filter((s) => s !== 'private').map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>

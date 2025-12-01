@@ -39,7 +39,7 @@ const DebtsModal: React.FC<DebtsModalProps> = ({ isOpen, onClose, userId }) => {
         .eq('user_id', userId)
         .eq('status', 'completed')
         .eq('paid', false)
-        .order('scheduled_at', { ascending: true });
+        .order('scheduled_at', { ascending: false });
 
       if (sessionsError) throw sessionsError;
 

@@ -71,7 +71,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
               }`}>
                 {client.status === 'active' ? 'Активный' : client.status === 'paused' ? 'На паузе' : 'Завершён'}
               </span>
-              <span className="ml-2 text-gray-600 capitalize">{client.source}</span>
+              <span className="ml-2 text-gray-600 capitalize">{client.source === 'private' ? 'Личные' : client.source}</span>
             </div>
             {/* Кнопка "Завершить работу" удалена по требованиям */}
           </div>

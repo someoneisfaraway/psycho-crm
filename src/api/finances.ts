@@ -86,13 +86,12 @@ export const getFinancialSummary = async (
       }
     }
 
-    // --- Логика вычисления сводки ---
     let totalRevenue = 0;
     let expectedRevenue = 0;
     let outstandingTotal = 0;
     let outstandingCount = 0;
     const revenueBreakdown: Record<string, number> = {};
-    const debtorsMap: Record<string, number> = {}; // client_id -> сумма долга
+    const debtorsMap: Record<string, number> = {};
 
     sessions.forEach((session: SessionSummaryRow) => {
       // 1. Расчёт общего дохода и разбивки
@@ -104,38 +103,84 @@ export const getFinancialSummary = async (
         revenueBreakdown[method] = (revenueBreakdown[method] || 0) + amount;
       }
 
-      // 2. Расчёт задолженности (например, сессия завершена, но не оплачена)
-      if (session.status === 'completed' && !session.paid) {
-         const amount = session.price || 0;
-         debtorsMap[session.client_id] = (debtorsMap[session.client_id] || 0) + amount;
-         outstandingTotal += amount;
-         outstandingCount += 1;
-      }
-
-      // 3. Ожидаемая выручка: запланированные, ещё не оплаченные сессии
-      if (session.status === 'scheduled') {
+      // 3. Ожидаемая выручка: запланированные и НЕоплаченные сессии
+      if (session.status === 'scheduled' && !session.paid) {
         expectedRevenue += session.price || 0;
       }
     });
 
-    // 3. Формирование списка должников
-    const debtors = Object.entries(debtorsMap).map(([client_id, debt_amount]) => ({
-      client_id,
-      client_name: clientNames[client_id] || 'Unknown Client',
-      debt_amount,
+    const { data: allDebtsData, error: allDebtsError } = await supabase
+      .from('sessions')
+      .select('id, client_id, price, scheduled_at')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .eq('paid', false)
+      .order('scheduled_at', { ascending: false });
+
+    if (allDebtsError) {
+      throw new Error(`Ошибка при получении задолженностей: ${allDebtsError.message}`);
+    }
+
+    const allDebtsSessions: SessionSummaryRow[] = (allDebtsData || []) as SessionSummaryRow[];
+
+    const { data: allReceiptsData, error: allReceiptsError } = await supabase
+      .from('sessions')
+      .select('id, client_id, price, scheduled_at, receipt_sent')
+      .eq('user_id', userId)
+      .eq('paid', true)
+      .eq('receipt_sent', false)
+      .order('scheduled_at', { ascending: false });
+
+    if (allReceiptsError) {
+      throw new Error(`Ошибка при получении чеков: ${allReceiptsError.message}`);
+    }
+
+    const allReceiptsSessions: SessionSummaryRow[] = (allReceiptsData || []) as SessionSummaryRow[];
+
+    const requiredClientIds = Array.from(
+      new Set([
+        ...Object.keys(clientNames),
+        ...allDebtsSessions.map((s) => s.client_id),
+        ...allReceiptsSessions.map((s) => s.client_id),
+      ])
+    );
+    const missingIds = requiredClientIds.filter((id) => !clientNames[id]);
+    if (missingIds.length > 0) {
+      const { data: moreClients } = await supabase
+        .from('clients')
+        .select('id, name')
+        .in('id', missingIds);
+      if (moreClients) {
+        moreClients.forEach((c: { id: string; name: string }) => {
+          clientNames[c.id] = c.name;
+        });
+      }
+    }
+
+    outstandingTotal = allDebtsSessions.reduce((sum, s) => sum + (s.price || 0), 0);
+    outstandingCount = allDebtsSessions.length;
+
+    allDebtsSessions.forEach((s) => {
+      const amount = s.price || 0;
+      debtorsMap[s.client_id] = (debtorsMap[s.client_id] || 0) + amount;
+    });
+
+    const debtors = Object.entries(debtorsMap)
+      .map(([client_id, debt_amount]) => ({
+        client_id,
+        client_name: clientNames[client_id] || 'Unknown Client',
+        debt_amount,
+      }))
+      .sort((a, b) => (b.debt_amount || 0) - (a.debt_amount || 0));
+
+    const receiptReminders = allReceiptsSessions.map((session: SessionSummaryRow) => ({
+      client_id: session.client_id,
+      client_name: clientNames[session.client_id] || 'Unknown Client',
+      session_date: session.scheduled_at,
+      session_id: session.id,
     }));
 
-    // 4. Формирование списка напоминаний о чеках (например, сессии оплачены, но чек не отправлен)
-    const receiptReminders = sessions
-      .filter((session: SessionSummaryRow) => !!session.paid && !session.receipt_sent)
-      .map((session: SessionSummaryRow) => ({
-        client_id: session.client_id,
-        client_name: clientNames[session.client_id] || 'Unknown Client',
-        session_date: session.scheduled_at,
-        session_id: session.id,
-      }));
-
-    const receiptsToSendCount = receiptReminders.length;
+    const receiptsToSendCount = allReceiptsSessions.length;
 
     // 5. Недавние транзакции: последние оплаченные сессии
     const recentTransactions = sessions
