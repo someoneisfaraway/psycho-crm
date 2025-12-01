@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Client } from '../../types/database';
 import type { Session } from '../../types/database';
 
-import { Mail, Phone, User, CreditCard, TrendingUp, X, MapPin, Wallet, Clock } from 'lucide-react';
+import { Mail, Phone, User, CreditCard, TrendingUp, X, MapPin, Wallet, Clock, FileText, Calendar } from 'lucide-react';
 import { decrypt, ENCRYPTION_EVENT } from '../../utils/encryption';
 import { formatDate, pluralize } from '../../utils/formatting';
 import { getSessionsByClient } from '../../api/sessions';
@@ -131,9 +131,13 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   const lastSession = sessions.length > 0 ? sessions.reduce((latest, session) => 
     new Date(session.scheduled_at) > new Date(latest.scheduled_at) ? session : latest
  ) : null;
-  const nextSession = sessions.length > 0 ? sessions
-    .filter(s => new Date(s.scheduled_at) > new Date() && s.status !== 'completed')
-    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0] || null : null;
+  const nextSession = sessions.length > 0 ? (() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return sessions
+      .filter(s => new Date(s.scheduled_at).getTime() >= start.getTime() && s.status === 'scheduled')
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0] || null;
+  })() : null;
 
   // Format client data
   const clientName = client.name || 'Без имени';
@@ -172,7 +176,10 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
           {/* Contact Information */}
           {(client.age || client.location || client.phone || client.email || client.telegram) && (
             <div className="card mb-6">
-              <h3 className="text-lg font-medium text-text-primary mb-4">Контакты</h3>
+              <div className="flex items-center mb-4">
+                <Phone className="h-5 w-5 text-icon-secondary mr-2" />
+                <h3 className="text-lg font-medium text-text-primary">Контакты</h3>
+              </div>
               
               <div className="space-y-3">
                 {client.age && (
@@ -230,7 +237,10 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
           
           {/* Finance and Format */}
           <div className="card mb-6">
-            <h3 className="text-lg font-medium text-text-primary mb-4">Финансы и формат</h3>
+            <div className="flex items-center mb-4">
+              <CreditCard className="h-5 w-5 text-icon-secondary mr-2" />
+              <h3 className="text-lg font-medium text-text-primary">Финансы и формат</h3>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center">
@@ -273,7 +283,10 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
           
           {/* Statistics */}
           <div className="card bg-status-info-bg border-status-info-border mb-6">
-            <h3 className="text-lg font-medium text-text-primary mb-4">📊 Статистика</h3>
+            <div className="flex items-center mb-4">
+              <TrendingUp className="h-5 w-5 text-icon-secondary mr-2" />
+              <h3 className="text-lg font-medium text-text-primary">Статистика</h3>
+            </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="card">
@@ -310,36 +323,41 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                 <p className="text-base font-medium text-text-primary">{getClientScheduleLabel((client as any).schedule)}</p>
               </div>
             
-            {(client.created_at || lastSession || nextSession) && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                {client.created_at && (
-                  <div className="card">
-                    <p className="text-text-secondary">Первая сессия</p>
-                    <p className="font-medium text-text-primary">{formatDate(client.created_at, 'd MMMM yyyy', { locale: 'ru' as any })}</p>
-                  </div>
-                )}
-                
-                {lastSession && (
-                  <div className="card">
-                    <p className="text-text-secondary">Последняя сессия</p>
-                    <p className="font-medium text-text-primary">{formatDate(lastSession.scheduled_at, 'd MMMM yyyy', { locale: 'ru' as any })}</p>
-                  </div>
-                )}
-                
-                {nextSession && (
-                  <div className="card">
-                    <p className="text-text-secondary">Следующая сессия</p>
-                    <p className="font-medium text-text-primary">{formatDate(nextSession.scheduled_at, 'd MMMM yyyy', { locale: 'ru' as any })}</p>
-                  </div>
-                )}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="card">
+                <p className="text-text-secondary">Всего сессий</p>
+                <p className="text-xl font-bold text-text-primary">{totalSessions}</p>
               </div>
-            )}
+              <div className="card">
+                <p className="text-text-secondary">Следующая сессия</p>
+                <p className="font-medium text-text-primary">{nextSession ? formatDate(nextSession.scheduled_at, 'd MMMM yyyy', { locale: 'ru' as any }) : '—'}</p>
+              </div>
+              <div className="card">
+                <p className="text-text-secondary">Первая сессия</p>
+                <p className="font-medium text-text-primary">{client.created_at ? formatDate(client.created_at, 'd MMMM yyyy', { locale: 'ru' as any }) : '—'}</p>
+              </div>
+              <div className="card">
+                <p className="text-text-secondary">Последняя сессия</p>
+                <p className="font-medium text-text-primary">{lastSession ? formatDate(lastSession.scheduled_at, 'd MMMM yyyy', { locale: 'ru' as any }) : '—'}</p>
+              </div>
+              <div className="card">
+                <p className="text-text-secondary">Оплачено</p>
+                <p className="text-xl font-bold text-text-primary">{totalPaid.toLocaleString('ru-RU')} ₽</p>
+              </div>
+              <div className="card">
+                <p className="text-text-secondary">Задолженность</p>
+                <p className="text-xl font-bold text-text-primary">{debt.toLocaleString('ru-RU')} ₽</p>
+              </div>
+            </div>
           </div>
           
           {/* Notes */}
           {client.notes_encrypted && (
             <div className="card mb-6">
-              <h3 className="text-lg font-medium text-text-primary mb-4">📝 Примечания</h3>
+              <div className="flex items-center mb-4">
+                <FileText className="h-5 w-5 text-icon-secondary mr-2" />
+                <h3 className="text-lg font-medium text-text-primary">Примечания</h3>
+              </div>
               
               {decryptedNotes ? (
                 <div className="card bg-bg-secondary border-border-primary whitespace-pre-wrap text-text-primary">
@@ -359,9 +377,10 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
           
           {/* Session History */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-text-primary mb-4">
-              История сессий ({totalSessions})
-            </h3>
+            <div className="flex items-center mb-4">
+              <Calendar className="h-5 w-5 text-icon-secondary mr-2" />
+              <h3 className="text-lg font-medium text-text-primary">История сессий ({totalSessions})</h3>
+            </div>
             
             {loading ? (
               <div className="flex justify-center py-4">

@@ -333,7 +333,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
 // const formatDateTime = (date: Date) => format(date, 'd MMMM yyyy РІ HH:mm', { locale: ru });
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50">
       <div className="modal-container w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import type { Client, Session } from '../../types/database';
 import { Button } from '../ui/Button';
-import { Mail, Phone, User, FileText, CreditCard, X, MapPin } from 'lucide-react';
+import { Mail, Phone, User, FileText, CreditCard, X, MapPin, Calendar, TrendingUp } from 'lucide-react';
 import { decrypt, ENCRYPTION_EVENT } from '../../utils/encryption';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { getSessionsByClient } from '../../api/sessions';
 import { useAuth } from '../../contexts/AuthContext';
@@ -137,18 +137,7 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-status-success-bg text-status-success-text';
-      case 'paused':
-        return 'bg-status-warning-bg text-status-warning-text';
-      case 'completed':
-        return 'bg-status-neutral-bg text-status-neutral-text';
-      default:
-        return 'bg-status-neutral-bg text-status-neutral-text';
-    }
-  };
+  
 
   const getSourceLabel = (source: string): string => {
     return source === 'private' ? 'Личные' : source;
@@ -203,24 +192,28 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
             </button>
           </div>
           
-          {/* Identification section */}
           <div className="card mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-text-primary">Идентификация</h3>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(client.status)}`}>
-                {client.status === 'active' ? 'Активный' : client.status === 'paused' ? 'На паузе' : 'Завершён'}
+              <div className="flex items-center">
+                <User className="h-5 w-5 text-icon-secondary mr-2" aria-hidden="true" />
+                <h3 className="text-lg font-medium text-text-primary">Идентификация</h3>
+              </div>
+              <span className="text-sm font-bold" style={{ color: client.status === 'active' ? '#48c053' : client.status === 'paused' ? '#c99b0e' : '#ff0000' }}>
+                {client.status === 'active' ? 'Активный' : client.status === 'paused' ? 'Пауза' : 'Завершен'}
               </span>
             </div>
-            <div className="flex gap-2 text-sm text-text-secondary">
-              <span>• {getSourceLabel(client.source)}</span>
-              <span>• {getClientScheduleLabel((client as any).schedule)}</span>
+            <div className="flex gap-4">
+              <span className="font-medium text-text-primary text-base">{getSourceLabel(client.source)}</span>
+              <span className="font-medium text-text-primary text-base">{getClientScheduleLabel((client as any).schedule)}</span>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Contacts section */}
             <div className="card">
-              <h3 className="text-lg font-medium text-text-primary mb-4">Контакты</h3>
+              <div className="flex items-center mb-4">
+                <Phone className="h-5 w-5 text-icon-secondary mr-2" aria-hidden="true" />
+                <h3 className="text-lg font-medium text-text-primary">Контакты</h3>
+              </div>
               
               <div className="space-y-3">
                 {client.age && (
@@ -275,9 +268,11 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
               </div>
             </div>
             
-            {/* Finance and Format section */}
             <div className="card">
-              <h3 className="text-lg font-medium text-text-primary mb-4">Финансы и формат</h3>
+              <div className="flex items-center mb-4">
+                <CreditCard className="h-5 w-5 text-icon-secondary mr-2" aria-hidden="true" />
+                <h3 className="text-lg font-medium text-text-primary">Финансы и формат</h3>
+              </div>
               
               <div className="space-y-3">
                 <div className="flex items-center">
@@ -309,21 +304,26 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
             </div>
           </div>
           
-          {/* Statistics section */}
           <div className="card bg-status-info-bg border-status-info-border mb-6">
-            <h3 className="text-lg font-medium text-text-primary mb-4">📊 Статистика</h3>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="flex items-center mb-4">
+              <TrendingUp className="h-5 w-5 text-icon-secondary mr-2" aria-hidden="true" />
+              <h3 className="text-lg font-medium text-text-primary">Статистика</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="card">
                 <p className="text-text-secondary">Всего сессий</p>
                 <p className="font-semibold text-lg text-text-primary">{sessions.length}</p>
               </div>
-              
               <div className="card">
-                <p className="text-text-secondary">Оплачено</p>
-                <p className="font-semibold text-lg text-text-primary">{sessions.filter(s => !!s.paid).reduce((sum, s) => sum + (s.price || 0), 0).toLocaleString('ru-RU')} ₽</p>
+                <p className="text-text-secondary">Следующая сессия</p>
+                <p className="font-semibold text-text-primary">{(() => {
+                  const start = startOfDay(new Date());
+                  const nextScheduled = sessions
+                    .filter(s => s.status === 'scheduled' && new Date(s.scheduled_at).getTime() >= start.getTime())
+                    .sort((a,b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
+                  return nextScheduled ? format(new Date(nextScheduled.scheduled_at), 'd MMMM yyyy, HH:mm', { locale: ru }) : '—';
+                })()}</p>
               </div>
-              
               <div className="card">
                 <p className="text-text-secondary">Первая сессия</p>
                 <p className="font-semibold text-text-primary">{(() => {
@@ -331,7 +331,6 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
                   return firstCompleted ? formatDate(firstCompleted.scheduled_at) : '—';
                 })()}</p>
               </div>
-              
               <div className="card">
                 <p className="text-text-secondary">Последняя сессия</p>
                 <p className="font-semibold text-text-primary">{(() => {
@@ -339,26 +338,22 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
                   return lastCompleted ? formatDate(lastCompleted.scheduled_at) : '—';
                 })()}</p>
               </div>
-              
-              <div className="col-span-2 md:col-span-4 card">
-                <p className="text-text-secondary">Следующая сессия</p>
-                <p className="font-semibold text-text-primary">{(() => {
-                  const now = new Date();
-                  const nextScheduled = sessions.filter(s => s.status === 'scheduled' && new Date(s.scheduled_at) > now).sort((a,b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
-                  return nextScheduled ? format(new Date(nextScheduled.scheduled_at), 'd MMMM yyyy, HH:mm', { locale: ru }) : '—';
-                })()}</p>
+              <div className="card">
+                <p className="text-text-secondary">Оплачено</p>
+                <p className="font-semibold text-lg text-text-primary">{sessions.filter(s => !!s.paid).reduce((sum, s) => sum + (s.price || 0), 0).toLocaleString('ru-RU')} ₽</p>
               </div>
-              
-              <div className="col-span-2 md:col-span-4 card">
+              <div className="card">
                 <p className="text-text-secondary">Задолженность</p>
                 <p className="font-semibold text-lg text-text-primary">{sessions.filter(s => s.status === 'completed' && !s.paid).reduce((sum,s) => sum + (s.price || 0), 0).toLocaleString('ru-RU')} ₽</p>
               </div>
             </div>
           </div>
 
-          {/* Sessions section with pagination */}
           <div className="card mb-6">
-            <h3 className="text-lg font-medium text-text-primary mb-4">Сессии</h3>
+            <div className="flex items-center mb-4">
+              <Calendar className="h-5 w-5 text-icon-secondary mr-2" aria-hidden="true" />
+              <h3 className="text-lg font-medium text-text-primary">Сессии</h3>
+            </div>
             {sessionsLoading ? (
               <p className="text-text-secondary">Загрузка списка сессий…</p>
             ) : sessions.length === 0 ? (
@@ -403,10 +398,12 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
             )}
           </div>
           
-          {/* Notes section */}
           {(client.notes_encrypted) && (
             <div className="card mb-6">
-              <h3 className="text-lg font-medium text-text-primary mb-4">📝 Примечания</h3>
+              <div className="flex items-center mb-4">
+                <FileText className="h-5 w-5 text-icon-secondary mr-2" aria-hidden="true" />
+                <h3 className="text-lg font-medium text-text-primary">Примечания</h3>
+              </div>
               
               {client.notes_encrypted && (
                 <div>

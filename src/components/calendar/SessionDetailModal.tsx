@@ -82,13 +82,11 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     return () => { if (typeof window !== 'undefined') window.removeEventListener(ENCRYPTION_EVENT, handler as EventListener); };
   }, [session?.note_encrypted, user?.id]);
 
-  const statusBadgeColor = () => {
-    switch (session.status) {
-      case 'scheduled': return 'bg-status-info-bg text-status-info-text';
-      case 'completed': return 'bg-status-success-bg text-status-success-text';
-      case 'cancelled': return 'bg-status-neutral-bg text-status-neutral-text';
-      default: return 'bg-status-neutral-bg text-status-neutral-text';
-    }
+  
+  const statusTextStyle = (): React.CSSProperties => {
+    if (session.status === 'completed') return { color: '#48c053', fontWeight: 700 } as React.CSSProperties;
+    if (session.status === 'cancelled') return { color: '#ff0000', fontWeight: 700 } as React.CSSProperties;
+    return { fontWeight: 700 } as React.CSSProperties;
   };
   const paymentIndicatorColor = session.paid ? 'text-status-success-text' : 'text-status-warning-text';
   const receiptIndicatorColor = session.receipt_sent ? 'text-status-success-text' : 'text-status-warning-text';
@@ -139,7 +137,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               <div className="flex justify-between"><span className="text-text-secondary">Дата и время:</span><span className="font-medium text-text-primary">{formatDateTime(session.scheduled_at)}</span></div>
               <div className="flex justify-between"><span className="text-text-secondary">Длительность:</span><span className="font-medium text-text-primary">{session.duration} минут</span></div>
               <div className="flex justify-between"><span className="text-text-secondary">Формат:</span><span className="font-medium text-text-primary">{session.format === 'online' ? '💻 Онлайн' : '📍 Офлайн'}</span></div>
-              <div className="flex justify-between"><span className="text-text-secondary">Статус:</span><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadgeColor()}`}>{session.status === 'scheduled' ? 'Запланирована' : session.status === 'completed' ? 'Завершена' : session.status === 'cancelled' ? 'Отменена' : session.status}</span></div>
+              <div className="flex justify-between"><span className="text-text-secondary">Статус:</span><span className="text-xs" style={statusTextStyle()}>{session.status === 'scheduled' ? 'Запланирована' : session.status === 'completed' ? 'Завершена' : session.status === 'cancelled' ? 'Отменена' : session.status}</span></div>
               {session.status === 'scheduled' && session.meeting_link && (
                 <div className="flex justify-between">
                   <span className="text-text-secondary">Ссылка на встречу:</span>

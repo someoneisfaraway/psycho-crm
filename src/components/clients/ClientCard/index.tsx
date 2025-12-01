@@ -20,16 +20,16 @@ const ClientCard: React.FC<ClientCardProps> = ({
   onViewDetails
 }) => {
   // Функция для определения цвета статуса
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-status-success-bg text-status-success';
+        return { color: '#48c053', fontWeight: 700 } as React.CSSProperties;
       case 'paused':
-        return 'bg-status-warning-bg text-status-warning';
+        return { color: '#c99b0e', fontWeight: 700 } as React.CSSProperties;
       case 'completed':
-        return 'bg-status-neutral-bg text-status-neutral';
+        return { color: '#ff0000', fontWeight: 700 } as React.CSSProperties;
       default:
-        return 'bg-status-neutral-bg text-status-neutral';
+        return { fontWeight: 700 } as React.CSSProperties;
     }
   };
 
@@ -70,10 +70,10 @@ const ClientCard: React.FC<ClientCardProps> = ({
               {client.name}
             </h3>
           </div>
-          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full flex-shrink-0 ml-2 ${getStatusColor(client.status)}`}>
+          <span className="text-xs ml-2" style={getStatusStyle(client.status)}>
             {client.status === 'active' ? 'Активный' :
-             client.status === 'paused' ? 'На паузе' :
-             'Завершён'}
+             client.status === 'paused' ? 'Пауза' :
+             'Завершен'}
           </span>
         </div>
 
@@ -100,7 +100,7 @@ const ClientCard: React.FC<ClientCardProps> = ({
             </span>
             <span className="inline-flex items-center text-text-secondary">
               <span className="mr-1">•</span>
-              <span className={getSourceColor(client.source)}>{client.source === 'private' ? 'Частный' : client.source}</span>
+              <span className={getSourceColor(client.source)}>{client.source === 'private' ? 'Личные' : client.source}</span>
             </span>
             <span className="inline-flex items-center text-text-secondary">
               <span className="mr-1">•</span>
