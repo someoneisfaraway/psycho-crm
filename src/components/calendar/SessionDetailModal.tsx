@@ -140,6 +140,12 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               <div className="flex justify-between"><span className="text-text-secondary">Длительность:</span><span className="font-medium text-text-primary">{session.duration} минут</span></div>
               <div className="flex justify-between"><span className="text-text-secondary">Формат:</span><span className="font-medium text-text-primary">{session.format === 'online' ? '💻 Онлайн' : '📍 Офлайн'}</span></div>
               <div className="flex justify-between"><span className="text-text-secondary">Статус:</span><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadgeColor()}`}>{session.status === 'scheduled' ? 'Запланирована' : session.status === 'completed' ? 'Завершена' : session.status === 'cancelled' ? 'Отменена' : session.status}</span></div>
+              {session.status === 'scheduled' && session.meeting_link && (
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Ссылка на встречу:</span>
+                  <a href={session.meeting_link} target="_blank" rel="noopener noreferrer" className="font-medium text-primary-600 underline break-all">{session.meeting_link}</a>
+                </div>
+              )}
             </div>
           </div>
 

@@ -5,12 +5,13 @@ import { ru } from 'date-fns/locale'; // Убедитесь, что локаль
 import type { Session } from '../../types/database'; // Импортируем тип Session
 
 interface CalendarGridProps {
-  sessions: Session[]; // Список сессий для отображения индикаторов
-  selectedDate: Date | null; // Выбранная дата
-  onDateSelect: (date: Date) => void; // Функция для выбора даты
+  sessions: Session[];
+  selectedDate: Date | null;
+  onDateSelect: (date: Date) => void;
+  onRangeChange?: (start: Date, end: Date) => void;
 }
 
-const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onDateSelect }) => {
+const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onDateSelect, onRangeChange }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [daysInMonth, setDaysInMonth] = useState<Date[]>([]);
 
@@ -72,6 +73,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ sessions, selectedDate, onD
       day = addDays(day, 1);
     }
     setDaysInMonth(days);
+    if (onRangeChange) onRangeChange(start, end);
   }, [currentDate, viewMode]);
 
   // Обработчики навигации

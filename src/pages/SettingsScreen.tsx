@@ -286,10 +286,22 @@ interface WorkSettingsProps {
 const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings }) => {
   const [isEditing, setIsEditing] = React.useState(false);
   const [formData, setFormData] = React.useState<WorkSettingsData>(settings);
+  const [priceInput, setPriceInput] = React.useState<string>(String(settings.defaultSessionPrice ?? ''));
+  const [durationInput, setDurationInput] = React.useState<string>(String(settings.defaultSessionDuration ?? ''));
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: name === 'defaultSessionPrice' || name === 'defaultSessionDuration' ? parseInt(value, 10) || 0 : value }));
+    if (name === 'defaultSessionPrice') {
+      setPriceInput(value);
+      setFormData(prev => ({ ...prev, defaultSessionPrice: value === '' ? 0 : (parseInt(value, 10) || 0) }));
+      return;
+    }
+    if (name === 'defaultSessionDuration') {
+      setDurationInput(value);
+      setFormData(prev => ({ ...prev, defaultSessionDuration: value === '' ? 0 : (parseInt(value, 10) || 0) }));
+      return;
+    }
+    setFormData(prev => ({ ...prev, [name]: value } as WorkSettingsData));
   };
 
   const handleSave = async () => {
@@ -300,12 +312,16 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
   const handleEdit = () => {
     setIsEditing(true);
     setFormData(settings);
+    setPriceInput(String(settings.defaultSessionPrice ?? ''));
+    setDurationInput(String(settings.defaultSessionDuration ?? ''));
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     // Сбросим форму к данным из пропсов
     setFormData(settings);
+    setPriceInput(String(settings.defaultSessionPrice ?? ''));
+    setDurationInput(String(settings.defaultSessionDuration ?? ''));
   };
 
   return (
@@ -353,7 +369,7 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
                 type="number"
                 id="defaultSessionPrice"
                 name="defaultSessionPrice"
-                value={formData.defaultSessionPrice}
+                value={priceInput}
                 onChange={handleChange}
                 min="0"
                 className="form-input"
@@ -367,7 +383,7 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
                 type="number"
                 id="defaultSessionDuration"
                 name="defaultSessionDuration"
-                value={formData.defaultSessionDuration}
+                value={durationInput}
                 onChange={handleChange}
                 min="1"
                 className="form-input"

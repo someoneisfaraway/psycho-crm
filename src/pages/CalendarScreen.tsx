@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Plus } from 'lucide-react';
 
@@ -45,19 +45,9 @@ const CalendarScreen: React.FC = () => {
   }, [navState]);
 
   useEffect(() => {
-    const fetchCalendarData = async () => {
+    const loadClients = async () => {
       if (!user?.id) return;
-      setLoading(true);
-      setError(null);
       try {
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        startOfMonth.setHours(0, 0, 0, 0);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        endOfMonth.setHours(23, 59, 59, 999);
-        const sessionsData = await sessionsApi.getForDateRange(user.id, startOfMonth, endOfMonth);
-        setSessions(Array.isArray(sessionsData) ? (sessionsData as any) : []);
-
         const clientsData = await clientsApi.getAll(user.id);
         if (Array.isArray(clientsData)) {
           const map = clientsData.reduce((acc: Record<string, Client>, c: Client) => {
@@ -69,15 +59,34 @@ const CalendarScreen: React.FC = () => {
           setClients({});
         }
       } catch (e) {
-        console.error('Failed to fetch calendar data', e);
+        console.error(e);
+        setClients({});
+      }
+    };
+    loadClients();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const loadInitialRange = async () => {
+      if (!user?.id) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const today = new Date();
+        const start = startOfWeek(today, { weekStartsOn: 1 });
+        const end = endOfWeek(today, { weekStartsOn: 1 });
+        const sessionsData = await sessionsApi.getForDateRange(user.id, start, end);
+        setSessions(Array.isArray(sessionsData) ? (sessionsData as any) : []);
+        setInitialLoaded(true);
+      } catch (e) {
+        console.error('Failed to fetch initial calendar range', e);
         setError('Не удалось загрузить календарь. Попробуйте позже.');
         setSessions([]);
-        setClients({});
       } finally {
         setLoading(false);
       }
     };
-    fetchCalendarData();
+    loadInitialRange();
   }, [user?.id]);
 
   useEffect(() => {
@@ -98,6 +107,23 @@ const CalendarScreen: React.FC = () => {
   }, [selectedDate, sessions]);
 
   const handleDateSelect = (date: Date) => setSelectedDate(date);
+  const [initialLoaded, setInitialLoaded] = useState<boolean>(false);
+  const handleRangeChange = async (start: Date, end: Date) => {
+    if (!user?.id) return;
+    if (!initialLoaded) setLoading(true);
+    try {
+      const sessionsData = await sessionsApi.getForDateRange(user.id, start, end);
+      setSessions(Array.isArray(sessionsData) ? (sessionsData as any) : []);
+      if (!initialLoaded) setInitialLoaded(true);
+      setError(null);
+    } catch (e) {
+      console.error('Failed to fetch sessions for range', e);
+      if (!initialLoaded) setError('Не удалось загрузить календарь. Попробуйте позже.');
+      setSessions([]);
+    } finally {
+      if (!initialLoaded) setLoading(false);
+    }
+  };
   const handleNewSessionClick = (date: Date) => {
     setSelectedDate(date);
     setSelectedSession(null);
@@ -297,7 +323,7 @@ const CalendarScreen: React.FC = () => {
     <div className="screen-container">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <CalendarGrid sessions={sessions} selectedDate={selectedDate} onDateSelect={handleDateSelect} />
+          <CalendarGrid sessions={sessions} selectedDate={selectedDate} onDateSelect={handleDateSelect} onRangeChange={handleRangeChange} />
         </div>
         <div className="card">
           {selectedDate ? (
