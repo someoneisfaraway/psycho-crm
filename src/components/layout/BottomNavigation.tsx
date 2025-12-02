@@ -41,7 +41,7 @@ const BottomNavigation: React.FC = () => {
               to={item.path}
               className={`flex flex-col items-center py-3 px-4 transition-colors duration-200 ${
                 isActive 
-                  ? 'text-primary-600 bg-primary-50 border-t-2 border-primary-600' 
+                  ? 'text-[#8b5cf6] bg-[#f5f3ff] border-t-2 border-[#8b5cf6]'
                   : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50'
               }`}
             >

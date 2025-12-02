@@ -5,14 +5,9 @@ import { exportUserData } from '../utils/exportData'; // Импортируем 
 import { supabase } from '../config/supabase'; // Импортируем клиент
 // import of encryption settings removed
 import { Button } from '../components/ui/Button';
-import { sendPushToUser } from '../api/notifications';
+ 
 
-// --- Тип для настроек уведомлений ---
-interface NotificationSettingsData {
-  sessionReminders: boolean;
-  receiptReminders: boolean;
-  // Добавьте другие типы уведомлений при необходимости
-}
+ 
 
 // --- Тип для рабочих настроек ---
 interface WorkSettingsData {
@@ -224,58 +219,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, initialName, onUpdatePr
   );
 };
 
-// --- Компонент настроек уведомлений ---
-interface NotificationSettingsProps {
-  settings: NotificationSettingsData;
-  onUpdateSettings: (newSettings: NotificationSettingsData) => void;
-}
-
-const NotificationSettings: React.FC<NotificationSettingsProps> = ({ settings, onUpdateSettings }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    // Обновляем только одно поле в настройках
-    onUpdateSettings({ ...settings, [name]: checked });
-  };
-
-  return (
-    <div className="card mb-6">
-      <h2 className="text-lg font-semibold text-text-primary mb-4">Настройки уведомлений</h2>
-      <ul className="space-y-4">
-        <li className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="sessionReminders"
-              name="sessionReminders"
-              type="checkbox"
-              checked={settings.sessionReminders}
-              onChange={handleChange}
-              className="form-checkbox"
-            />
-            <label htmlFor="sessionReminders" className="ml-2 block text-sm text-text-primary">
-              Напоминания о сессиях
-            </label>
-          </div>
-        </li>
-        <li className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="receiptReminders"
-              name="receiptReminders"
-              type="checkbox"
-              checked={settings.receiptReminders}
-              onChange={handleChange}
-              className="form-checkbox"
-            />
-            <label htmlFor="receiptReminders" className="ml-2 block text-sm text-text-primary">
-              Напоминания о чеках
-            </label>
-          </div>
-        </li>
-        {/* Добавьте другие типы уведомлений при необходимости */}
-      </ul>
-    </div>
-  );
-};
+ 
 
 // --- Компонент рабочих настроек ---
 interface WorkSettingsProps {
@@ -563,7 +507,7 @@ const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = () => {
   return (
     <div className="card border-status-error-border bg-status-error-bg mt-6">
       <h2 className="text-lg font-semibold text-status-error mb-2">Удаление аккаунта</h2>
-      <p className="text-sm text-status-error-text mb-4">
+      <p className="text-sm mb-4" style={{ color: '#ff0000' }}>
         Это действие необратимо. Все ваши данные будут удалены.
       </p>
       <div className="mb-4">
@@ -584,6 +528,7 @@ const AccountDeletionSection: React.FC<AccountDeletionSectionProps> = () => {
         variant="destructive"
         onClick={handleDeleteAccount}
         disabled={!isConfirmed || isDeleting}
+        className="bg-[#ff0000] hover:bg-[#ff0000] border-[#ff0000] text-white"
       >
         {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
       </Button>
@@ -606,11 +551,7 @@ const SettingsScreen: React.FC = () => {
     );
   }
 
-  // --- Состояние для настроек уведомлений ---
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsData>({
-    sessionReminders: true, // Значение по умолчанию
-    receiptReminders: false, // Значение по умолчанию
-  });
+  
 
   // --- Состояние для рабочих настроек ---
   const [workSettings, setWorkSettings] = useState<WorkSettingsData>({
@@ -619,87 +560,18 @@ const SettingsScreen: React.FC = () => {
     timezone: 'Europe/Moscow', // Значение по умолчанию
   });
   const [dbUserName, setDbUserName] = useState<string>('');
-  const [pushPermission, setPushPermission] = useState<string>('unknown');
 
-  // --- Функция для обновления настроек уведомлений ---
-  const handleUpdateNotificationSettings = (newSettings: NotificationSettingsData) => {
-    console.log("Попытка обновить настройки уведомлений:", newSettings);
-    setNotificationSettings(newSettings);
-    // Здесь будет вызов API для сохранения настроек в Supabase
-    // await updateNotificationSettingsInSupabase(newSettings);
-  };
+  
 
-  const requestPushPermission = async () => {
-    try {
-      const d = (window as any).OneSignalDeferred;
-      if (d) {
-        d.push(async function(OneSignal: any) {
-          try {
-            if (OneSignal?.Notifications?.requestPermission) {
-              await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
-            } else if (typeof Notification !== 'undefined' && Notification.requestPermission) {
-              await Notification.requestPermission();
-            }
-          } finally {
-            const p = (typeof Notification !== 'undefined' && Notification.permission) ? Notification.permission : 'unknown';
-            setPushPermission(String(p));
-          }
-        });
-      } else if (typeof Notification !== 'undefined' && Notification.requestPermission) {
-        await Notification.requestPermission();
-        setPushPermission(String(Notification.permission));
-      }
-    } catch {}
-  };
+  
 
-  const sendTestPush = async () => {
-    try {
-      await sendPushToUser(authUser.id, 'Тестовое уведомление', 'Это тестовое web push уведомление');
-      alert('Тестовое пуш-уведомление отправлено');
-    } catch (e: any) {
-      alert(e?.message || 'Не удалось отправить пуш');
-    }
-  };
+  
 
-  const checkPushPermission = async () => {
-    try {
-      const p = (typeof Notification !== 'undefined' && Notification.permission) ? Notification.permission : 'unknown';
-      setPushPermission(String(p));
-      alert('Статус: ' + String(p));
-    } catch {}
-  };
+  
 
-  const rebindAndRequest = async () => {
-    try {
-      const d = (window as any).OneSignalDeferred;
-      if (d) {
-        d.push(async function(OneSignal: any) {
-          try {
-            if (OneSignal?.logout) await OneSignal.logout();
-            if (OneSignal?.login) await OneSignal.login(authUser.id);
-            if (OneSignal?.Notifications?.requestPermission) {
-              await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
-            } else if (typeof Notification !== 'undefined' && Notification.requestPermission) {
-              await Notification.requestPermission();
-            }
-          } finally {
-            const p = (typeof Notification !== 'undefined' && Notification.permission) ? Notification.permission : 'unknown';
-            setPushPermission(String(p));
-          }
-        });
-      } else if (typeof Notification !== 'undefined' && Notification.requestPermission) {
-        await Notification.requestPermission();
-        setPushPermission(String(Notification.permission));
-      }
-    } catch {}
-  };
+  
 
-  React.useEffect(() => {
-    try {
-      const p = (typeof Notification !== 'undefined' && Notification.permission) ? Notification.permission : 'unknown';
-      setPushPermission(String(p));
-    } catch {}
-  }, []);
+  
 
   // --- Функция для обновления рабочих настроек ---
   const handleUpdateWorkSettings = async (newSettings: WorkSettingsData) => {
@@ -905,22 +777,7 @@ const SettingsScreen: React.FC = () => {
         loading={savingProfile}
       />
 
-      {/* Компонент настроек уведомлений */}
-      <NotificationSettings
-        settings={notificationSettings}
-        onUpdateSettings={handleUpdateNotificationSettings}
-      />
-
-      <div className="card mb-6">
-        <h2 className="text-lg font-semibold text-text-primary mb-4">Web Push</h2>
-        <div className="text-sm text-text-secondary mb-3">Статус: {pushPermission}</div>
-        <div className="flex gap-3 flex-wrap">
-          <button className="btn-secondary" onClick={requestPushPermission}>Включить уведомления</button>
-          <button className="btn-secondary" onClick={checkPushPermission}>Проверить статус</button>
-          <button className="btn-secondary" onClick={rebindAndRequest}>Сбросить и запросить заново</button>
-          <button className="btn-primary" onClick={sendTestPush}>Отправить тест</button>
-        </div>
-      </div>
+      
 
       {/* Компонент рабочих настроек */}
       <WorkSettings

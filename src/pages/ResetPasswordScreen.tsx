@@ -71,7 +71,7 @@ const ResetPasswordScreen: React.FC = () => {
             <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
               Пароль успешно обновлён. Теперь вы можете войти в аккаунт.
             </div>
-            <a href="/auth" className="text-indigo-600 hover:text-indigo-500 text-sm font-medium">
+            <a href="/auth" className="text-[#8b5cf6] hover:text-[#7c3aed] text-sm font-medium">
               Вернуться ко входу
             </a>
           </div>
@@ -86,7 +86,7 @@ const ResetPasswordScreen: React.FC = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#8b5cf6] focus:ring-[#8b5cf6] sm:text-sm"
                 placeholder="Минимум 8 символов"
               />
             </div>
@@ -96,10 +96,10 @@ const ResetPasswordScreen: React.FC = () => {
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#8b5cf6] focus:ring-[#8b5cf6] sm:text-sm"
               />
             </div>
-            <Button type="submit" fullWidth loading={loading} className="bg-indigo-600 hover:bg-indigo-700">
+            <Button type="submit" fullWidth loading={loading} className="bg-[#8b5cf6] hover:bg-[#7c3aed]">
               Обновить пароль
             </Button>
           </form>

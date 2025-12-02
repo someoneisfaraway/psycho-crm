@@ -45,14 +45,14 @@
 
 /* Button variants */
 .btn-primary {
-  background-color: var(--primary-600);
+  background-color: #8b5cf6;
   color: white;
-  border: 1px solid var(--primary-600);
+  border: 1px solid #8b5cf6;
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-700);
-  border-color: var(--primary-700);
+  background-color: #7c3aed;
+  border-color: #7c3aed;
 }
 
 .btn-secondary {
