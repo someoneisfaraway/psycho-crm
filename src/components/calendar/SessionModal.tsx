@@ -68,7 +68,8 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
     if (isCreating && selectedDate) {
       // Р”Р»СЏ СЃРѕР·РґР°РЅРёСЏ РёСЃРїРѕР»СЊР·СѓРµРј РІС‹Р±СЂР°РЅРЅСѓСЋ РґР°С‚Сѓ
       const defaultTime = new Date(selectedDate);
-      defaultTime.setHours(10, 0, 0, 0); // РЈСЃС‚Р°РЅРѕРІРёРј РЅР° 10:00 РєР°Рє РїСЂРёРјРµСЂ
+      const hasSpecificTime = !(defaultTime.getHours() === 0 && defaultTime.getMinutes() === 0);
+      if (!hasSpecificTime) defaultTime.setHours(10, 0, 0, 0);
       setFormData(prev => ({
         ...prev,
         scheduled_at: defaultTime,
@@ -165,11 +166,11 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
         if (!start || isNaN(start.getTime())) return;
         const dayStr = format(start, 'yyyy-MM-dd');
         const sessions = await sessionsApi.getForDate(userId, dayStr);
-        const candidates = (sessions as any[]).filter(s => s.status !== 'cancelled' && (!session || s.id !== session.id));
+        const candidates = (sessions as any[]).filter(s => s.status === 'scheduled' && (!session || s.id !== session.id));
         const sorted = candidates.sort((a,b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
         const before = sorted.filter(s => new Date(s.scheduled_at).getTime() <= start.getTime());
         const prev = before.length ? before[before.length - 1] : null;
-        const conflictPrev = prev ? start.getTime() <= addMinutes(new Date(prev.scheduled_at), prev.duration || 50).getTime() : false;
+        const conflictPrev = prev ? start.getTime() < addMinutes(new Date(prev.scheduled_at), prev.duration || 50).getTime() : false;
         const next = sorted.find(s => new Date(s.scheduled_at).getTime() >= start.getTime());
         const newEnd = addMinutes(start, formData.duration || 0);
         const conflictNext = next ? newEnd.getTime() > new Date(next.scheduled_at).getTime() : false;

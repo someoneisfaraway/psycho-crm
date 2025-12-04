@@ -150,6 +150,26 @@ const CalendarScreen: React.FC = () => {
       const updated = await sessionsApi.markCompleted(id);
       updateLocalSessions(updated as any);
       setIsSessionDetailModalOpen(false);
+
+      // Предложение создать следующую сессию по расписанию клиента
+      if (selectedSession) {
+        const client = clients[selectedSession.client_id];
+        const schedule = client?.schedule;
+        if (schedule === '1x/week' || schedule === '1x/2weeks') {
+          const base = new Date(selectedSession.scheduled_at);
+          const days = schedule === '1x/week' ? 7 : 14;
+          const proposed = new Date(base.getTime());
+          proposed.setDate(base.getDate() + days);
+          const formatted = format(proposed, 'EEEE, d MMMM yyyy, HH:mm', { locale: ru });
+          const agree = window.confirm(`Создать следующую сессию для клиента "${client?.name}" на ${formatted}?`);
+          if (agree) {
+            setSelectedDate(proposed);
+            setSelectedSession(null);
+            setModalMode('create');
+            setIsSessionModalOpen(true);
+          }
+        }
+      }
     } catch (e: any) {
       console.error(e);
       setOperationError(e?.message || 'Не удалось завершить сессию');
@@ -390,7 +410,7 @@ const CalendarScreen: React.FC = () => {
           onClose={handleModalClose}
           onSave={handleSaveSession}
           selectedDate={selectedDate!}
-          initialClientId={navState?.clientId}
+          initialClientId={selectedSession?.client_id || navState?.clientId}
           userId={user?.id}
         />
       )}
