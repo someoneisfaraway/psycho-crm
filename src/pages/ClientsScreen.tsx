@@ -1,5 +1,5 @@
 // src/pages/ClientsScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { clientsApi } from "../api/clients"; // Импортируем API объект из существующего файла
 import type { Client, NewClient, UpdateClient } from '../types/database'; // Импортируем типы
@@ -10,14 +10,9 @@ import DeleteClientModal from '../components/clients/DeleteClientModal';
 import ViewClientDetailsModal from '../components/clients/ViewClientDetailsModal';
 import { Plus } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { supabase } from '../config/supabase';
+import { SearchInput } from '../components/ui/SearchInput';
 
-  interface FilterState {
-    status: string;
-    source: string;
-    schedule: string;
-    debt: 'with_debt' | 'no_debt' | 'all';
-  }
+  
 
 const ClientsScreen: React.FC = () => {
   const { user } = useAuth();
@@ -31,12 +26,7 @@ const ClientsScreen: React.FC = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   // Состояния для поиска и фильтров
 
-  const [filters, setFilters] = useState<FilterState>({
-    status: 'all',
-    source: 'all',
-    schedule: 'all',
-    debt: 'all'
-  });
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
   const routeState = location.state as { clientId?: string; openDetails?: boolean } | null;
 
@@ -47,15 +37,7 @@ const ClientsScreen: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const options = {
-        userId: user.id,
-        statusFilter: filters.status !== 'all' ? filters.status : undefined,
-        sourceFilters: filters.source !== 'all' ? [filters.source] : undefined,
-        scheduleFilters: filters.schedule !== 'all' ? [filters.schedule] : undefined,
-        debtFilter: filters.debt
-      };
-
-      const fetchedClients = await clientsApi.getClients(options);
+      const fetchedClients = await clientsApi.getAll(user.id);
       setClients(fetchedClients);
     } catch (err) {
       console.error('Failed to fetch clients:', err);
@@ -66,10 +48,10 @@ const ClientsScreen: React.FC = () => {
     }
   };
 
-  // Загружаем клиентов при монтировании, при изменении user.id или filters
+  // Загружаем клиентов при монтировании
   useEffect(() => {
     fetchClients();
-  }, [user?.id, filters]);
+  }, [user?.id]);
 
   // Открываем детали клиента автоматически, если пришли со страницы сессии
   useEffect(() => {
@@ -83,12 +65,11 @@ const ClientsScreen: React.FC = () => {
   }, [routeState, clients]);
 
   // Функция для обновления фильтров
-  const updateFilter = (filterName: keyof FilterState, value: any) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterName]: value
-    }));
-  };
+  const filteredClients = useMemo(() => {
+    if (!searchQuery.trim()) return clients;
+    const query = searchQuery.toLowerCase();
+    return clients.filter((client) => client.name.toLowerCase().includes(query));
+  }, [clients, searchQuery]);
 
   // Функция для добавления клиента
   const handleAddClient = async (newClientData: NewClient) => {
@@ -170,43 +151,7 @@ const ClientsScreen: React.FC = () => {
 
   // Раньше детали клиента заменяли весь экран. Теперь используем модал поверх экрана.
 
-  const [availableSources, setAvailableSources] = useState<string[]>([]);
-
-  useEffect(() => {
-    const loadSources = async () => {
-      if (!user?.id) return;
-      try {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('client_source2, client_source3, client_source4')
-          .eq('id', user.id)
-          .single();
-
-        const s2 = (userData as any)?.client_source2 || undefined;
-        const s3 = (userData as any)?.client_source3 || undefined;
-        const s4 = (userData as any)?.client_source4 || undefined;
-
-        const { data: clientData } = await supabase
-          .from('clients')
-          .select('source')
-          .eq('user_id', user.id);
-
-        const set = new Set<string>();
-        set.add('private');
-        [s2, s3, s4].forEach((s) => { if (s && String(s).trim() !== '') set.add(String(s).trim()); });
-        (clientData || []).forEach((row: any) => {
-          const src = row?.source;
-          if (src && String(src).trim() !== '') set.add(String(src).trim());
-        });
-
-        const values = Array.from(set);
-        setAvailableSources(values);
-      } catch {
-        setAvailableSources(['private']);
-      }
-    };
-    loadSources();
-  }, [user?.id]);
+  
 
   return (
     <div className="screen-container">
@@ -221,76 +166,18 @@ const ClientsScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Блок фильтров */}
         <div className="card mb-6">
-          <h2 className="text-lg font-semibold mb-3 text-text-primary">Фильтры</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Фильтр по статусу */}
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">Статус</label>
-              <select
-                value={filters.status}
-                onChange={(e) => updateFilter('status', e.target.value)}
-                className="form-input"
-              >
-                <option value="all">Все</option>
-                <option value="active">Активные</option>
-                <option value="paused">Пауза</option>
-                <option value="completed">Завершённые</option>
-              </select>
-            </div>
-
-            {/* Фильтр по источнику */}
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">Источник</label>
-              <select
-                value={filters.source}
-                onChange={(e) => updateFilter('source', e.target.value)}
-                className="form-input"
-              >
-                <option value="all">Все</option>
-                <option value="private">Личные</option>
-                {availableSources.filter((s) => s !== 'private').map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Фильтр по расписанию */}
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">Расписание</label>
-              <select
-                value={filters.schedule}
-                onChange={(e) => updateFilter('schedule', e.target.value)}
-                className="form-input"
-              >
-                <option value="all">Все</option>
-                <option value="2x/week">2х/нед</option>
-                <option value="1x/week">1х/нед</option>
-                <option value="1x/2weeks">1х/2нед</option>
-                <option value="flexible">Гибкое</option>
-              </select>
-            </div>
-
-            {/* Фильтр по долгам */}
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">Долги</label>
-              <select
-                value={filters.debt}
-                onChange={(e) => updateFilter('debt', e.target.value as FilterState['debt'])}
-                className="form-input"
-              >
-                <option value="all">Все</option>
-                <option value="with_debt">С долгом</option>
-                <option value="no_debt">Без долга</option>
-              </select>
-            </div>
-          </div>
+          <h2 className="text-lg font-semibold mb-3 text-text-primary">Поиск</h2>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Начните вводить имя клиента..."
+          />
         </div>
 
         {/* Здесь должен быть рендеринг списка клиентов и модалок */}
         <ClientsList
-          clients={clients}
+          clients={filteredClients}
           loading={loading}
           error={error}
           onViewClientDetails={handleViewClientDetails}

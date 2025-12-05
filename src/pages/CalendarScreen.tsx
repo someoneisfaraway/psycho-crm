@@ -8,10 +8,12 @@ import CalendarGrid from '../components/calendar/CalendarGrid';
 import SessionModal from '../components/calendar/SessionModal';
 import SessionDetailModal from '../components/calendar/SessionDetailModal';
 import SessionTransferModal from '../components/calendar/SessionTransferModal';
+import { OnboardingModal } from '../components/Onboarding';
 import { useAuth } from '../contexts/AuthContext';
 import { sessionsApi } from '../api/sessions';
 import { clientsApi } from '../api/clients';
 import type { Session, Client } from '../types/database';
+import { supabase } from '../config/supabase';
 
 interface SessionWithClient extends Session {
   clients?: { id: string; name: string };
@@ -32,6 +34,7 @@ const CalendarScreen: React.FC = () => {
   const [selectedSession, setSelectedSession] = useState<SessionWithClient | null>(null);
   const [operationError, setOperationError] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
 
   const location = useLocation();
   const navState = location.state as { clientId?: string; mode?: 'create' | 'edit' | 'view' } | null;
@@ -43,6 +46,25 @@ const CalendarScreen: React.FC = () => {
       setIsSessionModalOpen(true);
     }
   }, [navState]);
+
+  useEffect(() => {
+    const loadOnboardingFlag = async () => {
+      if (!user?.id) { setShowOnboarding(false); return; }
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('onboarding_completed')
+          .eq('id', user.id)
+          .single();
+        if (error) { setShowOnboarding(true); return; }
+        const completed = (data as any)?.onboarding_completed === true;
+        setShowOnboarding(!completed);
+      } catch {
+        setShowOnboarding(true);
+      }
+    };
+    loadOnboardingFlag();
+  }, [user?.id]);
 
   useEffect(() => {
     const loadClients = async () => {
@@ -341,6 +363,9 @@ const CalendarScreen: React.FC = () => {
 
   return (
     <div className="screen-container">
+      {showOnboarding && (
+        <OnboardingModal isOpen={showOnboarding} onComplete={() => setShowOnboarding(false)} />
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <CalendarGrid sessions={sessions} selectedDate={selectedDate} onDateSelect={handleDateSelect} onRangeChange={handleRangeChange} />
