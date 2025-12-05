@@ -8,7 +8,7 @@ import AddClientModal from '../components/clients/AddClientModal';
 import EditClientModal from '../components/clients/EditClientModal';
 import DeleteClientModal from '../components/clients/DeleteClientModal';
 import ViewClientDetailsModal from '../components/clients/ViewClientDetailsModal';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { SearchInput } from '../components/ui/SearchInput';
 
@@ -167,7 +167,9 @@ const ClientsScreen: React.FC = () => {
         </div>
 
         <div className="card mb-6">
-          <h2 className="text-lg font-semibold mb-3 text-text-primary">Поиск</h2>
+          <h2 className="text-lg font-semibold mb-3 text-text-primary">
+            <Search className="h-5 w-5 inline-block mr-2 text-icon-secondary" />Поиск
+          </h2>
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
