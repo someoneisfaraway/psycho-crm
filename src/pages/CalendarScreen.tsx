@@ -391,7 +391,9 @@ const CalendarScreen: React.FC = () => {
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="font-medium text-text-primary">
-                              {format(new Date(session.scheduled_at), 'HH:mm')} • {client?.name || 'Клиент'} • Сессия #{session.session_number}
+                              {format(new Date(session.scheduled_at), 'HH:mm')} • {client?.name || 'Клиент'}
+                              <br />
+                              Сессия #{session.session_number}
                             </div>
                             <div className="text-sm text-text-secondary">
                               {session.format === 'online' ? '💻 Онлайн' : '📍 Офлайн'} • {session.price} ₽
