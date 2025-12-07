@@ -30,24 +30,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
   // Убираем поиск и фильтрацию: просто отображаем переданных клиентов
   const [filteredClients, setFilteredClients] = useState<Client[]>(clients);
 
-  // Вычисляем короткий читаемый номер клиента (0001, 0002, ...) по порядку создания
-  // Используем весь массив clients, чтобы номер не зависел от локальной фильтрации
-  const displayIdMap = React.useMemo(() => {
-    try {
-      const sorted = [...clients].sort((a, b) => {
-        const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
-        return ta - tb;
-      });
-      const map: Record<string, string> = {};
-      sorted.forEach((c, idx) => {
-        map[c.id] = String(idx + 1).padStart(4, '0');
-      });
-      return map;
-    } catch {
-      return {} as Record<string, string>;
-    }
-  }, [clients]);
+  
 
   useEffect(() => {
     setFilteredClients(clients);
@@ -101,7 +84,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
             <ClientCard
               key={client.id}
               client={client}
-              displayId={displayIdMap[client.id]}
+              displayId={client.id}
               onEdit={onEditClient}
               onDelete={onDeleteClient}
               onViewDetails={onViewClientDetails}

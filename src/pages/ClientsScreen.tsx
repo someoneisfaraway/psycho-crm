@@ -66,9 +66,10 @@ const ClientsScreen: React.FC = () => {
 
   // Функция для обновления фильтров
   const filteredClients = useMemo(() => {
-    if (!searchQuery.trim()) return clients;
-    const query = searchQuery.toLowerCase();
-    return clients.filter((client) => client.name.toLowerCase().includes(query));
+    const base = !searchQuery.trim()
+      ? [...clients]
+      : clients.filter((client) => client.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    return base.sort((a, b) => a.name.localeCompare(b.name));
   }, [clients, searchQuery]);
 
   // Функция для добавления клиента
@@ -155,7 +156,7 @@ const ClientsScreen: React.FC = () => {
 
   return (
     <div className="screen-container">
-      <div className="max-w-7xl mx-auto px-2 py-6 sm:px-3 lg:px-4">
+      <div className="py-6">
         <div className="flex flex-col sm:flex-row justify-end items-center mb-6 gap-4">
           {/* Заголовок перенесён в общий хедер макета */}
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
