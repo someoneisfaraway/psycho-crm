@@ -364,8 +364,8 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
                     maxLength={15}
                     className="form-input w-[80%]"
                   />
-                  <div className="text-xs text-text-secondary w-[20%] text-right">
-                    Осталось: {Math.max(0, 15 - (formData.clientSource2?.length ?? 0))}
+                  <div className="text-xs text-text-secondary w-[20%] text-right pr-2">
+                    ещё: {Math.max(0, 15 - (formData.clientSource2?.length ?? 0))}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -378,8 +378,8 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
                     maxLength={15}
                     className="form-input w-[80%]"
                   />
-                  <div className="text-xs text-text-secondary w-[20%] text-right">
-                    Осталось: {Math.max(0, 15 - (formData.clientSource3?.length ?? 0))}
+                  <div className="text-xs text-text-secondary w-[20%] text-right pr-2">
+                    ещё: {Math.max(0, 15 - (formData.clientSource3?.length ?? 0))}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -392,8 +392,8 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
                     maxLength={15}
                     className="form-input w-[80%]"
                   />
-                  <div className="text-xs text-text-secondary w-[20%] text-right">
-                    Осталось: {Math.max(0, 15 - (formData.clientSource4?.length ?? 0))}
+                  <div className="text-xs text-text-secondary w-[20%] text-right pr-2">
+                    ещё: {Math.max(0, 15 - (formData.clientSource4?.length ?? 0))}
                   </div>
                 </div>
               </div>
