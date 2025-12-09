@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { format, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Plus } from 'lucide-react';
+import SuggestNextSessionToast from '../components/calendar/SuggestNextSessionToast';
 
 import CalendarGrid from '../components/calendar/CalendarGrid';
 import SessionModal from '../components/calendar/SessionModal';
@@ -35,6 +36,8 @@ const CalendarScreen: React.FC = () => {
   const [operationError, setOperationError] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [initialClientIdOverride, setInitialClientIdOverride] = useState<string | undefined>(undefined);
+  const [toastProposed, setToastProposed] = useState<{ open: boolean; clientId?: string; clientName?: string; proposedDate?: Date }>({ open: false });
 
   const location = useLocation();
   const navState = location.state as { clientId?: string; mode?: 'create' | 'edit' | 'view' } | null;
@@ -150,6 +153,7 @@ const CalendarScreen: React.FC = () => {
     setSelectedDate(date);
     setSelectedSession(null);
     setModalMode('create');
+    setInitialClientIdOverride(undefined);
     setIsSessionModalOpen(true);
   };
   const handleViewSession = (session: SessionWithClient) => {
@@ -173,7 +177,6 @@ const CalendarScreen: React.FC = () => {
       updateLocalSessions(updated as any);
       setIsSessionDetailModalOpen(false);
 
-      // Предложение создать следующую сессию по расписанию клиента
       if (selectedSession) {
         const client = clients[selectedSession.client_id];
         const schedule = client?.schedule;
@@ -182,14 +185,12 @@ const CalendarScreen: React.FC = () => {
           const days = schedule === '1x/week' ? 7 : 14;
           const proposed = new Date(base.getTime());
           proposed.setDate(base.getDate() + days);
-          const formatted = format(proposed, 'EEEE, d MMMM yyyy, HH:mm', { locale: ru });
-          const agree = window.confirm(`Создать следующую сессию для клиента "${client?.name}" на ${formatted}?`);
-          if (agree) {
-            setSelectedDate(proposed);
-            setSelectedSession(null);
-            setModalMode('create');
-            setIsSessionModalOpen(true);
-          }
+          setToastProposed({
+            open: true,
+            clientId: selectedSession.client_id,
+            clientName: client?.name || '',
+            proposedDate: proposed,
+          });
         }
       }
     } catch (e: any) {
@@ -298,6 +299,26 @@ const CalendarScreen: React.FC = () => {
   };
 
   const handleModalClose = () => setIsSessionModalOpen(false);
+  
+  useEffect(() => {
+    if (!isSessionModalOpen) {
+      setInitialClientIdOverride(undefined);
+    }
+  }, [isSessionModalOpen]);
+
+  const acceptProposed = () => {
+    if (!toastProposed.proposedDate || !toastProposed.clientId) { setToastProposed({ open: false }); return; }
+    setSelectedDate(toastProposed.proposedDate);
+    setSelectedSession(null);
+    setModalMode('create');
+    setInitialClientIdOverride(toastProposed.clientId);
+    setToastProposed({ open: false });
+    setIsSessionModalOpen(true);
+  };
+
+  const dismissProposed = () => {
+    setToastProposed({ open: false });
+  };
 
   const handleSaveSession = async (sessionData: any) => {
     if (!user?.id) { setError('Вы не авторизованы'); return; }
@@ -437,7 +458,7 @@ const CalendarScreen: React.FC = () => {
           onClose={handleModalClose}
           onSave={handleSaveSession}
           selectedDate={selectedDate!}
-          initialClientId={selectedSession?.client_id || navState?.clientId}
+          initialClientId={selectedSession?.client_id || navState?.clientId || initialClientIdOverride}
           userId={user?.id}
         />
       )}
@@ -471,6 +492,14 @@ const CalendarScreen: React.FC = () => {
           onTransfer={handleConfirmTransfer}
         />
       )}
+
+      <SuggestNextSessionToast
+        isOpen={toastProposed.open}
+        clientName={toastProposed.clientName || ''}
+        proposedDate={toastProposed.proposedDate || new Date()}
+        onAccept={acceptProposed}
+        onDismiss={dismissProposed}
+      />
     </div>
   );
 };
