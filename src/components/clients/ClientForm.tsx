@@ -553,7 +553,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         </Button>
         <Button
           type="submit"
-          variant={isEditing ? 'primary' : 'outline'}
+          variant={isEditing ? 'primary' : 'primary'}
           loading={isLoading}
         >
           {isEditing ? 'Сохранить изменения' : 'Создать клиента'}
