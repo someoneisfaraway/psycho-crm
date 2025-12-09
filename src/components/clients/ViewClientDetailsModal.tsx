@@ -205,6 +205,9 @@ const ViewClientDetailsModal: React.FC<ViewClientDetailsModalProps> = ({
             <div className="flex gap-4">
               <span className="font-medium text-text-primary text-base">{getSourceLabel(client.source)}</span>
               <span className="font-medium text-text-primary text-base">{getClientScheduleLabel((client as any).schedule)}</span>
+              {client.display_id ? (
+                <span className="font-medium text-text-primary text-base">{`ID ${client.display_id}`}</span>
+              ) : null}
             </div>
           </div>
           

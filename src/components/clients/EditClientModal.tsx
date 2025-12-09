@@ -105,6 +105,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
             initialEncryptedNotes={client.notes_encrypted || undefined}
             initialData={{ // Передаём остальные данные, исключая notes_encrypted
               name: client.name,
+              display_id: client.display_id as any,
               age: client.age,
               location: client.location,
               source: client.source,

@@ -22,6 +22,7 @@ export interface Client {
   id: string; // Это client_id в ТЗ
   user_id: string;
   name: string;
+  display_id?: string | null;
   age?: number | null; // Может быть null в БД
   location?: string | null; // Может быть null в БД
   source: string; // 'private' | 'yasno' | 'zigmund' | 'alter' | 'other'

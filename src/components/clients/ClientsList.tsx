@@ -84,7 +84,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
             <ClientCard
               key={client.id}
               client={client}
-              displayId={client.id}
+              displayId={client.display_id || ''}
               onEdit={onEditClient}
               onDelete={onDeleteClient}
               onViewDetails={onViewClientDetails}

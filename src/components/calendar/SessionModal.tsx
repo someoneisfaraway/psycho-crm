@@ -371,9 +371,10 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
                     .sort((a, b) => a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' }))
                     .map(client => (
                       <option key={client.id} value={client.id}>
-                        {client.name}
+                        {client.name}{client.display_id ? `  ${client.display_id}` : ''}
                       </option>
-                    ))}
+                    ))
+                  }
                 </select>
                 {errors.client_id && <p className="form-error">{errors.client_id}</p>}
               </div>

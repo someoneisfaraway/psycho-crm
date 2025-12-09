@@ -21,6 +21,7 @@ interface ClientFormProps {
 // Для редактирования мы можем использовать тот же тип, но исключить `user_id` и `id` из обновляемых полей в handleSubmit
 interface FormState {
   name: string;
+  display_id: string;
   age: number | undefined;
   location: string;
   source: string;
@@ -35,9 +36,6 @@ interface FormState {
   meeting_link: string;
   notes: string; // Нешифрованные заметки
   status: 'active' | 'paused' | 'completed'; // Статус - теперь с правильным типом
-  // Поля, специфичные для создания
-  idType: 'auto' | 'manual'; // Тип генерации ID
-  manualId: string; // Поле для ручного ввода ID
 }
 
 const ClientForm: React.FC<ClientFormProps> = ({
@@ -70,6 +68,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
       return {
         name: initialData?.name || '',
+        display_id: (initialData?.display_id ?? '') as string,
         age: initialData?.age || undefined,
         location: initialData?.location || '',
         source: initialData?.source || 'private',
@@ -84,13 +83,12 @@ const ClientForm: React.FC<ClientFormProps> = ({
         meeting_link: initialData?.meeting_link || '',
         notes: decryptedNotes, // Используем расшифрованные заметки
         status: initialData?.status || 'active', // Статус при редактировании
-        idType: 'manual', // ID уже задан, значит, ручной ввод (но поле ID не меняется)
-        manualId: initialData?.id || '', // Используем существующий id
       };
     } else {
       // Для создания: начальные значения
       return {
         name: '',
+        display_id: '',
         age: undefined,
         location: '',
         source: 'private',
@@ -105,8 +103,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
         meeting_link: '',
         notes: '',
         status: 'active', // Статус по умолчанию при создании
-        idType: 'auto', // По умолчанию автоматическая генерация
-        manualId: '', // Пусто при автоматической генерации
       };
     }
   });
@@ -149,24 +145,12 @@ const ClientForm: React.FC<ClientFormProps> = ({
     }
   };
 
-  const handleIdTypeChange = (type: 'auto' | 'manual') => {
-    if (isEditing) return; // Нельзя менять тип ID при редактировании
-    setFormData(prev => ({
-      ...prev,
-      idType: type,
-      // Если переключаемся на ручной ввод, оставляем текущее значение manualId, иначе очищаем
-      // Если переключаемся на автоматический, очищаем manualId
-      manualId: type === 'manual' ? prev.manualId : ''
-    }));
-  };
+  
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     if (!formData.name || formData.name.trim().length < 2) {
       newErrors.name = 'Имя обязательно и должно быть не короче 2 символов';
-    }
-    if (!isEditing && formData.idType === 'manual' && !formData.manualId) { // Проверка ID только при создании
-      newErrors.manualId = 'ID клиента обязателен при ручном вводе';
     }
     if (formData.session_price <= 0) {
       newErrors.session_price = 'Стоимость должна быть больше 0';
@@ -196,7 +180,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
       // Режим редактирования
       // Подготовка данных для отправки (UpdateClient)
       // Исключаем id и user_id из обновления
-      const { idType, manualId, notes, ...updates } = formData; // idType и manualId не обновляются, notes не существует в таблице БД
+      const { notes, ...updates } = formData; // notes не существует в таблице БД
       let notesEncrypted: string | null = null;
       if (formData.notes) {
         try {
@@ -215,13 +199,6 @@ const ClientForm: React.FC<ClientFormProps> = ({
     } else {
       // Режим создания
       // Подготовка данных для отправки (NewClient)
-      let idForSubmission: string | undefined = undefined;
-      if (formData.idType === 'manual' && formData.manualId) {
-        idForSubmission = formData.manualId;
-      }
-      // В остальных случаях (auto или пустой manual при создании) id будет undefined,
-      // и API его сгенерирует.
-
       let notesEncrypted: string | null = null;
       if (formData.notes) {
         try {
@@ -233,9 +210,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
       }
 
       const clientData: NewClient = {
-        id: idForSubmission, // Может быть undefined для авто-генерации
         user_id: userId, // Передаём user_id из пропсов
         name: formData.name,
+        display_id: formData.display_id || undefined,
         age: formData.age || null, // Отправляем null, если не заполнено
         location: formData.location || null,
         source: formData.source,
@@ -259,55 +236,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {!isEditing && ( // Показываем поля ID только при создании
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">ID клиента</h3>
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
-              Тип ID
-            </label>
-            <div className="flex space-x-4">
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  name="idType"
-                  checked={formData.idType === 'auto'}
-                  onChange={() => handleIdTypeChange('auto')}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  disabled={isEditing} // Нельзя менять тип ID при редактировании
-                />
-                <span className="ml-2 text-gray-900">Автоматический (auto_123)</span>
-              </label>
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  name="idType"
-                  checked={formData.idType === 'manual'}
-                  onChange={() => handleIdTypeChange('manual')}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  disabled={isEditing} // Нельзя менять тип ID при редактировании
-                />
-                <span className="ml-2 text-gray-900">Ручной ввод</span>
-              </label>
-            </div>
-            {formData.idType === 'manual' && (
-              <div className="mt-2">
-                <input
-                  type="text"
-                  id="manualId"
-                  name="manualId"
-                  value={formData.manualId}
-                  onChange={handleChange}
-                  placeholder="yasno_123 или другое"
-                  className={`mt-1 block w-full px-3 py-2 border ${errors.manualId ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
-                  disabled={isEditing} // Нельзя менять ID при редактировании
-                />
-                {errors.manualId && <p className="mt-1 text-sm text-red-600">{errors.manualId}</p>}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Секция 1: Основная информация */}
@@ -326,6 +255,21 @@ const ClientForm: React.FC<ClientFormProps> = ({
               className={`mt-1 block w-full px-3 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
             />
             {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="display_id" className="block text-sm font-medium text-gray-700">
+              ID клиента
+            </label>
+            <input
+              type="text"
+              id="display_id"
+              name="display_id"
+              value={formData.display_id}
+              onChange={handleChange}
+              placeholder="введите уникальный id клиента"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+            />
           </div>
 
           <div>
@@ -666,7 +610,6 @@ const ClientSourceSelect: React.FC<{ value: string; onChange: (v: string) => voi
 // Тип для ошибок валидации
 interface FormErrors {
   name?: string;
-  manualId?: string;
   session_price?: string;
   source?: string;
   schedule?: string;

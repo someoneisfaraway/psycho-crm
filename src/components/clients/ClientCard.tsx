@@ -28,7 +28,9 @@ const ClientCard: React.FC<ClientCardProps> = ({
         <div className="flex justify-between items-start">
           <div className="min-w-0">
             <div className="font-medium text-text-primary truncate">{client.name}</div>
-            <div className="font-medium text-text-primary">{displayId || client.id}</div>
+            {displayId ? (
+              <div className="font-medium text-text-primary">{`ID ${displayId}`}</div>
+            ) : null}
           </div>
           <span className={`status-badge ${client.status === 'completed' ? 'status-success' : client.status === 'paused' ? 'status-neutral' : 'status-info'}`}>
             {client.status === 'completed' ? 'Завершен' : client.status === 'paused' ? 'Пауза' : 'Активный'}

@@ -154,7 +154,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
               </div>
               <div className="ml-4">
                 <h2 className="modal-title">{clientName}</h2>
-                <p className="text-sm text-text-secondary">ID: {client.id}</p>
+                <p className="text-sm text-text-secondary">ID: {client.display_id}</p>
                 <div className="flex gap-2 mt-2">
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(client.status)}`}>
                     {client.status.charAt(0).toUpperCase() + client.status.slice(1)}

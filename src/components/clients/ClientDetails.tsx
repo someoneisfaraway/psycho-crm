@@ -55,7 +55,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
         <div className="flex items-start mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
-            <p className="text-gray-500">ID: {client.id}</p>
+            <p className="text-gray-500">ID: {client.display_id}</p>
           </div>
         </div>
 

@@ -168,7 +168,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             <h3 className="text-lg font-semibold text-text-primary mb-2">Информация о клиенте</h3>
             <div className="space-y-2">
               <div className="flex justify-between"><span className="text-text-secondary">Имя:</span><span className="font-medium text-text-primary">{client.name}</span></div>
-              <div className="flex justify-between"><span className="text-text-secondary">ID клиента:</span><span className="font-medium text-text-primary">{client.id}</span></div>
+              <div className="flex justify-between"><span className="text-text-secondary">ID клиента:</span><span className="font-medium text-text-primary">{client.display_id}</span></div>
               <div className="flex justify-between"><span className="text-text-secondary">Всего сессий:</span><span className="font-medium text-text-primary">{client.total_sessions}</span></div>
               <div>
                 <Button variant="secondary" size="sm" className="mt-2" onClick={() => { onClose(); navigate('/clients', { state: { clientId: client.id, openDetails: true } }); }}>

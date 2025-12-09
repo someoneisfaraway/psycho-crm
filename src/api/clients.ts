@@ -112,6 +112,34 @@ export const createClient = async (clientData: Omit<Client, 'total_sessions' | '
 };
 
 export const updateClient = async (id: string, clientData: Partial<Omit<Client, 'id' | 'user_id'>>) => {
+  // Перед обновлением проверим уникальность display_id, если его изменяют
+  if (clientData.display_id !== undefined) {
+    try {
+      const { data: original, error: origErr } = await supabase
+        .from('clients')
+        .select('id, user_id, display_id')
+        .eq('id', id)
+        .single();
+      if (!origErr && original) {
+        const nextDisplay = clientData.display_id;
+        if (nextDisplay && nextDisplay !== original.display_id) {
+          const { data: existing, error: existErr } = await supabase
+            .from('clients')
+            .select('id')
+            .eq('user_id', original.user_id)
+            .eq('display_id', nextDisplay)
+            .neq('id', id);
+          if (!existErr && Array.isArray(existing) && existing.length > 0) {
+            throw new Error('Этот ID уже используется');
+          }
+        }
+      }
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      throw new Error('Ошибка проверки уникальности ID');
+    }
+  }
+
   // Аналогично sanitize payload: убрать meeting_link и undefined
   const { meeting_link, notes, ...rest } = clientData as any; // 'notes' не является колонкой в таблице, используем 'notes_encrypted'
   const cleanedPayload = Object.fromEntries(
