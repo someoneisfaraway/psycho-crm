@@ -354,30 +354,48 @@ const WorkSettings: React.FC<WorkSettingsProps> = ({ settings, onUpdateSettings 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-text-secondary">Источники клиентов</label>
               <div className="space-y-2">
-                <input
-                  type="text"
-                  name="clientSource2"
-                  value={formData.clientSource2 || ''}
-                  onChange={handleChange}
-                  placeholder="источник 2"
-                  className="form-input"
-                />
-                <input
-                  type="text"
-                  name="clientSource3"
-                  value={formData.clientSource3 || ''}
-                  onChange={handleChange}
-                  placeholder="источник 3"
-                  className="form-input"
-                />
-                <input
-                  type="text"
-                  name="clientSource4"
-                  value={formData.clientSource4 || ''}
-                  onChange={handleChange}
-                  placeholder="источник 4"
-                  className="form-input"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    name="clientSource2"
+                    value={formData.clientSource2 || ''}
+                    onChange={handleChange}
+                    placeholder="введите название, max 15 знаков"
+                    maxLength={15}
+                    className="form-input w-[80%]"
+                  />
+                  <div className="text-xs text-text-secondary w-[20%] text-right">
+                    Осталось: {Math.max(0, 15 - (formData.clientSource2?.length ?? 0))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    name="clientSource3"
+                    value={formData.clientSource3 || ''}
+                    onChange={handleChange}
+                    placeholder="введите название, max 15 знаков"
+                    maxLength={15}
+                    className="form-input w-[80%]"
+                  />
+                  <div className="text-xs text-text-secondary w-[20%] text-right">
+                    Осталось: {Math.max(0, 15 - (formData.clientSource3?.length ?? 0))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    name="clientSource4"
+                    value={formData.clientSource4 || ''}
+                    onChange={handleChange}
+                    placeholder="введите название, max 15 знаков"
+                    maxLength={15}
+                    className="form-input w-[80%]"
+                  />
+                  <div className="text-xs text-text-secondary w-[20%] text-right">
+                    Осталось: {Math.max(0, 15 - (formData.clientSource4?.length ?? 0))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
