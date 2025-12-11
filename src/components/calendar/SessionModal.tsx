@@ -70,14 +70,16 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
       const defaultTime = new Date(selectedDate);
       const hasSpecificTime = !(defaultTime.getHours() === 0 && defaultTime.getMinutes() === 0);
       if (!hasSpecificTime) defaultTime.setHours(10, 0, 0, 0);
+      const initDur = (window as any).__initialDurationMinutes;
       setFormData(prev => ({
         ...prev,
         scheduled_at: defaultTime,
-        client_id: initialClientId || '', // РџСЂРµРґР·Р°РїРѕР»РЅСЏРµРј РєР»РёРµРЅС‚Р°, РµСЃР»Рё РѕРЅ РїРµСЂРµРґР°РЅ
+        client_id: initialClientId || '',
+        duration: typeof initDur === 'number' ? initDur : prev.duration,
         note: '', // РћС‡РёС‰Р°РµРј Р·Р°РјРµС‚РєСѓ
         // price Р±СѓРґРµС‚ Р·Р°РїРѕР»РЅРµРЅРѕ РїСЂРё РІС‹Р±РѕСЂРµ РєР»РёРµРЅС‚Р°
       }));
-      setDurationInput('50');
+      setDurationInput(String(typeof initDur === 'number' ? initDur : 50));
     } else if ((isEditing || isViewing) && session) {
       // Для редактирования/просмотра используем данные сессии
       let decryptedNote = '';

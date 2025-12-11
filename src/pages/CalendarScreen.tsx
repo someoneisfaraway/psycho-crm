@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { format, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -38,6 +38,11 @@ const CalendarScreen: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
   const [initialClientIdOverride, setInitialClientIdOverride] = useState<string | undefined>(undefined);
   const [toastProposed, setToastProposed] = useState<{ open: boolean; clientId?: string; clientName?: string; proposedDate?: Date }>({ open: false });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartMin, setDragStartMin] = useState<number | null>(null);
+  const [dragCurrentMin, setDragCurrentMin] = useState<number | null>(null);
+  const [hoverHour, setHoverHour] = useState<number | null>(null);
+  const timelineRef = useRef<HTMLDivElement | null>(null);
 
   const location = useLocation();
   const navState = location.state as { clientId?: string; mode?: 'create' | 'edit' | 'view' } | null;
@@ -303,8 +308,67 @@ const CalendarScreen: React.FC = () => {
   useEffect(() => {
     if (!isSessionModalOpen) {
       setInitialClientIdOverride(undefined);
+      (window as any).__initialDurationMinutes = undefined;
     }
   }, [isSessionModalOpen]);
+
+  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!selectedDate) return;
+    const DAY_START_HOUR = 8;
+    const HOUR_HEIGHT = 60;
+    const MINUTE_HEIGHT = HOUR_HEIGHT / 60;
+    const rect = timelineRef.current?.getBoundingClientRect();
+    const y = rect ? e.clientY - rect.top : 0;
+    const minutes = Math.max(0, Math.min(((22 - DAY_START_HOUR) * 60), Math.floor(y / MINUTE_HEIGHT)));
+    const d = new Date(selectedDate);
+    d.setHours(DAY_START_HOUR, 0, 0, 0);
+    d.setMinutes(d.getMinutes() + minutes);
+    setSelectedDate(d);
+    setSelectedSession(null);
+    setModalMode('create');
+    setInitialClientIdOverride(undefined);
+    (window as any).__initialDurationMinutes = undefined;
+    setIsSessionModalOpen(true);
+  };
+
+  const handleTimelineMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!selectedDate) return;
+    const rect = timelineRef.current?.getBoundingClientRect();
+    const HOUR_HEIGHT = 60;
+    const MINUTE_HEIGHT = HOUR_HEIGHT / 60;
+    const y = rect ? e.clientY - rect.top : 0;
+    const minutes = Math.max(0, Math.min((22 - 8) * 60, Math.floor(y / MINUTE_HEIGHT)));
+    setIsDragging(true);
+    setDragStartMin(minutes);
+    setDragCurrentMin(minutes);
+  };
+
+  const handleTimelineMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    const rect = timelineRef.current?.getBoundingClientRect();
+    const HOUR_HEIGHT = 60;
+    const MINUTE_HEIGHT = HOUR_HEIGHT / 60;
+    const y = rect ? e.clientY - rect.top : 0;
+    const minutes = Math.max(0, Math.min((22 - 8) * 60, Math.floor(y / MINUTE_HEIGHT)));
+    setDragCurrentMin(minutes);
+  };
+
+  const handleTimelineMouseUp = () => {
+    if (!isDragging || dragStartMin == null || dragCurrentMin == null || !selectedDate) { setIsDragging(false); return; }
+    const startMin = Math.min(dragStartMin, dragCurrentMin);
+    const endMin = Math.max(dragStartMin, dragCurrentMin);
+    const duration = Math.max(30, endMin - startMin);
+    const d = new Date(selectedDate);
+    d.setHours(8, 0, 0, 0);
+    d.setMinutes(d.getMinutes() + startMin);
+    setSelectedDate(d);
+    setSelectedSession(null);
+    setModalMode('create');
+    setInitialClientIdOverride(undefined);
+    (window as any).__initialDurationMinutes = duration;
+    setIsSessionModalOpen(true);
+    setIsDragging(false);
+  };
 
   const acceptProposed = () => {
     if (!toastProposed.proposedDate || !toastProposed.clientId) { setToastProposed({ open: false }); return; }
@@ -403,45 +467,123 @@ const CalendarScreen: React.FC = () => {
                   Запланировать сессию
                 </button>
               </div>
-              {sessionsForSelectedDate.length > 0 ? (
-                <div className="space-y-3">
-                  {sessionsForSelectedDate.map((session) => {
-                    const client = clients[session.client_id];
-                    return (
-                      <div key={session.id} className="p-3 border border-border-light rounded-lg hover:bg-background-hover cursor-pointer transition-colors" onClick={() => handleViewSession(session)}>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-medium text-text-primary">
-                              {format(new Date(session.scheduled_at), 'HH:mm')} • {client?.name || 'Клиент'}
-                              <br />
-                              Сессия #{session.session_number}
+              {(() => {
+                const DAY_START_HOUR = 8;
+                const DAY_END_HOUR = 22;
+                const HOURS_COUNT = DAY_END_HOUR - DAY_START_HOUR;
+                const HOUR_HEIGHT = 60; // px
+                const MINUTE_HEIGHT = HOUR_HEIGHT / 60;
+                const dayStart = new Date(selectedDate!);
+                dayStart.setHours(DAY_START_HOUR, 0, 0, 0);
+
+                const toMinutesFromStart = (d: Date) => Math.max(0, Math.floor((d.getTime() - dayStart.getTime()) / 60000));
+
+                return (
+                  <div className="flex">
+                    {/* Time column */}
+                    <div className="mr-3">
+                      <div style={{ height: HOURS_COUNT * HOUR_HEIGHT }} className="relative">
+                        {Array.from({ length: HOURS_COUNT + 1 }).map((_, i) => {
+                          const hour = DAY_START_HOUR + i;
+                          return (
+                            <div key={hour} style={{ position: 'absolute', top: i * HOUR_HEIGHT }} className="text-xs text-text-secondary">
+                              {String(hour).padStart(2, '0')}:00
                             </div>
-                            <div className="text-sm text-text-secondary">
-                              {session.format === 'online' ? '💻 Онлайн' : '📍 Офлайн'} • {session.price} ₽
-                            </div>
-                            <div className="text-xs mt-1">
-                              {session.paid ? <span className="text-status-success">✅ Оплачено</span> : <span className="text-status-warning">⚠ Не оплачено</span>}
-                              {session.status !== 'cancelled' && session.paid && session.receipt_sent ? (
-                                <span className="ml-2 text-status-success">✉ Чек отправлен</span>
-                              ) : session.status !== 'cancelled' && session.paid ? (
-                                <span className="ml-2 text-status-warning">⏰ Чек не отправлен</span>
-                              ) : null}
-                            </div>
-                          </div>
-                          <span className={`status-badge ${session.status === 'scheduled' ? 'status-info' : session.status === 'completed' ? 'status-success' : 'status-neutral'}`}>
-                            {session.status === 'scheduled' ? 'Запланирована' : session.status === 'completed' ? 'Завершена' : 'Отменена'}
-                          </span>
-                        </div>
+                          );
+                        })}
+                        {isSameDay(selectedDate!, new Date()) && (() => {
+                          const now = new Date();
+                          const m = Math.max(0, Math.floor((now.getTime() - dayStart.getTime()) / 60000));
+                          if (m >= 0 && m <= HOURS_COUNT * 60) {
+                            const top = m * MINUTE_HEIGHT;
+                            return <div style={{ position: 'absolute', top, left: -6, width: 6, height: 6, borderRadius: 6, backgroundColor: '#8b5cf6' }} />;
+                          }
+                          return null;
+                        })()}
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="mt-4 text-text-primary">Нет сессий</p>
-                  <p className="text-sm text-text-secondary">На этот день запланировано 0 сессий.</p>
-                </div>
-              )}
+                    </div>
+
+                    {/* Agenda timeline */}
+                    <div className="flex-1">
+                      <div
+                        ref={timelineRef}
+                        onClick={handleTimelineClick}
+                        onMouseDown={handleTimelineMouseDown}
+                        onMouseMove={handleTimelineMouseMove}
+                        onMouseUp={handleTimelineMouseUp}
+                        style={{ height: HOURS_COUNT * HOUR_HEIGHT }}
+                        className="relative border-l border-border-light"
+                      >
+                        {Array.from({ length: HOURS_COUNT }).map((_, i) => (
+                          <div
+                            key={i}
+                            style={{ position: 'absolute', top: i * HOUR_HEIGHT, height: HOUR_HEIGHT, left: 0, right: 0 }}
+                            className="border-t border-border-light"
+                            onMouseEnter={() => setHoverHour(i)}
+                            onMouseLeave={() => setHoverHour(null)}
+                          />
+                        ))}
+
+                        {hoverHour !== null && (
+                          <div style={{ position: 'absolute', top: hoverHour * HOUR_HEIGHT, height: HOUR_HEIGHT, left: 0, right: 0, backgroundColor: '#f6f5ff' }} />
+                        )}
+
+                        {sessionsForSelectedDate.map((s) => {
+                          const start = new Date(s.scheduled_at);
+                          const startMinutes = toMinutesFromStart(start);
+                          const topPx = startMinutes * MINUTE_HEIGHT;
+                          const durationMin = s.duration || 50;
+                          const heightPx = Math.max(30, durationMin * MINUTE_HEIGHT);
+                          const client = clients[s.client_id];
+                          // Отсечём выход за пределы
+                          if (start.getHours() < DAY_START_HOUR || start.getHours() >= DAY_END_HOUR) return null;
+                          return (
+                            <div
+                              key={s.id}
+                              style={{ position: 'absolute', top: topPx, left: 4, right: 4, height: heightPx, backgroundColor: '#e1d4fd' }}
+                              className="rounded-md shadow-sm cursor-pointer px-3 py-2"
+                              onClick={(e) => { e.stopPropagation(); handleViewSession(s); }}
+                            >
+                              <div className="flex justify-between text-xs">
+                                <span className="font-medium text-text-primary">{format(new Date(s.scheduled_at), 'HH:mm')} • {client?.name || 'Клиент'}</span>
+                                <span className="text-text-secondary">{s.status === 'scheduled' ? 'Запланирована' : s.status === 'completed' ? 'Завершена' : 'Отменена'}</span>
+                              </div>
+                              <div className="mt-1 text-xs">
+                                {s.paid ? <span className="text-status-success">✅ Оплачено</span> : <span className="text-status-warning">⚠ Не оплачено</span>}
+                                {s.status !== 'cancelled' && s.paid ? (
+                                  s.receipt_sent ? (
+                                    <span className="ml-2 text-status-success">✉ Чек отправлен</span>
+                                  ) : (
+                                    <span className="ml-2 text-status-warning">⏰ Чек не отправлен</span>
+                                  )
+                                ) : null}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {isDragging && dragStartMin != null && dragCurrentMin != null && (() => {
+                          const startMin = Math.min(dragStartMin, dragCurrentMin);
+                          const endMin = Math.max(dragStartMin, dragCurrentMin);
+                          const top = startMin * MINUTE_HEIGHT;
+                          const height = Math.max(10, (endMin - startMin) * MINUTE_HEIGHT);
+                          return <div style={{ position: 'absolute', top, left: 4, right: 4, height, backgroundColor: '#8b5cf6', opacity: 0.2 }} />;
+                        })()}
+
+                        {isSameDay(selectedDate!, new Date()) && (() => {
+                          const now = new Date();
+                          const m = toMinutesFromStart(now);
+                          if (m >= 0 && m <= HOURS_COUNT * 60) {
+                            const top = m * MINUTE_HEIGHT;
+                            return <div style={{ position: 'absolute', top, left: 0, right: 0 }} className="border-t-2 border-[#8b5cf6]" />;
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </>
           ) : (
             <p className="text-text-secondary">Выберите дату в календаре</p>
