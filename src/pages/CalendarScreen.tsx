@@ -313,6 +313,7 @@ const CalendarScreen: React.FC = () => {
   }, [isSessionModalOpen]);
 
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
     if (!selectedDate) return;
     const DAY_START_HOUR = 8;
     const HOUR_HEIGHT = 60;
@@ -332,6 +333,7 @@ const CalendarScreen: React.FC = () => {
   };
 
   const handleTimelineMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
     if (!selectedDate) return;
     const rect = timelineRef.current?.getBoundingClientRect();
     const HOUR_HEIGHT = 60;
@@ -517,7 +519,7 @@ const CalendarScreen: React.FC = () => {
                         {Array.from({ length: HOURS_COUNT }).map((_, i) => (
                           <div
                             key={i}
-                            style={{ position: 'absolute', top: i * HOUR_HEIGHT, height: HOUR_HEIGHT, left: 0, right: 0 }}
+                            style={{ position: 'absolute', top: i * HOUR_HEIGHT, height: HOUR_HEIGHT, left: 0, right: 0, pointerEvents: 'none' }}
                             className="border-t border-border-light"
                             onMouseEnter={() => setHoverHour(i)}
                             onMouseLeave={() => setHoverHour(null)}
@@ -525,7 +527,7 @@ const CalendarScreen: React.FC = () => {
                         ))}
 
                         {hoverHour !== null && (
-                          <div style={{ position: 'absolute', top: hoverHour * HOUR_HEIGHT, height: HOUR_HEIGHT, left: 0, right: 0, backgroundColor: '#f6f5ff' }} />
+                          <div style={{ position: 'absolute', top: hoverHour * HOUR_HEIGHT, height: HOUR_HEIGHT, left: 0, right: 0, backgroundColor: '#f6f5ff', pointerEvents: 'none', zIndex: 0 }} />
                         )}
 
                         {sessionsForSelectedDate.map((s) => {
@@ -540,8 +542,8 @@ const CalendarScreen: React.FC = () => {
                           return (
                             <div
                               key={s.id}
-                              style={{ position: 'absolute', top: topPx, left: 4, right: 4, height: heightPx, backgroundColor: '#e1d4fd' }}
-                              className="rounded-md shadow-sm cursor-pointer px-3 py-2"
+                              style={{ position: 'absolute', top: topPx, left: 4, right: 4, height: heightPx, backgroundColor: '#e1d4fd', zIndex: 10 }}
+                              className="rounded-md shadow-sm cursor-pointer px-3 py-2 session-block"
                               onClick={(e) => { e.stopPropagation(); handleViewSession(s); }}
                             >
                               <div className="flex justify-between text-xs">
@@ -567,7 +569,7 @@ const CalendarScreen: React.FC = () => {
                           const endMin = Math.max(dragStartMin, dragCurrentMin);
                           const top = startMin * MINUTE_HEIGHT;
                           const height = Math.max(10, (endMin - startMin) * MINUTE_HEIGHT);
-                          return <div style={{ position: 'absolute', top, left: 4, right: 4, height, backgroundColor: '#8b5cf6', opacity: 0.2 }} />;
+                          return <div style={{ position: 'absolute', top, left: 4, right: 4, height, backgroundColor: '#8b5cf6', opacity: 0.2, pointerEvents: 'none', zIndex: 5 }} />;
                         })()}
 
                         {isSameDay(selectedDate!, new Date()) && (() => {
