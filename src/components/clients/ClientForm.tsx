@@ -328,9 +328,9 @@ const ClientForm: React.FC<ClientFormProps> = ({
               className={`mt-1 block w-full px-3 py-2 border ${errors.schedule ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
             >
               <option value="">Выберите расписание</option>
-              <option value="2x/week">2х/нед</option>
-              <option value="1x/week">1х/нед</option>
-              <option value="1x/2weeks">1х/2нед</option>
+              <option value="2x/week">2р/нед</option>
+              <option value="1x/week">1р/нед</option>
+              <option value="1x/2weeks">1р/2нед</option>
               <option value="flexible">Гибкое</option>
             </select>
             {errors.schedule && <p className="mt-1 text-sm text-red-600">{errors.schedule}</p>}

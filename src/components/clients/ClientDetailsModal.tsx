@@ -117,9 +117,9 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
 
   const getClientScheduleLabel = (schedule: string): string => {
     const labels: Record<string, string> = {
-      '2x/week': '2х/нед',
-      '1x/week': '1х/нед',
-      '1x/2weeks': '1х/2нед',
+      '2x/week': '2р/нед',
+      '1x/week': '1р/нед',
+      '1x/2weeks': '1р/2нед',
       'flexible': 'Гибкое'
     };
     return labels[schedule] || schedule;
