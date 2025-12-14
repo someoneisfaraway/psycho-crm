@@ -514,7 +514,7 @@ const CalendarScreen: React.FC = () => {
                         onMouseMove={handleTimelineMouseMove}
                         onMouseUp={handleTimelineMouseUp}
                         style={{ height: HOURS_COUNT * HOUR_HEIGHT }}
-                        className="relative border-l border-border-light"
+                        className="relative border-l border-transparent"
                       >
                         {Array.from({ length: HOURS_COUNT }).map((_, i) => (
                           <div
