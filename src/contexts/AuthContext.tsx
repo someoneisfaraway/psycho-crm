@@ -4,7 +4,7 @@ import { supabase } from '../config/supabase';
 
 interface AuthContextType {
   user: User | null;
-  signUp: (email: string, password: string) => Promise<any>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<any>;
   signIn: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
@@ -54,6 +54,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
               window.location.replace('/reset-password');
             }
           }
+
+          if (event === 'SIGNED_IN' && session?.user) {
+            (async () => {
+              try {
+                const metaName = (session.user.user_metadata as any)?.full_name || '';
+                let storedName = '';
+                try { storedName = localStorage.getItem('signup_full_name') || ''; } catch {}
+                const displayName = (storedName || metaName || (session.user.email?.split('@')[0] || '')).trim();
+                // Ensure user row exists
+                try {
+                  const { data: existingUser } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('id', session.user.id)
+                    .limit(1);
+                  const exists = Array.isArray(existingUser) ? existingUser.length > 0 : !!existingUser;
+                  if (!exists) {
+                    const { error: rpcError } = await supabase.rpc('ensure_user_exists', {
+                      uid: session.user.id,
+                      uemail: session.user.email || null,
+                    } as any);
+                    if (rpcError) {
+                      // Fallback to upsert
+                      await supabase
+                        .from('users')
+                        .upsert({ id: session.user.id, email: session.user.email || null, name: displayName }, { onConflict: 'id' } as any);
+                    }
+                  }
+                } catch {}
+                // Sync name
+                try {
+                  if (!metaName && displayName) {
+                    await supabase.auth.updateUser({ data: { full_name: displayName } } as any);
+                  }
+                  await supabase
+                    .from('users')
+                    .update({ name: displayName })
+                    .eq('id', session.user.id);
+                  window.dispatchEvent(new CustomEvent('user-display-name-updated', { detail: { name: displayName } }));
+                  try { localStorage.removeItem('signup_full_name'); } catch {}
+                } catch {}
+              } catch {}
+            })();
+          }
         }
       );
 
@@ -92,12 +136,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch {}
   }, [user]);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
     const redirectTo = `${import.meta.env.VITE_APP_URL}/auth/callback`;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: redirectTo },
+      options: { emailRedirectTo: redirectTo, data: { full_name: [firstName, lastName].filter(Boolean).join(' ').trim() } },
     } as any);
 
     if (error) {
@@ -122,6 +166,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Ensure context reflects authenticated state immediately
     setUser(data.user ?? null);
     setLoading(false);
+
+    try {
+      const u = data.user;
+      if (u) {
+        const metaName = (u.user_metadata as any)?.full_name || '';
+        let storedName = '';
+        try { storedName = localStorage.getItem('signup_full_name') || ''; } catch {}
+        const displayName = (storedName || metaName || (u.email?.split('@')[0] || '')).trim();
+        try {
+          const { data: existingUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', u.id)
+            .limit(1);
+          const exists = Array.isArray(existingUser) ? existingUser.length > 0 : !!existingUser;
+          if (!exists) {
+            const { error: rpcError } = await supabase.rpc('ensure_user_exists', {
+              uid: u.id,
+              uemail: u.email || null,
+            } as any);
+            if (rpcError) {
+              await supabase
+                .from('users')
+                .upsert({ id: u.id, email: u.email || null, name: displayName }, { onConflict: 'id' } as any);
+            }
+          }
+          if (!metaName && displayName) {
+            await supabase.auth.updateUser({ data: { full_name: displayName } } as any);
+          }
+          await supabase
+            .from('users')
+            .update({ name: displayName })
+            .eq('id', u.id);
+          window.dispatchEvent(new CustomEvent('user-display-name-updated', { detail: { name: displayName } }));
+          try { localStorage.removeItem('signup_full_name'); } catch {}
+        } catch {}
+      }
+    } catch {}
 
     return data;
   };

@@ -46,7 +46,9 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess, onSwitchToLogi
     try {
       setError(null);
       setLoading(true);
-      await signUp(data.email, data.password);
+      const fullName = `${data.firstName} ${data.lastName}`.trim();
+      try { localStorage.setItem('signup_full_name', fullName); } catch {}
+      await signUp(data.email, data.password, data.firstName, data.lastName);
       onSignupSuccess();
     } catch (err: any) {
       setError(err.message || 'Не удалось зарегистрироваться');
