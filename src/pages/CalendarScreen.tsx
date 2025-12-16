@@ -43,6 +43,7 @@ const CalendarScreen: React.FC = () => {
   const [dragCurrentMin, setDragCurrentMin] = useState<number | null>(null);
   const [hoverHour, setHoverHour] = useState<number | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
+  const [openingFromDrag, setOpeningFromDrag] = useState<boolean>(false);
 
   const location = useLocation();
   const navState = location.state as { clientId?: string; mode?: 'create' | 'edit' | 'view' } | null;
@@ -313,6 +314,7 @@ const CalendarScreen: React.FC = () => {
   }, [isSessionModalOpen]);
 
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (openingFromDrag) { setOpeningFromDrag(false); return; }
     if (e.target !== e.currentTarget) return;
     if (!selectedDate) return;
     const DAY_START_HOUR = 8;
@@ -359,7 +361,9 @@ const CalendarScreen: React.FC = () => {
     if (!isDragging || dragStartMin == null || dragCurrentMin == null || !selectedDate) { setIsDragging(false); return; }
     const startMin = Math.min(dragStartMin, dragCurrentMin);
     const endMin = Math.max(dragStartMin, dragCurrentMin);
-    const duration = Math.max(30, endMin - startMin);
+    const delta = endMin - startMin;
+    if (delta < 5) { setIsDragging(false); return; }
+    const duration = Math.max(30, delta);
     const d = new Date(selectedDate);
     d.setHours(8, 0, 0, 0);
     d.setMinutes(d.getMinutes() + startMin);
@@ -368,6 +372,7 @@ const CalendarScreen: React.FC = () => {
     setModalMode('create');
     setInitialClientIdOverride(undefined);
     (window as any).__initialDurationMinutes = duration;
+    setOpeningFromDrag(true);
     setIsSessionModalOpen(true);
     setIsDragging(false);
   };
@@ -552,13 +557,17 @@ const CalendarScreen: React.FC = () => {
                               </div>
                               <div className="mt-1 text-xs">
                                 {s.paid ? <span className="text-status-success">✅ Оплачено</span> : <span className="text-status-warning">⚠ Не оплачено</span>}
-                                {s.status !== 'cancelled' && s.paid ? (
-                                  s.receipt_sent ? (
-                                    <span className="ml-2 text-status-success">✉ Чек отправлен</span>
-                                  ) : (
-                                    <span className="ml-2 text-status-warning">⏰ Чек не отправлен</span>
-                                  )
-                                ) : null}
+                                {(() => {
+                                  const receiptApplicable = !!client && client.payment_type !== 'cash' && client.need_receipt !== false;
+                                  if (s.status !== 'cancelled' && s.paid && receiptApplicable) {
+                                    return s.receipt_sent ? (
+                                      <span className="ml-2 text-status-success">✉ Чек отправлен</span>
+                                    ) : (
+                                      <span className="ml-2 text-status-warning">⏰ Чек не отправлен</span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                             </div>
                           );

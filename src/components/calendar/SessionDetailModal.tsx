@@ -90,6 +90,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     return { fontWeight: 700 } as React.CSSProperties;
   };
   const paymentIndicatorColor = session.paid ? 'text-status-success-text' : 'text-status-warning-text';
+  const receiptApplicable = client?.payment_type !== 'cash' && client?.need_receipt !== false;
   const receiptIndicatorColor = session.receipt_sent ? 'text-status-success-text' : 'text-status-warning-text';
 
   return (
@@ -156,10 +157,10 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               {session.paid && (
                 <div className="flex justify-between"><span className="text-text-secondary">Дата оплаты:</span><span className="font-medium text-text-primary">{session.paid_at ? formatDate(session.paid_at) : 'Не указана'}</span></div>
               )}
-              {session.status !== 'cancelled' && session.paid && (
+              {session.status !== 'cancelled' && session.paid && receiptApplicable && (
                 <div className="flex justify-between"><span className="text-text-secondary">Чек отправлен:</span><span className={receiptIndicatorColor}>{session.receipt_sent ? '✓ Да' : '⏰ Нет'}</span></div>
               )}
-              {session.status !== 'cancelled' && session.paid && session.receipt_sent && session.receipt_sent_at && (
+              {session.status !== 'cancelled' && session.paid && receiptApplicable && session.receipt_sent && session.receipt_sent_at && (
                 <div className="flex justify-between"><span className="text-text-secondary">Дата отправки чека:</span><span className="font-medium text-text-primary">{formatDate(session.receipt_sent_at)}</span></div>
               )}
             </div>
@@ -233,11 +234,11 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                 )
               )}
 
-              {session.status !== 'cancelled' && session.paid && (
+              {session.status !== 'cancelled' && session.paid && receiptApplicable && (
                 !session.receipt_sent ? (
                   <Button variant="primary" onClick={() => onMarkReceiptSent(session.id)}>Отправить чек</Button>
                 ) : (
-                  <Button variant="secondary" onClick={() => onUnmarkReceiptSent(session.id)}>Снять чек</Button>
+                  <Button variant="secondary" onClick={() => onUnmarkReceiptSent(session.id)}>Снять отметку о чеке</Button>
                 )
               )}
 
