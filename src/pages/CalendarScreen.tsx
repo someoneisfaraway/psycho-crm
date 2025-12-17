@@ -322,7 +322,9 @@ const CalendarScreen: React.FC = () => {
     const MINUTE_HEIGHT = HOUR_HEIGHT / 60;
     const rect = timelineRef.current?.getBoundingClientRect();
     const y = rect ? e.clientY - rect.top : 0;
-    const minutes = Math.max(0, Math.min(((22 - DAY_START_HOUR) * 60), Math.floor(y / MINUTE_HEIGHT)));
+    const rawMinutes = Math.max(0, Math.min(((22 - DAY_START_HOUR) * 60), Math.floor(y / MINUTE_HEIGHT)));
+    const snapTo15 = (m: number) => Math.max(0, Math.min(((22 - DAY_START_HOUR) * 60), Math.round(m / 15) * 15));
+    const minutes = snapTo15(rawMinutes);
     const d = new Date(selectedDate);
     d.setHours(DAY_START_HOUR, 0, 0, 0);
     d.setMinutes(d.getMinutes() + minutes);
@@ -363,10 +365,13 @@ const CalendarScreen: React.FC = () => {
     const endMin = Math.max(dragStartMin, dragCurrentMin);
     const delta = endMin - startMin;
     if (delta < 5) { setIsDragging(false); return; }
-    const duration = Math.max(30, delta);
+    const snapTo15 = (m: number) => Math.round(m / 15) * 15;
+    const startQ = snapTo15(startMin);
+    const endQ = snapTo15(endMin);
+    const duration = Math.max(30, endQ - startQ);
     const d = new Date(selectedDate);
     d.setHours(8, 0, 0, 0);
-    d.setMinutes(d.getMinutes() + startMin);
+    d.setMinutes(d.getMinutes() + startQ);
     setSelectedDate(d);
     setSelectedSession(null);
     setModalMode('create');

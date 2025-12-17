@@ -24,7 +24,9 @@ const toLocalDateTimeInputValue = (date: Date) => {
 };
 
 const SessionTransferModal: React.FC<SessionTransferModalProps> = ({ session, isOpen, onClose, onTransfer }) => {
-  const [dateTime, setDateTime] = useState<string>('');
+  const [dateStr, setDateStr] = useState<string>('');
+  const [hour, setHour] = useState<number>(0);
+  const [minute, setMinute] = useState<number>(0);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const { user } = useAuth();
@@ -32,7 +34,9 @@ const SessionTransferModal: React.FC<SessionTransferModalProps> = ({ session, is
   useEffect(() => {
     if (!isOpen) return;
     const current = parseISO(session.scheduled_at);
-    setDateTime(toLocalDateTimeInputValue(current));
+    setDateStr(toLocalDateTimeInputValue(current).split('T')[0]);
+    setHour(current.getHours());
+    setMinute(Math.floor(current.getMinutes() / 15) * 15);
     setError('');
     setSubmitting(false);
   }, [isOpen, session.scheduled_at]);
@@ -44,12 +48,26 @@ const SessionTransferModal: React.FC<SessionTransferModalProps> = ({ session, is
     try {
       setSubmitting(true);
       setError('');
-      if (!dateTime) {
+      if (!dateStr) {
         setError('Выберите дату и время');
         setSubmitting(false);
         return;
       }
-      const newDate = new Date(dateTime);
+      const parts = dateStr.split('-');
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      const newDate = new Date(y, m, d, hour, minute, 0, 0);
+      if (!isNaN(newDate.getTime())) {
+        const m = newDate.getMinutes();
+        const snapped = Math.round(m / 15) * 15;
+        if (snapped >= 60) {
+          newDate.setHours(newDate.getHours() + 1);
+          newDate.setMinutes(0, 0, 0);
+        } else {
+          newDate.setMinutes(snapped, 0, 0);
+        }
+      }
       if (isNaN(newDate.getTime())) {
         setError('Некорректная дата');
         setSubmitting(false);
@@ -97,13 +115,33 @@ const SessionTransferModal: React.FC<SessionTransferModalProps> = ({ session, is
           <form className="space-y-4" onSubmit={handleConfirm}>
             <div>
               <label className="block text-sm text-text-secondary mb-1">Новая дата и время</label>
-              <input
-                type="datetime-local"
-              className="input w-full"
-                value={dateTime}
-                onChange={(e) => setDateTime(e.target.value)}
-                required
-              />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <input
+                  type="date"
+                  className="input w-full"
+                  value={dateStr}
+                  onChange={(e) => setDateStr(e.target.value)}
+                  required
+                />
+                <select
+                  className="input w-full"
+                  value={hour}
+                  onChange={(e) => setHour(parseInt(e.target.value, 10))}
+                >
+                  {Array.from({ length: 24 }).map((_, h) => (
+                    <option key={h} value={h}>{String(h).padStart(2, '0')}</option>
+                  ))}
+                </select>
+                <select
+                  className="input w-full"
+                  value={minute}
+                  onChange={(e) => setMinute(parseInt(e.target.value, 10))}
+                >
+                  {[0,15,30,45].map(m => (
+                    <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
           {error && (

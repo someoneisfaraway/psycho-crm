@@ -141,7 +141,18 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
     if (type === 'number') {
       processedValue = Number(value);
     } else if (type === 'datetime-local' && name === 'scheduled_at') {
-      processedValue = new Date(value);
+      const dt = new Date(value);
+      if (!isNaN(dt.getTime())) {
+        const m = dt.getMinutes();
+        const snapped = Math.round(m / 15) * 15;
+        if (snapped >= 60) {
+          dt.setHours(dt.getHours() + 1);
+          dt.setMinutes(0, 0, 0);
+        } else {
+          dt.setMinutes(snapped, 0, 0);
+        }
+      }
+      processedValue = dt;
     }
 
     setFormData((prev: FormState) => ({
@@ -157,6 +168,40 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
     if (submitError) {
       setSubmitError('');
     }
+  };
+
+  const handleDateOnlyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const parts = val.split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      const prev = formData.scheduled_at;
+      const next = new Date(prev);
+      next.setFullYear(y, m, d);
+      setFormData(prevState => ({ ...prevState, scheduled_at: next }));
+      if (errors.scheduled_at) setErrors(prev => ({ ...prev, scheduled_at: undefined }));
+      if (submitError) setSubmitError('');
+    }
+  };
+
+  const handleHourChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const h = parseInt(e.target.value, 10);
+    const next = new Date(formData.scheduled_at);
+    next.setHours(h);
+    setFormData(prev => ({ ...prev, scheduled_at: next }));
+    if (errors.scheduled_at) setErrors(prev => ({ ...prev, scheduled_at: undefined }));
+    if (submitError) setSubmitError('');
+  };
+
+  const handleMinuteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const m = parseInt(e.target.value, 10);
+    const next = new Date(formData.scheduled_at);
+    next.setMinutes(m, 0, 0);
+    setFormData(prev => ({ ...prev, scheduled_at: next }));
+    if (errors.scheduled_at) setErrors(prev => ({ ...prev, scheduled_at: undefined }));
+    if (submitError) setSubmitError('');
   };
 
   useEffect(() => {
@@ -391,15 +436,41 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
 
                     <Calendar className="h-5 w-5 text-icon-secondary" />
                   </div>
-                  <input
-                    type="datetime-local"
-                    id="scheduled_at"
-                    name="scheduled_at"
-                    value={formData.scheduled_at ? format(formData.scheduled_at, "yyyy-MM-dd'T'HH:mm") : ''}
-                    onChange={handleChange}
-                    className={`form-input pl-10 ${errors.scheduled_at ? 'border-status-error' : ''}`}
-                    disabled={isViewing}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pl-10">
+                    <input
+                      type="date"
+                      id="scheduled_date"
+                      name="scheduled_date"
+                      value={formData.scheduled_at ? format(formData.scheduled_at, 'yyyy-MM-dd') : ''}
+                      onChange={handleDateOnlyChange}
+                      className={`form-input ${errors.scheduled_at ? 'border-status-error' : ''}`}
+                      disabled={isViewing}
+                    />
+                    <select
+                      id="scheduled_hour"
+                      name="scheduled_hour"
+                      value={formData.scheduled_at ? String(formData.scheduled_at.getHours()) : '0'}
+                      onChange={handleHourChange}
+                      className={`form-input ${errors.scheduled_at ? 'border-status-error' : ''}`}
+                      disabled={isViewing}
+                    >
+                      {Array.from({ length: 24 }).map((_, h) => (
+                        <option key={h} value={h}>{String(h).padStart(2, '0')}</option>
+                      ))}
+                    </select>
+                    <select
+                      id="scheduled_minute"
+                      name="scheduled_minute"
+                      value={formData.scheduled_at ? String(Math.floor(formData.scheduled_at.getMinutes() / 15) * 15) : '0'}
+                      onChange={handleMinuteChange}
+                      className={`form-input ${errors.scheduled_at ? 'border-status-error' : ''}`}
+                      disabled={isViewing}
+                    >
+                      {[0,15,30,45].map(m => (
+                        <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 {timeBusy && <p className="form-error">Это время уже занято!</p>}
                 {errors.scheduled_at && !timeBusy && <p className="form-error">{errors.scheduled_at}</p>}
