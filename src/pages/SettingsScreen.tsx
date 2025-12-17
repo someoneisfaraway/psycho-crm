@@ -803,6 +803,21 @@ const SettingsScreen: React.FC = () => {
         onUpdateSettings={handleUpdateWorkSettings}
       />
 
+      <div className="card mb-6">
+        <h2 className="text-lg font-semibold text-text-primary mb-2">Телеграм - канал</h2>
+        <p className="text-sm text-text-secondary">Ссылка на закрытый канал в Телеграм с подробной инструкцией пользователя</p>
+        <div className="mt-2">
+          <a
+            href="https://t.me/+iJQzCo--A6w0ZTQy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary-600 underline break-all"
+          >
+            https://t.me/+iJQzCo--A6w0ZTQy
+          </a>
+        </div>
+      </div>
+
       {/* Компонент экспорта данных */}
       <DataExport userId={authUser.id} />
 
