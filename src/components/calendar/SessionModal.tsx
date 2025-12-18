@@ -213,7 +213,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
         if (!start || isNaN(start.getTime())) return;
         const dayStr = format(start, 'yyyy-MM-dd');
         const sessions = await sessionsApi.getForDate(userId, dayStr);
-        const candidates = (sessions as any[]).filter(s => s.status === 'scheduled' && (!session || s.id !== session.id));
+        const candidates = (sessions as any[]).filter(s => (!session || s.id !== session.id));
         const sorted = candidates.sort((a,b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
         const before = sorted.filter(s => new Date(s.scheduled_at).getTime() <= start.getTime());
         const prev = before.length ? before[before.length - 1] : null;
@@ -381,7 +381,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ mode, session, clients, isO
 // const formatDateTime = (date: Date) => format(date, 'd MMMM yyyy РІ HH:mm', { locale: ru });
 
   return (
-    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-40">
       <div className="modal-container w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">

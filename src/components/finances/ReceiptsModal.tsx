@@ -61,7 +61,7 @@ const ReceiptsModal: React.FC<ReceiptsModalProps> = ({ isOpen, onClose, userId }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-40">
       <div className="bg-bg-primary rounded-lg shadow-xl w-full max-w-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-primary">
           <h2 className="modal-title">Чеки</h2>

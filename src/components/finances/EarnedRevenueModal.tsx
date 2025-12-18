@@ -87,7 +87,7 @@ const EarnedRevenueModal: React.FC<EarnedRevenueModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-40">
       <div className="bg-bg-primary rounded-lg shadow-xl w-full max-w-2xl mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-xl font-semibold text-gray-900">Доход за период</h2>

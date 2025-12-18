@@ -204,6 +204,25 @@ export const sessionsApi = {
     
     console.log('Client validation successful:', client);
 
+    // Conflict check: prevent overlapping with any existing session (including cancelled)
+    try {
+      const start = new Date(sessionData.scheduled_at);
+      const end = new Date(start.getTime() + ((sessionData.duration ?? 50) * 60000));
+      const dayStr = sessionData.scheduled_at.slice(0, 10);
+      const existing = await sessionsApi.getForDate(user.id, dayStr);
+      const overlaps = (existing as any[]).some(s => {
+        const sStart = new Date(s.scheduled_at);
+        const sEnd = new Date(sStart.getTime() + ((s.duration ?? 50) * 60000));
+        return start < sEnd && end > sStart;
+      });
+      if (overlaps) {
+        throw new Error('Это время уже занято!');
+      }
+    } catch (confErr) {
+      console.error('Overlap check failed:', confErr);
+      if (confErr instanceof Error) throw confErr; else throw new Error(String(confErr));
+    }
+
     // Prepare data for insertion - remove undefined values
     const insertData = {
       user_id: sessionData.user_id,
@@ -325,6 +344,28 @@ export const sessionsApi = {
       .select('*')
       .eq('id', id)
       .single();
+
+    // Conflict check if changing time
+    if (updates.scheduled_at && before?.user_id) {
+      try {
+        const start = new Date(updates.scheduled_at);
+        const end = new Date(start.getTime() + (((before as any).duration ?? 50) * 60000));
+        const dayStr = updates.scheduled_at.slice(0, 10);
+        const existing = await sessionsApi.getForDate((before as any).user_id, dayStr);
+        const overlaps = (existing as any[]).some(s => {
+          if (s.id === id) return false;
+          const sStart = new Date(s.scheduled_at);
+          const sEnd = new Date(sStart.getTime() + ((s.duration ?? 50) * 60000));
+          return start < sEnd && end > sStart;
+        });
+        if (overlaps) {
+          throw new Error('Это время уже занято!');
+        }
+      } catch (confErr) {
+        console.error('Overlap check failed on update:', confErr);
+        if (confErr instanceof Error) throw confErr; else throw new Error(String(confErr));
+      }
+    }
 
     const { data, error } = await supabase
       .from('sessions')

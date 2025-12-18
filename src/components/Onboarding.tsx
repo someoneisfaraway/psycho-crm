@@ -64,7 +64,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-40">
       <div className="modal-container w-full max-w-md p-6 text-center">
         <span className="text-6xl">{slides[currentSlide].icon}</span>
         <h2 className="modal-title mt-4">{slides[currentSlide].title}</h2>
@@ -90,4 +90,3 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
     </div>
   );
 };
-

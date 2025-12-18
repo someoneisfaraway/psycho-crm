@@ -76,7 +76,7 @@ const SessionTransferModal: React.FC<SessionTransferModalProps> = ({ session, is
       if (user?.id) {
         const dayStr = `${newDate.getFullYear()}-${String(newDate.getMonth()+1).padStart(2,'0')}-${String(newDate.getDate()).padStart(2,'0')}`;
         const sessions = await sessionsApi.getForDate(user.id, dayStr);
-        const candidates = (sessions as any[]).filter(s => s.status !== 'cancelled' && s.id !== session.id);
+        const candidates = (sessions as any[]).filter(s => s.id !== session.id);
         const sorted = candidates.sort((a,b)=> new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
         const before = sorted.filter(s => new Date(s.scheduled_at).getTime() <= newDate.getTime());
         const prev = before.length ? before[before.length - 1] : null;
@@ -103,7 +103,7 @@ const SessionTransferModal: React.FC<SessionTransferModalProps> = ({ session, is
   };
 
   return (
-    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-40">
       <div className="bg-bg-primary rounded-lg shadow-xl w-full max-w-lg">
         <div className="p-6 text-text-primary">
           <div className="flex justify-between items-center mb-4">

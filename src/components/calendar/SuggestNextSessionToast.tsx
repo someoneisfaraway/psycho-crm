@@ -33,4 +33,3 @@ const SuggestNextSessionToast: React.FC<SuggestNextSessionToastProps> = ({ isOpe
 };
 
 export default SuggestNextSessionToast;
-
