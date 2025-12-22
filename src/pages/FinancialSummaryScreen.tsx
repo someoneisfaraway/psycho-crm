@@ -17,12 +17,12 @@ const FinancialSummaryScreen: React.FC = () => {
   const [exporting, setExporting] = useState<boolean>(false);
 
   // Период по умолчанию: текущий месяц
-  const [startDate] = useState<string>(() => {
+  const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
     d.setDate(1);
     return d.toISOString().split('T')[0];
   });
-  const [endDate] = useState<string>(() => {
+  const [endDate, setEndDate] = useState<string>(() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1, 0);
     return d.toISOString().split('T')[0];
@@ -124,10 +124,12 @@ const FinancialSummaryScreen: React.FC = () => {
     setExporting(true);
     try {
       const transactions = await getTransactionsForPeriod(startDate, endDate, authUser.id);
-      // Подготовка данных: столбцы — дата, клиент, сумма, тип оплаты, чек отправлен
+      // Подготовка данных: столбцы — Дата, Клиент, ID клиента, Источник клиента, Сумма, Тип оплаты, Чек отправлен
       const rows = transactions.map((t) => ({
         'Дата': new Date(t.date).toLocaleDateString('ru-RU'),
         'Клиент': t.client_name,
+        'ID клиента': t.client_display_id || '',
+        'Источник клиента': (t.client_source === 'private' ? 'личный' : t.client_source) || '',
         'Сумма': t.amount,
         'Тип оплаты': getPaymentMethodLabel(t.payment_method),
         'Чек отправлен': t.receipt_sent ? 'Да' : 'Нет',
@@ -150,6 +152,37 @@ const FinancialSummaryScreen: React.FC = () => {
     <div className="min-h-screen bg-gray-50 pb-16">
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         {/* Заголовок перенесён в общий хедер макета */}
+        
+        {/* Фильтр периода */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Фильтр периода (для отчета и сводки)</h3>
+          <div className="flex flex-col sm:flex-row items-end gap-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm text-gray-500 mb-1">
+                Начало периода
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="form-input block w-full sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+            <div>
+              <label htmlFor="endDate" className="block text-sm text-gray-500 mb-1">
+                Конец периода
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="form-input block w-full sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Модальные окна */}
         <EarnedRevenueModal

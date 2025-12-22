@@ -227,7 +227,7 @@ export const getTransactionsForPeriod = async (
   startDate: string | Date,
   endDate: string | Date,
   userId: string
-): Promise<Array<{ date: string; client_name: string; amount: number; payment_method: string | null; receipt_sent: boolean }>> => {
+): Promise<Array<{ date: string; client_name: string; client_display_id?: string; client_source?: string; amount: number; payment_method: string | null; receipt_sent: boolean }>> => {
   const startISO = typeof startDate === 'string' ? new Date(startDate).toISOString() : startDate.toISOString();
   const endDateObj = typeof endDate === 'string' ? new Date(endDate) : endDate;
   endDateObj.setHours(23, 59, 59, 999);
@@ -250,15 +250,19 @@ export const getTransactionsForPeriod = async (
     const sessions: SessionSummaryRow[] = (data || []) as SessionSummaryRow[];
 
     const clientIds = [...new Set(sessions.map((s) => s.client_id))];
-    let clientNames: Record<string, string> = {};
+    let clientData: Record<string, { name: string; display_id?: string; source?: string }> = {};
     if (clientIds.length > 0) {
       const { data: clients, error: clientsError } = await supabase
         .from('clients')
-        .select('id, name')
+        .select('id, name, display_id, source')
         .in('id', clientIds);
       if (!clientsError && clients) {
-        clientNames = clients.reduce((acc: Record<string, string>, client: { id: string; name: string }) => {
-          acc[client.id] = client.name;
+        clientData = clients.reduce((acc: Record<string, { name: string; display_id?: string; source?: string }>, client: { id: string; name: string; display_id?: string; source?: string }) => {
+          acc[client.id] = { 
+            name: client.name,
+            display_id: client.display_id,
+            source: client.source
+          };
           return acc;
         }, {});
       }
@@ -268,7 +272,9 @@ export const getTransactionsForPeriod = async (
       .filter((s) => !!s.paid)
       .map((s) => ({
         date: s.scheduled_at,
-        client_name: clientNames[s.client_id] || 'Unknown Client',
+        client_name: clientData[s.client_id]?.name || 'Unknown Client',
+        client_display_id: clientData[s.client_id]?.display_id,
+        client_source: clientData[s.client_id]?.source,
         amount: s.price || 0,
         payment_method: s.payment_method || null,
         receipt_sent: !!s.receipt_sent,

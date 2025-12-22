@@ -111,6 +111,21 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, onEdit, onClose, 
                 <span>{client.telegram}</span>
               </div>
             )}
+            
+            <div className="mt-4 pt-3 border-t border-gray-100">
+                <button 
+                  onClick={() => {
+                    const botLink = "https://t.me/practicecrmalerts_bot";
+                    const link = `${botLink}?start=${client.id}`;
+                    navigator.clipboard.writeText(link);
+                    alert('Ссылка скопирована. Отправьте её клиенту.');
+                    window.open(link, '_blank');
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center font-medium"
+                >
+                  📱 Отправить ссылку на бота клиенту
+                </button>
+            </div>
           </div>
         </div>
 

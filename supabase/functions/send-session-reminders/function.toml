@@ -1,15 +1,6 @@
 [function]
 entrypoint = "index.ts"
-# runtime и name обычно указываются CLI автоматически при деплое, но их можно указать и явно
-# runtime = "edge"
-# name = "send-session-reminders"
-
-[function.environment]
-# Здесь можно указать переменные окружения, если они нужны функции
 
 [[function.schedules]]
-id = "send-session-reminders-every-15-min"
-cron = "*/15 * * * *"
-# timezone = "UTC" # Опционально, по умолчанию UTC
-# enabled = true   # Опционально, по умолчанию true
-# payload = '{"action":"run"}' # Опционально, полезно если функция ожидает тело POST-запроса
+id = "send-session-reminders-every-5-min"
+cron = "*/5 * * * *"

@@ -1,0 +1,5 @@
+[function]
+entrypoint = "index.ts"
+
+[function.config]
+verify_jwt = false

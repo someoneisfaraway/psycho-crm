@@ -578,6 +578,8 @@ const SettingsScreen: React.FC = () => {
     timezone: 'Europe/Moscow', // Значение по умолчанию
   });
   const [dbUserName, setDbUserName] = useState<string>('');
+  const [telegramEnabled, setTelegramEnabled] = useState<boolean>(false);
+  const [linkingTelegram, setLinkingTelegram] = useState<boolean>(false);
 
   
 
@@ -802,6 +804,8 @@ const SettingsScreen: React.FC = () => {
         settings={workSettings}
         onUpdateSettings={handleUpdateWorkSettings}
       />
+
+
 
       <div className="card mb-6">
         <h2 className="text-lg font-semibold text-text-primary mb-2">Телеграм - канал</h2>

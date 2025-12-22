@@ -314,6 +314,37 @@ export const sessionsApi = {
           await sendPushToUser(user.id, heading, body, undefined, reminderAt.toISOString());
         }
       } catch {}
+
+      // Telegram immediate notification (optional)
+      try {
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('telegram_reminders_enabled')
+          .eq('id', user.id)
+          .single();
+        if ((userRow as any)?.telegram_reminders_enabled) {
+          const d = new Date(createdSession.scheduled_at);
+          const dd = String(d.getDate()).padStart(2, '0');
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const HH = String(d.getHours()).padStart(2, '0');
+          const MI = String(d.getMinutes()).padStart(2, '0');
+          const sessionDate = `${dd}.${mm}`;
+          const sessionTime = `${HH}:${MI}`;
+          const reminderAt = new Date(d.getTime() - 60 * 60 * 1000);
+          await supabase.functions.invoke('send-telegram-notification', {
+            body: {
+              userId: user.id,
+              clientId: createdSession.client_id,
+              clientName: (createdSession as any).clients?.name || '',
+              sessionDate,
+              sessionTime,
+              scheduledFor: reminderAt.toISOString(),
+            },
+          });
+        }
+      } catch (telegramErr) {
+        console.warn('Telegram notification invoke failed or disabled:', telegramErr);
+      }
       
       // Update client's next_session_at field
       if (createdSession.client_id && createdSession.scheduled_at) {
@@ -416,6 +447,35 @@ export const sessionsApi = {
             const heading = clientName ? `Напоминание о сессии\n${middleLine}\n${clientName}` : 'Напоминание о сессии';
             const body = formatRuDateTime(newAt);
             await sendPushToUser(user.id, heading, body, undefined, reminderAt.toISOString());
+          }
+
+          // Telegram notification on reschedule (optional)
+          try {
+            const { data: userRow } = await supabase
+              .from('users')
+              .select('telegram_reminders_enabled')
+              .eq('id', user.id)
+              .single();
+            if ((userRow as any)?.telegram_reminders_enabled) {
+              const d = newAt;
+              const dd = String(d.getDate()).padStart(2, '0');
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const HH = String(d.getHours()).padStart(2, '0');
+              const MI = String(d.getMinutes()).padStart(2, '0');
+              const sessionDate = `${dd}.${mm}`;
+              const sessionTime = `${HH}:${MI}`;
+              await supabase.functions.invoke('send-telegram-notification', {
+                body: {
+                  userId: user.id,
+                  clientId: (data as any).client_id,
+                  clientName: (data as any).clients?.name || '',
+                  sessionDate,
+                  sessionTime,
+                },
+              });
+            }
+          } catch (telegramErr) {
+            console.warn('Telegram notification invoke failed on update:', telegramErr);
           }
         }
       }
