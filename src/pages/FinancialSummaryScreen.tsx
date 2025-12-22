@@ -155,11 +155,11 @@ const FinancialSummaryScreen: React.FC = () => {
         
         {/* Фильтр периода */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Фильтр периода (для отчета и сводки)</h3>
-          <div className="flex flex-col sm:flex-row items-end gap-4">
-            <div>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Период для отчета</h3>
+          <div className="flex flex-row items-end gap-2">
+            <div className="flex-1">
               <label htmlFor="startDate" className="block text-sm text-gray-500 mb-1">
-                Начало периода
+                Начало
               </label>
               <input
                 type="date"
@@ -169,9 +169,9 @@ const FinancialSummaryScreen: React.FC = () => {
                 className="form-input block w-full sm:text-sm border-gray-300 rounded-md"
               />
             </div>
-            <div>
+            <div className="flex-1">
               <label htmlFor="endDate" className="block text-sm text-gray-500 mb-1">
-                Конец периода
+                Конец
               </label>
               <input
                 type="date"
