@@ -578,8 +578,6 @@ const SettingsScreen: React.FC = () => {
     timezone: 'Europe/Moscow', // Значение по умолчанию
   });
   const [dbUserName, setDbUserName] = useState<string>('');
-  const [telegramEnabled, setTelegramEnabled] = useState<boolean>(false);
-  const [linkingTelegram, setLinkingTelegram] = useState<boolean>(false);
 
   
 
