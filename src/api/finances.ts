@@ -63,26 +63,30 @@ export const getFinancialSummary = async (
 
     const sessions: SessionSummaryRow[] = (data || []) as SessionSummaryRow[];
 
-    // Запрос для получения данных клиентов (имя, для списка должников)
+    // Запрос для получения данных клиентов (имя, тип оплаты, необходимость чека)
     // Сначала получим уникальные ID клиентов из сессий
     const clientIds = [...new Set(sessions.map((s: SessionSummaryRow) => s.client_id))];
-    let clientNames: Record<string, string> = {};
+    let clientDetails: Record<string, { name: string; payment_type?: string; need_receipt?: boolean }> = {};
+    
     if (clientIds.length > 0) {
       const { data: clients, error: clientsError } = await supabase
         .from('clients')
-        .select('id, name')
+        .select('id, name, payment_type, need_receipt')
         .in('id', clientIds);
 
       if (clientsError) {
-        console.error('Ошибка при получении имён клиентов для финансовой сводки:', clientsError);
-        // Можно не прерывать выполнение, а просто не отображать имена в должниках
-        clientNames = {};
+        console.error('Ошибка при получении данных клиентов для финансовой сводки:', clientsError);
+        clientDetails = {};
       } else {
-        // Создаём маппинг ID -> Имя
-        clientNames = (clients || []).reduce((acc: Record<string, string>, client: { id: string; name: string }) => {
-          acc[client.id] = client.name;
+        // Создаём маппинг ID -> Детали клиента
+        clientDetails = (clients || []).reduce((acc: Record<string, { name: string; payment_type?: string; need_receipt?: boolean }>, client: any) => {
+          acc[client.id] = {
+            name: client.name,
+            payment_type: client.payment_type,
+            need_receipt: client.need_receipt
+          };
           return acc;
-        }, {} as Record<string, string>);
+        }, {});
       }
     }
 
@@ -139,20 +143,24 @@ export const getFinancialSummary = async (
 
     const requiredClientIds = Array.from(
       new Set([
-        ...Object.keys(clientNames),
+        ...Object.keys(clientDetails),
         ...allDebtsSessions.map((s) => s.client_id),
         ...allReceiptsSessions.map((s) => s.client_id),
       ])
     );
-    const missingIds = requiredClientIds.filter((id) => !clientNames[id]);
+    const missingIds = requiredClientIds.filter((id) => !clientDetails[id]);
     if (missingIds.length > 0) {
       const { data: moreClients } = await supabase
         .from('clients')
-        .select('id, name')
+        .select('id, name, payment_type, need_receipt')
         .in('id', missingIds);
       if (moreClients) {
-        moreClients.forEach((c: { id: string; name: string }) => {
-          clientNames[c.id] = c.name;
+        moreClients.forEach((c: any) => {
+          clientDetails[c.id] = {
+            name: c.name,
+            payment_type: c.payment_type,
+            need_receipt: c.need_receipt
+          };
         });
       }
     }
@@ -168,19 +176,28 @@ export const getFinancialSummary = async (
     const debtors = Object.entries(debtorsMap)
       .map(([client_id, debt_amount]) => ({
         client_id,
-        client_name: clientNames[client_id] || 'Unknown Client',
+        client_name: clientDetails[client_id]?.name || 'Unknown Client',
         debt_amount,
       }))
       .sort((a, b) => (b.debt_amount || 0) - (a.debt_amount || 0));
 
-    const receiptReminders = allReceiptsSessions.map((session: SessionSummaryRow) => ({
+    // Filter receipts: exclude if payment_type is 'cash' (Cash (no receipts)) or need_receipt is false
+    const filteredReceiptSessions = allReceiptsSessions.filter(session => {
+      const client = clientDetails[session.client_id];
+      if (!client) return true; // Keep if client unknown
+      const isCash = client.payment_type === 'cash';
+      const receiptsDisabled = client.need_receipt === false;
+      return !isCash && !receiptsDisabled;
+    });
+
+    const receiptReminders = filteredReceiptSessions.map((session: SessionSummaryRow) => ({
       client_id: session.client_id,
-      client_name: clientNames[session.client_id] || 'Unknown Client',
+      client_name: clientDetails[session.client_id]?.name || 'Unknown Client',
       session_date: session.scheduled_at,
       session_id: session.id,
     }));
 
-    const receiptsToSendCount = allReceiptsSessions.length;
+    const receiptsToSendCount = filteredReceiptSessions.length;
 
     // 5. Недавние транзакции: последние оплаченные сессии
     const recentTransactions = sessions
@@ -190,7 +207,7 @@ export const getFinancialSummary = async (
       .map((s) => ({
         id: s.id,
         client_id: s.client_id,
-        client_name: clientNames[s.client_id] || 'Unknown Client',
+        client_name: clientDetails[s.client_id]?.name || 'Unknown Client',
         amount: s.price || 0,
         date: s.scheduled_at,
         payment_method: s.payment_method || null,

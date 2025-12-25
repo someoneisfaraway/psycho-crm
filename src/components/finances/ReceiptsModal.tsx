@@ -34,7 +34,7 @@ const ReceiptsModal: React.FC<ReceiptsModalProps> = ({ isOpen, onClose, userId }
         .select(`
           scheduled_at,
           price,
-          clients ( name )
+          clients ( name, payment_type, need_receipt )
         `)
         .eq('user_id', userId)
         .eq('paid', true)
@@ -43,11 +43,21 @@ const ReceiptsModal: React.FC<ReceiptsModalProps> = ({ isOpen, onClose, userId }
 
       if (sessionsError) throw sessionsError;
 
-      const receiptsList = (sessions || []).map((s: any) => ({
-        session_date: new Date(s.scheduled_at).toLocaleString('ru-RU'),
-        client_name: s.clients?.name || 'Неизвестный клиент',
-        amount: s.price || 0,
-      }));
+      const receiptsList = (sessions || [])
+        .filter((s: any) => {
+          const client = s.clients;
+          // Если клиента нет, оставляем (на всякий случай)
+          if (!client) return true;
+          // Исключаем, если тип оплаты 'cash' или чеки отключены
+          const isCash = client.payment_type === 'cash';
+          const receiptsDisabled = client.need_receipt === false;
+          return !isCash && !receiptsDisabled;
+        })
+        .map((s: any) => ({
+          session_date: new Date(s.scheduled_at).toLocaleString('ru-RU'),
+          client_name: s.clients?.name || 'Неизвестный клиент',
+          amount: s.price || 0,
+        }));
 
       setReceipts(receiptsList);
     } catch (err: any) {
